@@ -150,6 +150,8 @@ tr.today-row td { background: var(--amber-soft); }
 .alert .dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 7px; flex: none; }
 .alert.warning .dot { background: var(--accent); }
 .alert.error .dot { background: var(--red); }
+.alert.note { background: var(--surface-2); color: var(--text-soft); }
+.alert.note .dot { background: var(--muted); }
 
 /* ---------- forms ---------- */
 .form { display: grid; gap: 16px; max-width: 640px; }

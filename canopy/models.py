@@ -239,12 +239,15 @@ class Group(TimestampMixin, db.Model):
     def killed_plants(self) -> list[Plant]:
         return [p for p in self.plants if p.status == PlantStatus.killed]
 
-    def strain_summary(self) -> str:
-        names: list[str] = []
+    def strain_labels(self) -> list[str]:
+        """Unique strain names of living plants, suffixed with ×N when repeated."""
+        counts: dict[str, int] = {}
         for p in self.living_plants:
-            if p.strain.name not in names:
-                names.append(p.strain.name)
-        return ", ".join(names)
+            counts[p.strain.name] = counts.get(p.strain.name, 0) + 1
+        return [name if n == 1 else f"{name} ×{n}" for name, n in counts.items()]
+
+    def strain_summary(self) -> str:
+        return ", ".join(self.strain_labels())
 
     def __repr__(self) -> str:  # pragma: no cover
         return f"<Group {self.number}>"

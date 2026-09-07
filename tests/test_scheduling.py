@@ -81,7 +81,7 @@ def test_conflict_capacity_exceeded(app):
     room.capacity = 5
     db.session.commit()
     c = sched.conflicts(groups(), [room], ref=REF)
-    assert any(x.severity == "error" and "exceeds its maximum" in x.message for x in c)
+    assert any(x.severity == "note" and "exceeds its maximum" in x.message for x in c)
 
 
 def test_conflict_scheduled_without_space_or_plants(app):

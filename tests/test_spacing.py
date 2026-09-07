@@ -72,9 +72,13 @@ def test_conflicts_use_area_from_today(app):
     flower = db.session.query(Space).filter_by(name="Flower Room").one()
     flower.width_ft, flower.length_ft = 2, 4
     db.session.commit()
-    msgs = [c.message for c in sched.conflicts(groups, spaces(), plants, ref=REF)]
+    found = sched.conflicts(groups, spaces(), plants, ref=REF)
+    msgs = [c.message for c in found]
     assert any("needs 25.5 sq ft on Sep 07 but has 8" in m for m in msgs)
-    assert any("over capacity today" in m for m in msgs)
+    # One quiet note per space — the area shortfall above already says it, so the
+    # "over capacity today" line must not repeat it for the same space.
+    assert all(c.severity == "note" for c in found)
+    assert [c.space.name for c in found].count("Flower Room") == 1
 
 
 def test_move_plants_aligns_status(app):

@@ -86,7 +86,7 @@ def timeline_rows(groups: Iterable[Group], *, ref: date | None = None) -> list[d
                 "color": g.color,
                 "status": g.status.value,
                 "space": g.space.name if g.space else None,
-                "strains": [p.strain.name for p in g.living_plants],
+                "strains": g.strain_labels(),
                 "plant_count": len(g.living_plants),
                 "progress": round(g.progress(ref), 3),
                 "day_of_flower": g.day_of_flower(ref),
@@ -151,7 +151,7 @@ def suggest_start(
 # ---------------------------------------------------------------------------
 @dataclass(frozen=True)
 class Conflict:
-    severity: str  # "warning" | "error"
+    severity: str  # "note" | "warning" | "error"
     message: str
     group: Group | None = None
     space: Space | None = None
@@ -187,6 +187,9 @@ def conflicts(
     # user-set maximum plant count in every case.
     from . import spacing
 
+    # At most one capacity note per space: these are estimates from footprints and
+    # dimensions, so they inform rather than alarm, and saying it twice is just noise.
+    reported: set[int] = set()
     for s in spaces:
         series = spacing.load_series(s, groups, ref=ref)
         worst = spacing.peak(series, since=ref)  # history is not an alert
@@ -194,28 +197,25 @@ def conflicts(
             continue
         day = date.fromisoformat(worst["date"])
         if s.area_sqft and worst["sqft"] > s.area_sqft:
-            out.append(
-                Conflict(
-                    "error",
-                    f"{s.name} needs {worst['sqft']:g} sq ft on {day:%b %d} but has {s.area_sqft:g}.",
-                    space=s,
-                )
+            message = (
+                f"{s.name} needs {worst['sqft']:g} sq ft on {day:%b %d} but has {s.area_sqft:g}."
             )
         elif worst["count"] > s.capacity:
-            out.append(
-                Conflict(
-                    "error",
-                    f"{s.name} exceeds its maximum ({worst['count']}/{s.capacity} plants) on {day:%b %d}.",
-                    space=s,
-                )
+            message = (
+                f"{s.name} exceeds its maximum ({worst['count']}/{s.capacity} plants) "
+                f"on {day:%b %d}."
             )
+        else:
+            continue
+        out.append(Conflict("note", message, space=s))
+        reported.add(s.id)
 
-    # Current occupancy of every space (clone shelf, veg tent, flower tent) by plant location.
+    # Current occupancy, for spaces the projection above did not already cover.
     for occ in spacing.occupancy(spaces, plants).values():
-        if occ.over:
+        if occ.over and occ.space.id not in reported:
             out.append(
                 Conflict(
-                    "warning",
+                    "note",
                     f"{occ.space.name} is over capacity today: {occ.count} plants, "
                     f"{occ.used_sqft:g} sq ft used.",
                     space=occ.space,

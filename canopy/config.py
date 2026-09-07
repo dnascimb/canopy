@@ -10,6 +10,12 @@ import os
 from datetime import date
 from pathlib import Path
 
+from dotenv import load_dotenv
+
+# Read .env before the settings below are evaluated, so `flask run`, gunicorn and any
+# plain import of the app all see the same configuration.
+load_dotenv()
+
 
 class Config:
     SECRET_KEY = os.environ.get("CANOPY_SECRET_KEY", "dev-only-change-me")
@@ -42,3 +48,5 @@ class TestConfig(Config):
     SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
     WTF_CSRF_ENABLED = False
     TODAY_OVERRIDE = date(2026, 9, 7).isoformat()
+    # Always the defaults in services/spacing.py, never whatever .env this machine has.
+    FOOTPRINT_SQFT: dict[str, dict[str, float]] = {}
