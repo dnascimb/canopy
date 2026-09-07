@@ -124,6 +124,14 @@ td.num, th.num { text-align: right; font-family: var(--mono); font-variant-numer
 td.date { font-family: var(--mono); white-space: nowrap; }
 tr.done td { color: var(--muted); }
 tr.today-row td { background: var(--amber-soft); }
+tr.future td { background: var(--blue-soft); }
+.tag { font-size: 0.72rem; color: var(--muted); margin-left: 5px; vertical-align: 1px; }
+tr.future .tag { color: var(--blue); }
+table.sortable thead th { cursor: pointer; user-select: none; white-space: nowrap; }
+table.sortable thead th:hover { color: var(--text-soft); }
+table.sortable thead th:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+table.sortable thead th[aria-sort="ascending"]::after { content: " \2191"; }
+table.sortable thead th[aria-sort="descending"]::after { content: " \2193"; }
 .table-wrap { overflow-x: auto; }
 .empty { padding: 28px; text-align: center; color: var(--muted); }
 .empty a { font-weight: 500; }

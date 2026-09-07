@@ -19,18 +19,19 @@
   <section>
     <div class="section-head"><h2>Events</h2><span class="hint">{{ events|length }} milestones</span></div>
     <div class="panel tight table-wrap">
-      <table>
+      <table class="sortable" data-sort-col="0" data-sort-dir="desc">
         <thead><tr><th>Date</th><th>Event</th><th>Space</th><th class="num">Days</th></tr></thead>
         <tbody>
         {% for e in events %}
-          <tr class="{{ 'done' if e.on < ref }} {{ 'today-row' if e.on == ref }}">
-            <td class="date">{{ e.on|d }}</td>
-            <td><span class="swatch" style="background: {{ e.group.color }}"></span><a href="{{ url_for('groups.detail', group_id=e.group.id) }}">{{ e.group.label }}</a> {{ 'start flower' if e.kind == 'start' else 'end flower' }}</td>
-            <td class="muted">{{ e.group.space.name if e.group.space else '—' }}</td>
-            <td class="num">{{ e.group.flower_days if e.kind == 'end' else '' }}</td>
+          {% set when = 'done' if e.on < ref else ('today-row' if e.on == ref else 'future') %}
+          <tr class="{{ when }}">
+            <td class="date" data-v="{{ e.on.isoformat() }}">{{ e.on|d }}{% if when == 'future' %} <span class="tag">upcoming</span>{% endif %}</td>
+            <td data-v="{{ e.group.label }} {{ e.kind }}"><span class="swatch" style="background: {{ e.group.color }}"></span><a href="{{ url_for('groups.detail', group_id=e.group.id) }}">{{ e.group.label }}</a> {{ 'start flower' if e.kind == 'start' else 'end flower' }}</td>
+            <td class="muted" data-v="{{ e.group.space.name if e.group.space else '' }}">{{ e.group.space.name if e.group.space else '—' }}</td>
+            <td class="num" data-v="{{ e.group.flower_days if e.kind == 'end' else '' }}">{{ e.group.flower_days if e.kind == 'end' else '' }}</td>
           </tr>
         {% else %}
-          <tr><td colspan="4" class="empty">No scheduled groups yet.</td></tr>
+          <tr data-no-sort><td colspan="4" class="empty">No scheduled groups yet.</td></tr>
         {% endfor %}
         </tbody>
       </table>
@@ -75,3 +76,4 @@
   </div>
 </div>
 {% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/sortable.js') }}"></script>{% endblock %}
