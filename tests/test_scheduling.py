@@ -1,0 +1,142 @@
+from datetime import date
+
+from canopy.extensions import db
+from canopy.models import Group, Plant, Space, Strain
+from canopy.services import scheduling as sched
+
+REF = date(2026, 9, 7)
+
+
+def groups():
+    return db.session.query(Group).all()
+
+
+def test_today_uses_override(app):
+    assert sched.today() == REF
+
+
+def test_events_sorted_ends_before_starts(app):
+    ev = sched.events(groups())
+    dates = [e.on for e in ev]
+    assert dates == sorted(dates)
+    # Sep 22: Grp 6 ends and Grp 12 starts — end must come first.
+    sep22 = [e for e in ev if e.on == date(2026, 9, 22)]
+    assert [e.kind for e in sep22] == ["end", "start"]
+    assert sep22[0].label == "Grp 6 end flower (70 days)"
+    assert sep22[1].label == "Grp 12 start flower"
+
+
+def test_upcoming_window(app):
+    up = sched.upcoming(groups(), days=30, ref=REF)
+    assert {(e.on, e.kind) for e in up} == {
+        (date(2026, 9, 22), "end"),
+        (date(2026, 9, 22), "start"),
+    }
+
+
+def test_timeline_rows_shape(app):
+    rows = sched.timeline_rows(groups(), ref=REF)
+    assert [r["label"] for r in rows][:3] == ["Goji 3x", "Grp 1", "Grp 2"]
+    g7 = next(r for r in rows if r["number"] == 7)
+    assert g7["days"] == 112 and g7["end"] == "2026-11-17"
+    assert g7["day_of_flower"] == 42
+    assert g7["strains"] == ["EQ Haze", "Durban Poison"]
+    assert all("start" not in r or r["start"] for r in rows)
+    assert not any(r["label"] == "Next up" for r in rows)  # unscheduled groups excluded
+
+
+def test_timeline_bounds_pads(app):
+    rows = sched.timeline_rows(groups(), ref=REF)
+    t0, t1 = sched.timeline_bounds(rows, pad_days=7)
+    assert t0 == date(2026, 5, 5)
+    assert t1 == date(2026, 12, 27)
+
+
+def test_openings_skip_backfilled_slots(app):
+    opens = sched.openings(groups(), ref=REF)
+    # Grp 6 ends Sep 22 but Grp 12 starts that day in the same space => not an opening.
+    assert all(o.on != date(2026, 9, 22) for o in opens)
+    assert [(o.on, o.freed_by.number) for o in opens[:3]] == [
+        (date(2026, 10, 25), 10),
+        (date(2026, 11, 2), 11),
+        (date(2026, 11, 17), 7),
+    ]
+
+
+def test_suggest_start_for_unscheduled_group(app):
+    g = db.session.query(Group).filter_by(number=17).one()
+    s = sched.suggest_start(g, groups(), ref=REF)
+    assert s is not None
+    assert s.on == date(2026, 10, 25)
+    assert s.freed_by.number == 10
+    assert s.space.name == "Flower Room"
+
+
+def test_conflicts_clean_on_demo_data(app):
+    assert sched.conflicts(groups(), db.session.query(Space).all(), ref=REF) == []
+
+
+def test_conflict_capacity_exceeded(app):
+    room = db.session.query(Space).filter_by(name="Flower Room").one()
+    room.capacity = 5
+    db.session.commit()
+    c = sched.conflicts(groups(), [room], ref=REF)
+    assert any(x.severity == "error" and "exceeds its maximum" in x.message for x in c)
+
+
+def test_conflict_scheduled_without_space_or_plants(app):
+    g = Group(number=950, flower_start=date(2026, 10, 1), flower_days=60)
+    db.session.add(g)
+    db.session.commit()
+    msgs = [c.message for c in sched.conflicts(groups(), [], ref=REF)]
+    assert "Grp 950 is scheduled but not assigned to a space." in msgs
+    assert "Grp 950 is scheduled but has no living plants." in msgs
+
+
+def test_implied_status(app):
+    assert (
+        sched.implied_status(db.session.query(Group).filter_by(number=6).one(), REF).value
+        == "flowering"
+    )
+    assert (
+        sched.implied_status(db.session.query(Group).filter_by(number=12).one(), REF).value
+        == "vegetative"
+    )
+    assert (
+        sched.implied_status(db.session.query(Group).filter_by(number=1).one(), REF).value
+        == "drying"
+    )
+    assert (
+        sched.implied_status(db.session.query(Group).filter_by(number=17).one(), REF).value
+        == "vegetative"
+    )
+
+
+def test_ascii_timeline_is_plain_ascii(app):
+    rows = sched.timeline_rows(groups(), ref=REF)
+    art = sched.ascii_timeline(rows, ref=REF)
+    assert art.isascii()
+    lines = art.splitlines()
+    assert lines[0].lstrip().startswith("|MAY")
+    assert any(line.startswith("Grp 7 ") and line.rstrip().endswith("112d") for line in lines)
+    assert "* = today (Sep 07)" in art
+    assert sched.ascii_timeline([], ref=REF) == "(no scheduled groups)"
+
+
+def test_markdown_export_contains_groups_table_and_timeline(app):
+    md = sched.markdown_export(groups(), ref=REF)
+    assert "## Groups" in md and "## Schedule" in md and "## Timeline" in md
+    assert "- **Grp 1** — Swazipulco F2, Gorilla Snacks I" in md
+    assert "~~Lemon Lime Haze 1~~" in md
+    assert "| Nov 17 | Grp 7 end flower (112 days) |" in md
+    assert "```" in md
+
+
+def test_inventory_and_plant_counts(app):
+    inv = sched.inventory_summary(db.session.query(Strain).all())
+    assert inv["strains"] == 30
+    assert inv["breeders"] == 1
+    counts = sched.plant_counts(db.session.query(Plant).all())
+    assert counts["killed"] == 6
+    assert counts["flowering"] == 10
+    assert counts["clone"] == 3

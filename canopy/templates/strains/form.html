@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% from "_macros.html" import field, csrf %}
+{% block title %}{{ 'Edit ' ~ strain.name if strain else 'Add strain' }}{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>{{ 'Edit ' ~ strain.name if strain else 'Add strain' }}</h1></div></div>
+<form method="post" class="form" novalidate>
+  {{ csrf() }}
+  <div class="form-grid">
+    {{ field(form.name) }}
+    {{ field(form.breeder) }}
+    {{ field(form.seed_type) }}
+    {{ field(form.flower_days, help='Typical days from flip to harvest.') }}
+    {{ field(form.seeds_on_hand) }}
+    {{ field(form.size, help='Footprint class for space planning: small (autos, compact indicas), medium, large (hazes, stretchy sativas).') }}
+  </div>
+  {{ field(form.lineage, help='e.g. Red Lebanese x (PNW HashPlant x Northern Lights #1)') }}
+  {{ field(form.notes) }}
+  <div class="form-actions">
+    <button class="btn primary" type="submit">{{ 'Save changes' if strain else 'Add strain' }}</button>
+    <a class="btn ghost" href="{{ url_for('strains.detail', strain_id=strain.id) if strain else url_for('strains.index') }}">Cancel</a>
+  </div>
+</form>
+{% endblock %}

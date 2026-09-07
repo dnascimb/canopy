@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% from "_macros.html" import field, csrf %}
+{% block title %}Restore backup{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Restore a backup</h1><p class="sub">Paste the contents of a <code>canopy-backup.json</code> file. Replacing wipes the current database first.</p></div></div>
+<form method="post" class="form">
+  {{ csrf() }}
+  {{ field(form.payload) }}
+  <label class="row"><input type="checkbox" name="replace" checked> Replace all existing data</label>
+  <div class="form-actions"><button class="btn primary" type="submit">Restore</button><a class="btn ghost" href="{{ url_for('schedule.index') }}">Cancel</a></div>
+</form>
+{% endblock %}

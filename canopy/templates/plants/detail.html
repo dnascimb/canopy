@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge, csrf, confirm_button, field %}
+{% block title %}{{ plant.label }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ plant.label }}</h1><p class="sub">{{ badge(plant.status.value) }} · <a href="{{ url_for('strains.detail', strain_id=plant.strain.id) }}">{{ plant.strain.display_name }}</a>{% if plant.group %} · <a href="{{ url_for('groups.detail', group_id=plant.group.id) }}">{{ plant.group.label }}</a>{% endif %}</p></div>
+  <div class="actions">
+    <a class="btn" href="{{ url_for('plants.edit', plant_id=plant.id) }}">Edit</a>
+    {{ confirm_button(url_for('plants.delete', plant_id=plant.id), 'Delete', 'Delete ' ~ plant.label ~ ' permanently?', 'btn danger') }}
+  </div>
+</div>
+<div class="grid-2">
+  <div class="panel">
+    <h2 class="mb">Details</h2>
+    <dl class="kv">
+      <dt>Strain</dt><dd>{{ plant.strain.display_name }}</dd>
+      <dt>Lineage</dt><dd class="soft">{{ plant.strain.lineage or '—' }}</dd>
+      <dt>Group</dt><dd>{{ plant.group.label if plant.group else '—' }}</dd>
+      <dt>Location</dt><dd>{{ location.name if location else '—' }}{% if plant.space %} <span class="muted small">(set)</span>{% elif location %} <span class="muted small">(by stage)</span>{% endif %}</dd>
+      <dt>Started</dt><dd class="mono">{{ plant.started_on|dlong }}</dd>
+      <dt>Ended</dt><dd class="mono">{{ plant.ended_on|dlong }}</dd>
+      {% if plant.end_reason %}<dt>Reason</dt><dd>{{ plant.end_reason }}</dd>{% endif %}
+      {% if plant.group and plant.group.flower_start %}<dt>Flip</dt><dd class="mono">{{ plant.group.flower_start|d }} → {{ plant.group.flower_end|d }}</dd>{% endif %}
+    </dl>
+    {% if plant.notes %}<p class="mt soft" style="white-space: pre-wrap">{{ plant.notes }}</p>{% endif %}
+    {% if plant.is_alive and plant.status.value != 'harvested' %}
+    <form method="post" action="{{ url_for('plants.move', plant_id=plant.id) }}" class="row mt">{{ csrf() }}<span class="muted small">Move to</span>{{ move_form.space_id(style='width:auto') }}<button class="btn small" type="submit">Move</button></form>
+    {% endif %}
+    <div class="row mt">
+      <span class="muted small">Set status:</span>
+      {% for s in ['clone','seedling','vegetative','flowering','harvested'] %}{% if s != plant.status.value %}
+      <form class="inline" method="post" action="{{ url_for('plants.set_status', plant_id=plant.id) }}">{{ csrf() }}<input type="hidden" name="status" value="{{ s }}"><button class="btn small ghost" type="submit">{{ s }}</button></form>
+      {% endif %}{% endfor %}
+    </div>
+  </div>
+  <div class="panel">
+    {% if plant.is_alive %}
+    <h2 class="mb">Mark as killed</h2>
+    <form method="post" action="{{ url_for('plants.kill', plant_id=plant.id) }}" class="form">
+      {{ csrf() }}
+      <div class="form-grid">{{ field(kill_form.ended_on) }}{{ field(kill_form.end_reason, help='e.g. hermaphrodite, sickly leaves, culled for space') }}</div>
+      <div><button class="btn danger" type="submit">Mark killed</button></div>
+    </form>
+    {% else %}
+    <h2 class="mb">History</h2>
+    <p class="soft">This plant was {{ plant.status.value }} on {{ plant.ended_on|dlong }}.{% if plant.end_reason %} Reason: {{ plant.end_reason }}.{% endif %}</p>
+    {% endif %}
+    {% if plant.harvests %}
+    <h3 class="mt mb">Harvest</h3>
+    <table><thead><tr><th>Date</th><th class="num">Wet</th><th class="num">Dry</th></tr></thead><tbody>
+    {% for h in plant.harvests %}<tr><td class="date">{{ h.harvested_on|d }}</td><td class="num">{{ h.wet_weight_g|grams }}</td><td class="num">{{ h.dry_weight_g|grams }}</td></tr>{% endfor %}
+    </tbody></table>
+    {% endif %}
+    {% if plant.journal_entries %}
+    <h3 class="mt mb">Journal</h3>
+    <ul class="journal">{% for j in plant.journal_entries|sort(attribute='entry_date', reverse=true) %}
+      <li><div class="head"><span class="when">{{ j.entry_date|d }}</span><strong>{{ j.title }}</strong></div>{% if j.body %}<div class="body small">{{ j.body }}</div>{% endif %}</li>
+    {% endfor %}</ul>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

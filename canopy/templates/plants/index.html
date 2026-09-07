@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge %}
+{% block title %}Plants{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Plants</h1><p class="sub">{{ counts.flowering }} flowering · {{ counts.vegetative + counts.seedling }} in veg · {{ counts.harvested }} harvested · {{ counts.killed }} killed</p></div>
+  <div class="actions"><a class="btn primary" href="{{ url_for('plants.create') }}">Add plant</a></div>
+</div>
+<form class="filters" method="get">
+  <select name="status" aria-label="Status"><option value="">Any status</option>{% for s in statuses %}<option value="{{ s.value }}" {{ 'selected' if s.value == status }}>{{ s.value }}</option>{% endfor %}</select>
+  <select name="group" aria-label="Group"><option value="">Any group</option>{% for g in groups %}<option value="{{ g.id }}" {{ 'selected' if g.id == group_id }}>{{ g.label }}</option>{% endfor %}</select>
+  <select name="space" aria-label="Location"><option value="">Any location</option>{% for s in spaces %}<option value="{{ s.id }}" {{ 'selected' if s.id == space_id }}>{{ s.name }}</option>{% endfor %}</select>
+  <select name="strain" aria-label="Strain"><option value="">Any strain</option>{% for s in strains %}<option value="{{ s.id }}" {{ 'selected' if s.id == strain_id }}>{{ s.name }}</option>{% endfor %}</select>
+  <button class="btn" type="submit">Filter</button>
+  {% if status or group_id or strain_id or space_id %}<a class="btn ghost" href="{{ url_for('plants.index') }}">Clear</a>{% endif %}
+</form>
+<div class="panel tight table-wrap">
+<table>
+  <thead><tr><th>Plant</th><th>Strain</th><th>Group</th><th>Status</th><th>Location</th><th>Started</th><th>Ended</th><th>Notes</th></tr></thead>
+  <tbody>
+  {% for p in plants %}
+    <tr class="{{ 'done' if p.status.value in ('killed','harvested') }}">
+      <td><a href="{{ url_for('plants.detail', plant_id=p.id) }}">{{ p.label }}</a></td>
+      <td class="soft"><a href="{{ url_for('strains.detail', strain_id=p.strain.id) }}">{{ p.strain.name }}</a></td>
+      <td>{% if p.group %}<span class="swatch" style="background: {{ p.group.color }}"></span><a href="{{ url_for('groups.detail', group_id=p.group.id) }}">{{ p.group.label }}</a>{% else %}<span class="muted">—</span>{% endif %}</td>
+      <td>{{ badge(p.status.value) }}</td>
+      <td class="soft">{{ locations[p.id].name if locations[p.id] else '—' }}</td>
+      <td class="date">{{ p.started_on|d }}</td>
+      <td class="date">{{ p.ended_on|d }}{% if p.end_reason %} <span class="muted small">{{ p.end_reason }}</span>{% endif %}</td>
+      <td class="muted small">{{ p.notes or '' }}</td>
+    </tr>
+  {% else %}
+    <tr><td colspan="8" class="empty">No plants match. <a href="{{ url_for('plants.create') }}">Add one</a>.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

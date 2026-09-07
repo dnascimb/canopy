@@ -1,0 +1,35 @@
+{% macro field(f, help=None, type=None) %}
+  <div class="form-row">
+    {{ f.label }}
+    {% if type == 'color' %}
+      <div class="row">{{ f(type='color', style='width:52px') }} {{ f(type='text', style='max-width:120px', id=f.id ~ '_hex') }}</div>
+    {% else %}
+      {{ f() }}
+    {% endif %}
+    {% if help %}<div class="help">{{ help }}</div>{% endif %}
+    {% for e in f.errors %}<div class="field-error">{{ e }}</div>{% endfor %}
+  </div>
+{% endmacro %}
+
+{% macro badge(value) %}<span class="badge {{ value }}">{{ value }}</span>{% endmacro %}
+
+{% macro csrf() %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% endmacro %}
+
+{% macro confirm_button(url, label, message, cls='btn danger small') %}
+  <form class="inline" method="post" action="{{ url }}" onsubmit="return confirm({{ message|tojson }})">
+    {{ csrf() }}
+    <button class="{{ cls }}" type="submit">{{ label }}</button>
+  </form>
+{% endmacro %}
+
+{% macro timeline(rows, ref, start=None, end=None) %}
+  <div data-timeline class="timeline">
+    <script type="application/json">{{ {'today': ref.isoformat(), 'start': start, 'end': end, 'rows': rows}|tojson }}</script>
+  </div>
+  <div class="tl-legend">
+    <span><i></i> flowering window</span>
+    <span><i class="el"></i> elapsed portion</span>
+    <span><i class="td"></i> today</span>
+    <span>hover a bar for detail · click to open the group</span>
+  </div>
+{% endmacro %}

@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge, csrf, confirm_button, field %}
+{% from "_quicklog.html" import quicklog %}
+{% block title %}{{ group.label }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1><span class="swatch" style="background: {{ group.color }}; width: 14px; height: 14px"></span>{{ group.label }}</h1>
+    <p class="sub">{{ badge(group.status.value) }}
+      {% if group.flower_start %} · flipped {{ group.flower_start|d }} · harvest {{ group.flower_end|d }} ({{ group.flower_days }} days){% if group.day_of_flower(ref) %} · <strong>day {{ group.day_of_flower(ref) }}</strong>{% endif %}{% else %} · not scheduled{% endif %}
+      {% if group.space %} · {{ group.space.name }}{% endif %}
+    </p>
+  </div>
+  <div class="actions">
+    <a class="btn" href="{{ url_for('plants.create', group=group.id) }}">Add plant</a>
+    <a class="btn" href="{{ url_for('groups.edit', group_id=group.id) }}">Edit</a>
+    {{ confirm_button(url_for('groups.delete', group_id=group.id), 'Delete', 'Delete ' ~ group.label ~ '? Plants will be kept but unassigned.', 'btn danger') }}
+  </div>
+</div>
+
+{% if group.flower_start and group.day_of_flower(ref) %}
+<div class="progress mb" style="height: 8px"><i style="width: {{ (group.progress(ref) * 100)|round }}%; background: {{ group.color }}"></i></div>
+{% endif %}
+
+{% if implied.value != group.status.value and group.status.value != 'done' %}
+<div class="alert warning"><span class="dot"></span><span>The calendar says this group should be <strong>{{ implied.value }}</strong>, but it is marked {{ group.status.value }}.
+  <form class="inline" method="post" action="{{ url_for('groups.set_status', group_id=group.id) }}">{{ csrf() }}<input type="hidden" name="status" value="{{ implied.value }}"><button class="btn small" type="submit">Mark {{ implied.value }}</button></form></span></div>
+{% endif %}
+
+{% if suggestion %}
+<div class="alert warning"><span class="dot"></span><span>Earliest opening: <strong>{{ suggestion.on|d }}</strong> when {{ suggestion.freed_by.label }} finishes{% if suggestion.space %} in {{ suggestion.space.name }}{% endif %}.
+  <form class="inline" method="post" action="{{ url_for('groups.schedule', group_id=group.id) }}">{{ csrf() }}<button class="btn small primary" type="submit">Schedule for {{ suggestion.on|d }}</button></form></span></div>
+{% endif %}
+
+<div class="grid-main-side">
+  <div>
+    <section>
+      <div class="section-head"><h2>Plants</h2><span class="hint">{{ group.living_plants|length }} living{% if group.killed_plants %} · {{ group.killed_plants|length }} killed{% endif %}</span></div>
+      <div class="panel tight table-wrap">
+        <table>
+          <thead><tr><th>Plant</th><th>Strain</th><th>Status</th><th>Location</th><th>Notes</th><th></th></tr></thead>
+          <tbody>
+          {% for p in group.plants|sort(attribute='label') %}
+            <tr class="{{ 'done' if p.status.value == 'killed' }}">
+              <td><a href="{{ url_for('plants.detail', plant_id=p.id) }}">{{ p.label }}</a></td>
+              <td class="soft"><a href="{{ url_for('strains.detail', strain_id=p.strain.id) }}">{{ p.strain.name }}</a></td>
+              <td>{{ badge(p.status.value) }}{% if p.status.value == 'killed' and p.end_reason %} <span class="muted small">{{ p.end_reason }}</span>{% endif %}</td>
+              <td class="soft small">{{ locations[p.id].name if locations[p.id] else '—' }}</td>
+              <td class="muted small">{{ p.notes or '' }}</td>
+              <td class="right nowrap">
+                {% if p.is_alive %}
+                <form class="inline" method="post" action="{{ url_for('plants.kill', plant_id=p.id) }}" onsubmit="return confirm('Mark {{ p.label }} as killed?')">
+                  {{ csrf() }}<input type="hidden" name="ended_on" value="{{ ref.isoformat() }}"><input type="hidden" name="end_reason" value="Culled">
+                  <button class="btn small ghost danger" type="submit">Kill</button>
+                </form>
+                {% endif %}
+              </td>
+            </tr>
+          {% else %}
+            <tr><td colspan="6" class="empty">No plants yet. <a href="{{ url_for('plants.create', group=group.id) }}">Add the first one</a>.</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% if group.living_plants %}
+      <form method="post" action="{{ url_for('groups.move', group_id=group.id) }}" class="row mt" onsubmit="return confirm('Move all living plants in {{ group.label }}?')">
+        {{ csrf() }}
+        <span class="muted small">Move all living plants to</span>
+        {{ move_form.space_id(style='width:auto') }}
+        <button class="btn small" type="submit">Move</button>
+        <span class="muted small">needs {{ need_sqft|round(1) }} sq ft in flower</span>
+      </form>
+      {% endif %}
+    </section>
+
+    <section id="harvest">
+      <div class="section-head"><h2>Harvest</h2><span class="hint">{% if group.harvests %}{{ wet_total|grams }} wet · {{ dry_total|grams }} dry{% endif %}</span></div>
+      <div class="panel">
+        {% if group.harvests %}
+        <table class="mb">
+          <thead><tr><th>Date</th><th>Plant</th><th class="num">Wet</th><th class="num">Dry</th><th>Notes</th></tr></thead>
+          <tbody>{% for h in group.harvests|sort(attribute='harvested_on') %}
+            <tr><td class="date">{{ h.harvested_on|d }}</td><td>{{ h.plant.label if h.plant else 'Whole group' }}</td><td class="num">{{ h.wet_weight_g|grams }}</td><td class="num">{{ h.dry_weight_g|grams }}</td><td class="muted small">{{ h.notes or '' }}</td></tr>
+          {% endfor %}</tbody>
+        </table>
+        {% endif %}
+        <details {{ 'open' if not group.harvests and group.status.value in ('drying','done') }}>
+          <summary>Record a harvest</summary>
+          <form method="post" action="{{ url_for('groups.add_harvest', group_id=group.id) }}" class="inline-form mt">
+            {{ csrf() }}
+            {{ field(harvest_form.plant_id) }}
+            {{ field(harvest_form.harvested_on) }}
+            {{ field(harvest_form.wet_weight_g) }}
+            {{ field(harvest_form.dry_weight_g) }}
+            <div class="form-row" style="flex:1 1 200px">{{ harvest_form.notes.label }}{{ harvest_form.notes(rows=1, style='min-height:36px') }}</div>
+            <button class="btn primary" type="submit">Save harvest</button>
+          </form>
+        </details>
+      </div>
+    </section>
+  </div>
+
+  <div>
+    <section>
+      <div class="section-head"><h2>Details</h2></div>
+      <div class="panel">
+        <dl class="kv">
+          <dt>Number</dt><dd>{{ group.number }}</dd>
+          <dt>Space</dt><dd>{{ group.space.name if group.space else '—' }}</dd>
+          <dt>Flip</dt><dd class="mono">{{ group.flower_start|dlong }}</dd>
+          <dt>Harvest</dt><dd class="mono">{{ group.flower_end|dlong }}</dd>
+          <dt>Flower days</dt><dd>{{ group.flower_days }}</dd>
+          <dt>Created</dt><dd class="mono">{{ group.created_at.date()|d('%b %d, %Y') }}</dd>
+        </dl>
+        {% if group.notes %}<p class="mt soft" style="white-space: pre-wrap">{{ group.notes }}</p>{% endif %}
+        <div class="row mt">
+          <span class="muted small">Set status:</span>
+          {% for s in GroupStatus %}{% if s.value != group.status.value %}
+          <form class="inline" method="post" action="{{ url_for('groups.set_status', group_id=group.id) }}">{{ csrf() }}<input type="hidden" name="status" value="{{ s.value }}"><button class="btn small ghost" type="submit">{{ s.value }}</button></form>
+          {% endif %}{% endfor %}
+        </div>
+      </div>
+    </section>
+
+    <section id="journal">
+      <div class="section-head"><h2>Journal</h2>{% if last_done %}<span class="hint">{% for label, on in last_done[:3] %}{{ label|lower }} {{ on|d }}{{ ' · ' if not loop.last }}{% endfor %}</span>{% endif %}</div>
+      <div class="panel">
+        {{ quicklog(journal_form, url_for('groups.add_journal', group_id=group.id), group=group) }}
+        <ul class="journal mt">
+        {% for j in group.journal_entries|sort(attribute='entry_date', reverse=true) %}
+          <li><div class="head"><span class="when">{{ j.entry_date|d }}</span><strong>{{ j.title }}</strong>{% if j.plant %}<span class="badge planned">{{ j.plant.label }}</span>{% endif %}</div>
+            {% if j.task_list %}<div class="chips">{% for t in j.task_labels %}<span class="chip">{{ t }}</span>{% endfor %}</div>{% endif %}
+            {% if j.body %}<div class="body small">{{ j.body }}</div>{% endif %}</li>
+        {% else %}
+          <li class="muted">No entries yet.</li>
+        {% endfor %}
+        </ul>
+        <details class="mt">
+          <summary>Add a longer entry</summary>
+          <form method="post" action="{{ url_for('groups.add_journal', group_id=group.id) }}" class="form mt">
+            {{ csrf() }}
+            <div class="form-grid">{{ field(journal_form.entry_date) }}{{ field(journal_form.plant_id) }}</div>
+            {{ field(journal_form.title) }}
+            {{ field(journal_form.body) }}
+            <div><button class="btn primary" type="submit">Add entry</button></div>
+          </form>
+        </details>
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}

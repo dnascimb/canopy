@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% from "_macros.html" import confirm_button, badge, csrf %}
+{% from "_charts.html" import steps %}
+{% block title %}Spaces{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Spaces & planner</h1><p class="sub">Where every plant is today, how much room is left, and what fits next. Capacity is estimated from each space's area and the size class of the plants in it, then capped by the maximum you set.</p></div>
+  <div class="actions"><a class="btn primary" href="{{ url_for('spaces.create') }}">Add space</a></div>
+</div>
+
+<section>
+<div class="flower-list spaces">
+{% for s in spaces %}
+  {% set o = occ[s.id] %}
+  <div class="flower-card space-card {{ 'over' if o.over }}" style="border-left-color: {{ 'var(--red)' if o.over else ('var(--green)' if s.stage.value == 'flowering' else ('var(--blue)' if s.stage.value == 'vegetative' else 'var(--accent)')) }}">
+    <div class="title"><span style="font-weight:600">{{ s.name }}</span>{{ badge(s.stage.value) }}</div>
+    <div class="muted small">{{ s.dimensions }} · max {{ s.capacity }} plants</div>
+    <div class="progress mt"><i style="width: {{ [(o.load * 100)|round, 100]|min }}%; background: {{ 'var(--red)' if o.over else 'var(--accent)' }}"></i></div>
+    <div class="meta">
+      <span>{{ o.count }} plant{{ 's' if o.count != 1 }}{% if s.area_sqft %} · {{ o.used_sqft|round(1) }} of {{ s.area_sqft|round|int }} sq ft{% endif %}</span>
+      <span>{{ (o.load * 100)|round|int }}% full</span>
+    </div>
+    <dl class="kv small mt">
+      <dt>Room for</dt><dd>{% for sz in sizes %}{{ o.room_for(sz) }} {{ sz.value }}{{ ' · ' if not loop.last }}{% endfor %}</dd>
+      <dt>Fits empty</dt><dd>{% for sz in sizes %}{{ o.fits(sz) }} {{ sz.value }}{{ ' · ' if not loop.last }}{% endfor %}</dd>
+      <dt>In here</dt><dd>{% if o.groups() %}{% for g in o.groups() %}<a href="{{ url_for('groups.detail', group_id=g.id) }}">{{ g.label }}</a>{{ ', ' if not loop.last }}{% endfor %}{% endif %}
+        {% set loose = o.plants|rejectattr('group')|list %}{% if loose %}{{ ', ' if o.groups() }}{{ loose|length }} ungrouped{% endif %}{% if not o.plants %}<span class="muted">empty</span>{% endif %}</dd>
+    </dl>
+    <div class="row mt"><a class="btn small" href="{{ url_for('plants.index', space=s.id) }}">Plants</a><a class="btn small" href="{{ url_for('spaces.edit', space_id=s.id) }}">Edit</a>{{ confirm_button(url_for('spaces.delete', space_id=s.id), 'Delete', 'Delete ' ~ s.name ~ '? Groups and plants in it will be unassigned.') }}</div>
+  </div>
+{% else %}
+  <div class="panel empty">No spaces yet. <a href="{{ url_for('spaces.create') }}">Add your clone shelf, veg tent and flower tent</a> to start planning.</div>
+{% endfor %}
+</div>
+</section>
+
+{% for s in spaces if s.stage.value == 'flowering' %}
+<section>
+  <div class="section-head"><h2>{{ s.name }} load over the season</h2><span class="hint">projected from the schedule · square feet in use</span></div>
+  <div class="panel">{{ steps(series[s.id], cap=s.area_sqft, ref=ref) }}</div>
+</section>
+{% endfor %}
+
+<div class="grid-main-side">
+  <section>
+    <div class="section-head"><h2>Coming up</h2><span class="hint">groups that haven't flipped yet and what they need in flower</span></div>
+    <div class="panel tight table-wrap">
+      <table>
+        <thead><tr><th>Group</th><th class="num">Plants</th><th class="num">Needs</th><th>Flip</th><th>Fits now?</th><th>Next opening</th></tr></thead>
+        <tbody>
+        {% for row in plan %}
+          <tr>
+            <td><span class="swatch" style="background: {{ row.group.color }}"></span><a href="{{ url_for('groups.detail', group_id=row.group.id) }}">{{ row.group.label }}</a> <span class="muted small">{{ row.group.strain_summary() }}</span></td>
+            <td class="num">{{ row.plants }}</td>
+            <td class="num">{{ row.need_sqft|round(1) }} sq ft</td>
+            <td class="date">{{ row.group.flower_start|d }}</td>
+            <td>{% if row.room_now is none %}<span class="muted">—</span>{% elif row.fits_now %}<span class="badge flowering">yes · {{ row.room_now|round(1) }} free</span>{% else %}<span class="badge killed">no · {{ row.room_now|round(1) }} free</span>{% endif %}</td>
+            <td>{% if row.opening %}<span class="mono">{{ row.opening.on|d }}</span> <span class="muted small">{{ row.opening.freed_by.label }} out</span>{% else %}<span class="muted">—</span>{% endif %}
+              {% if row.suggestion %}<form class="inline" method="post" action="{{ url_for('groups.schedule', group_id=row.group.id) }}">{{ csrf() }}<button class="btn small" type="submit">Schedule</button></form>{% endif %}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="6" class="empty">Nothing waiting. Every group with plants has already flipped.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  <section>
+    <div class="section-head"><h2>Spacing rules</h2><span class="hint">sq ft per plant</span></div>
+    <div class="panel">
+      <table>
+        <thead><tr><th>Stage</th>{% for sz in sizes %}<th class="num">{{ sz.value }}</th>{% endfor %}</tr></thead>
+        <tbody>{% for st in stages %}<tr><td>{{ st.value }}</td>{% for sz in sizes %}<td class="num">{{ footprints[st][sz] }}</td>{% endfor %}</tr>{% endfor %}</tbody>
+      </table>
+      <p class="muted small mt">Size class is set per strain in the inventory. Change the rules with <code>CANOPY_FOOTPRINT_*</code> in your environment.</p>
+    </div>
+  </section>
+</div>
+{% endblock %}

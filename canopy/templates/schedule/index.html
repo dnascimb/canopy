@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% from "_macros.html" import timeline, csrf %}
+{% block title %}Schedule{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Schedule</h1><p class="sub">Every start and end of flower, derived from each group's flip date and flower days.</p></div>
+  <div class="actions">
+    <a class="btn" href="{{ url_for('schedule.print_view') }}">Print view</a>
+    <a class="btn" href="{{ url_for('schedule.export_ascii') }}">ASCII timeline</a>
+    <a class="btn" href="{{ url_for('schedule.export_markdown') }}">Export Markdown</a>
+    <a class="btn" href="{{ url_for('schedule.backup') }}">Backup JSON</a>
+    <a class="btn ghost" href="{{ url_for('schedule.restore') }}">Restore…</a>
+  </div>
+</div>
+
+<section><div class="panel">{{ timeline(rows, ref) }}</div></section>
+
+<div class="grid-main-side">
+  <section>
+    <div class="section-head"><h2>Events</h2><span class="hint">{{ events|length }} milestones</span></div>
+    <div class="panel tight table-wrap">
+      <table>
+        <thead><tr><th>Date</th><th>Event</th><th>Space</th><th class="num">Days</th></tr></thead>
+        <tbody>
+        {% for e in events %}
+          <tr class="{{ 'done' if e.on < ref }} {{ 'today-row' if e.on == ref }}">
+            <td class="date">{{ e.on|d }}</td>
+            <td><span class="swatch" style="background: {{ e.group.color }}"></span><a href="{{ url_for('groups.detail', group_id=e.group.id) }}">{{ e.group.label }}</a> {{ 'start flower' if e.kind == 'start' else 'end flower' }}</td>
+            <td class="muted">{{ e.group.space.name if e.group.space else '—' }}</td>
+            <td class="num">{{ e.group.flower_days if e.kind == 'end' else '' }}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="4" class="empty">No scheduled groups yet.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <div>
+    <section>
+      <div class="section-head"><h2>Openings</h2><span class="hint">when a slot frees up</span></div>
+      <div class="panel">
+        {% if openings %}
+        <ul class="events">
+        {% for o in openings %}
+          <li><span class="when">{{ o.on|d }}</span><span class="end">{{ o.freed_by.label }}{% if o.space %} · {{ o.space.name }}{% endif %} <a class="small" href="{{ url_for('groups.create', start=o.on.isoformat(), space=o.space.id if o.space else None) }}">plan a group</a></span></li>
+        {% endfor %}
+        </ul>
+        {% else %}<div class="muted">No upcoming openings.</div>{% endif %}
+      </div>
+    </section>
+
+    {% if unscheduled %}
+    <section>
+      <div class="section-head"><h2>Unscheduled</h2></div>
+      <div class="panel">
+        <ul class="events">
+        {% for g in unscheduled %}
+          <li><span class="when">—</span><span><a href="{{ url_for('groups.detail', group_id=g.id) }}">{{ g.label }}</a> <span class="muted small">{{ g.strain_summary() }}</span></span></li>
+        {% endfor %}
+        </ul>
+      </div>
+    </section>
+    {% endif %}
+
+    <section>
+      <div class="section-head"><h2>Alerts</h2></div>
+      {% for c in conflicts %}
+        <div class="alert {{ c.severity }}"><span class="dot"></span><span>{{ c.message }}</span></div>
+      {% else %}
+        <div class="panel muted">No conflicts.</div>
+      {% endfor %}
+    </section>
+  </div>
+</div>
+{% endblock %}

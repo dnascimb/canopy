@@ -1,0 +1,427 @@
+{
+ "dashboard": [
+  {
+   "selector": ".nav",
+   "box": {
+    "x": 18,
+    "y": 66,
+    "width": 187,
+    "height": 313
+   }
+  },
+  {
+   "selector": ".stat-strip",
+   "box": {
+    "x": 256,
+    "y": 118.34375,
+    "width": 1072,
+    "height": 90.640625
+   }
+  },
+  {
+   "selector": "[data-timeline]",
+   "box": {
+    "x": 275,
+    "y": 283.78125,
+    "width": 1034,
+    "height": 525
+   }
+  },
+  {
+   "selector": ".flower-list",
+   "box": {
+    "x": 256,
+    "y": 915.578125,
+    "width": 700,
+    "height": 349.875
+   }
+  },
+  {
+   "selector": "section:has(.flower-list) + section .panel",
+   "box": {
+    "x": 256,
+    "y": 1327.25,
+    "width": 700,
+    "height": 100.59375
+   }
+  },
+  {
+   "selector": ".main .grid-main-side > div:last-child section:nth-child(1) .panel",
+   "box": {
+    "x": 978,
+    "y": 915.578125,
+    "width": 350,
+    "height": 354.625
+   }
+  },
+  {
+   "selector": ".main .grid-main-side > div:last-child section:nth-child(2) .panel",
+   "box": {
+    "x": 978,
+    "y": 1332,
+    "width": 350,
+    "height": 271.875
+   }
+  },
+  {
+   "selector": ".main .grid-main-side > div:last-child section:nth-child(3) .panel",
+   "box": {
+    "x": 978,
+    "y": 1664.5625,
+    "width": 350,
+    "height": 108
+   }
+  },
+  {
+   "selector": ".main .grid-main-side > div:last-child section:nth-child(4)",
+   "box": {
+    "x": 978,
+    "y": 1802.5625,
+    "width": 350,
+    "height": 132.1875
+   }
+  },
+  {
+   "selector": ".main .grid-main-side > div:last-child section:nth-child(5) .panel",
+   "box": {
+    "x": 978,
+    "y": 1995.4375,
+    "width": 350,
+    "height": 333
+   }
+  },
+  {
+   "selector": ".page-head .actions",
+   "box": {
+    "x": 1062.890625,
+    "y": 59.65625,
+    "width": 265.109375,
+    "height": 36.6875
+   }
+  }
+ ],
+ "schedule": [
+  {
+   "selector": ".page-head .actions",
+   "box": {
+    "x": 256,
+    "y": 112.34375,
+    "width": 602.265625,
+    "height": 36.6875
+   }
+  },
+  {
+   "selector": "[data-timeline]",
+   "box": {
+    "x": 275,
+    "y": 188.03125,
+    "width": 1034,
+    "height": 525
+   }
+  },
+  {
+   "selector": ".grid-main-side > section .panel",
+   "box": {
+    "x": 256,
+    "y": 819.828125,
+    "width": 700,
+    "height": 1316.9375
+   }
+  },
+  {
+   "selector": ".grid-main-side > div section:nth-child(1) .panel",
+   "box": {
+    "x": 978,
+    "y": 819.828125,
+    "width": 350,
+    "height": 393
+   }
+  },
+  {
+   "selector": ".grid-main-side > div section:nth-child(2) .panel",
+   "box": {
+    "x": 978,
+    "y": 1273.515625,
+    "width": 350,
+    "height": 70.5
+   }
+  },
+  {
+   "selector": ".grid-main-side > div section:nth-child(3)",
+   "box": {
+    "x": 978,
+    "y": 1374.015625,
+    "width": 350,
+    "height": 87.1875
+   }
+  }
+ ],
+ "groups": [
+  {
+   "selector": ".pill-nav",
+   "box": {
+    "x": 1024.5,
+    "y": 62.09375,
+    "width": 185.1875,
+    "height": 31.796875
+   }
+  },
+  {
+   "selector": ".table-wrap",
+   "box": {
+    "x": 256,
+    "y": 118.34375,
+    "width": 1072,
+    "height": 1056.109375
+   }
+  }
+ ],
+ "group_detail": [
+  {
+   "selector": ".page-head > div",
+   "box": {
+    "x": 256,
+    "y": 28,
+    "width": 568.203125,
+    "height": 69.390625
+   }
+  },
+  {
+   "selector": ".page-head .actions",
+   "box": {
+    "x": 1095.640625,
+    "y": 60.703125,
+    "width": 232.359375,
+    "height": 36.6875
+   }
+  },
+  {
+   "selector": ".main > .progress",
+   "box": {
+    "x": 256,
+    "y": 119.390625,
+    "width": 1072,
+    "height": 8
+   }
+  },
+  {
+   "selector": "section:has(> .section-head h2:text('Plants')) .panel",
+   "box": {
+    "x": 256,
+    "y": 171.1875,
+    "width": 700,
+    "height": 183.8125
+   }
+  },
+  {
+   "selector": "section:has(> .section-head h2:text('Plants')) form.row",
+   "box": {
+    "x": 256,
+    "y": 367,
+    "width": 700,
+    "height": 38
+   }
+  },
+  {
+   "selector": "#harvest .panel",
+   "box": {
+    "x": 256,
+    "y": 465.6875,
+    "width": 700,
+    "height": 56.5
+   }
+  },
+  {
+   "selector": ".grid-main-side > div:last-child section:first-child .panel",
+   "box": {
+    "x": 978,
+    "y": 170.078125,
+    "width": 350,
+    "height": 285.65625
+   }
+  },
+  {
+   "selector": "#journal .quicklog",
+   "box": {
+    "x": 997,
+    "y": 554.328125,
+    "width": 312,
+    "height": 272.625
+   }
+  },
+  {
+   "selector": "#journal .journal",
+   "box": {
+    "x": 997,
+    "y": 838.953125,
+    "width": 312,
+    "height": 111.625
+   }
+  }
+ ],
+ "group_unscheduled": [
+  {
+   "selector": ".alert.warning",
+   "box": {
+    "x": 256,
+    "y": 119.390625,
+    "width": 1072,
+    "height": 47.125
+   }
+  }
+ ],
+ "plants": [
+  {
+   "selector": ".filters",
+   "box": {
+    "x": 256,
+    "y": 118.34375,
+    "width": 1072,
+    "height": 38
+   }
+  },
+  {
+   "selector": ".table-wrap",
+   "box": {
+    "x": 256,
+    "y": 170.34375,
+    "width": 1072,
+    "height": 2525.734375
+   }
+  }
+ ],
+ "inventory": [
+  {
+   "selector": ".filters",
+   "box": {
+    "x": 256,
+    "y": 118.34375,
+    "width": 1072,
+    "height": 40.5
+   }
+  },
+  {
+   "selector": ".page-head .actions",
+   "box": {
+    "x": 1221.28125,
+    "y": 59.65625,
+    "width": 106.71875,
+    "height": 36.6875
+   }
+  },
+  {
+   "selector": ".table-wrap",
+   "box": {
+    "x": 256,
+    "y": 172.84375,
+    "width": 1072,
+    "height": 1536.1875
+   }
+  },
+  {
+   "selector": "tbody tr:first-child td:nth-child(7)",
+   "box": {
+    "x": 1107.984375,
+    "y": 229.21875,
+    "width": 60.90625,
+    "height": 48.125
+   }
+  }
+ ],
+ "spaces": [
+  {
+   "selector": ".spaces",
+   "box": {
+    "x": 256,
+    "y": 193.53125,
+    "width": 1072,
+    "height": 253.046875
+   }
+  },
+  {
+   "selector": "section:nth-of-type(2) .panel",
+   "box": {
+    "x": 256,
+    "y": 508.375,
+    "width": 1072,
+    "height": 277.28125
+   }
+  },
+  {
+   "selector": ".grid-main-side > section:first-child .panel",
+   "box": {
+    "x": 256,
+    "y": 847.453125,
+    "width": 700,
+    "height": 291.328125
+   }
+  },
+  {
+   "selector": ".grid-main-side > section:last-child .panel",
+   "box": {
+    "x": 978,
+    "y": 847.453125,
+    "width": 350,
+    "height": 273.296875
+   }
+  }
+ ],
+ "journal": [
+  {
+   "selector": ".page-head .actions",
+   "box": {
+    "x": 1221.96875,
+    "y": 59.65625,
+    "width": 106.03125,
+    "height": 36.6875
+   }
+  },
+  {
+   "selector": ".filters",
+   "box": {
+    "x": 256,
+    "y": 118.34375,
+    "width": 1072,
+    "height": 38
+   }
+  },
+  {
+   "selector": ".journal > li:first-child",
+   "box": {
+    "x": 275,
+    "y": 187.34375,
+    "width": 1034,
+    "height": 104.5
+   }
+  }
+ ],
+ "reports": [
+  {
+   "selector": ".main > .grid-2:nth-child(2)",
+   "box": {
+    "x": 256,
+    "y": 118.34375,
+    "width": 1072,
+    "height": 440.171875
+   }
+  },
+  {
+   "selector": ".main > .grid-2:nth-child(3)",
+   "box": {
+    "x": 256,
+    "y": 558.515625,
+    "width": 1072,
+    "height": 485.390625
+   }
+  },
+  {
+   "selector": "section:has(h2:text('Yield per group')) .panel",
+   "box": {
+    "x": 256,
+    "y": 1074.59375,
+    "width": 1072,
+    "height": 462.859375
+   }
+  }
+ ]
+}

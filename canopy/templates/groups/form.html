@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% from "_macros.html" import field, csrf %}
+{% block title %}{{ 'Edit ' ~ group.label if group else 'New group' }}{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>{{ 'Edit ' ~ group.label if group else 'New group' }}</h1><p class="sub">The harvest date is calculated from flip date plus flower days.</p></div></div>
+<form method="post" class="form" novalidate>
+  {{ csrf() }}
+  <div class="form-grid">
+    {{ field(form.number, help='Groups are referred to as "Grp N" unless you give them a name.') }}
+    {{ field(form.name, help='Optional, e.g. "Goji 3x" or "PNG-Siamese".') }}
+    {{ field(form.space_id) }}
+    {{ field(form.status) }}
+    {{ field(form.flower_start, help='Leave blank if this group is waiting for a slot.') }}
+    {{ field(form.flower_days, help='Days from flip to harvest. Strains carry a default you can copy.') }}
+    {{ field(form.color, type='color', help='Used on the timeline.') }}
+  </div>
+  {{ field(form.notes) }}
+  <div class="form-actions">
+    <button class="btn primary" type="submit">{{ 'Save changes' if group else 'Create group' }}</button>
+    <a class="btn ghost" href="{{ url_for('groups.detail', group_id=group.id) if group else url_for('groups.index') }}">Cancel</a>
+  </div>
+</form>
+{% endblock %}
+{% block scripts %}
+<script>
+  // Keep the colour picker and hex text in sync.
+  const c = document.getElementById('color'), h = document.getElementById('color_hex');
+  if (c && h) { c.addEventListener('input', () => h.value = c.value); h.addEventListener('input', () => { if (/^#[0-9a-f]{6}$/i.test(h.value)) c.value = h.value; }); }
+</script>
+{% endblock %}

@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge, confirm_button %}
+{% block title %}{{ strain.name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ strain.name }}</h1><p class="sub">{{ badge(strain.seed_type.value) }}{% if strain.breeder %} · {{ strain.breeder }}{% endif %} · {{ strain.flower_days }} day flower · {{ strain.seeds_on_hand }} seeds on hand</p></div>
+  <div class="actions">
+    <a class="btn" href="{{ url_for('plants.create', strain=strain.id) }}">Add plant</a>
+    <a class="btn" href="{{ url_for('strains.edit', strain_id=strain.id) }}">Edit</a>
+    {{ confirm_button(url_for('strains.delete', strain_id=strain.id), 'Delete', 'Delete ' ~ strain.name ~ ' from inventory?', 'btn danger') }}
+  </div>
+</div>
+<div class="grid-main-side">
+  <section>
+    <div class="section-head"><h2>Plants grown</h2><span class="hint">{{ plants|length }} total · {{ strain.living_plants|length }} living</span></div>
+    <div class="panel tight table-wrap">
+      <table>
+        <thead><tr><th>Plant</th><th>Group</th><th>Status</th><th>Flip</th><th>Harvest</th><th>Notes</th></tr></thead>
+        <tbody>
+        {% for p in plants %}
+          <tr class="{{ 'done' if p.status.value in ('killed','harvested') }}">
+            <td><a href="{{ url_for('plants.detail', plant_id=p.id) }}">{{ p.label }}</a></td>
+            <td>{% if p.group %}<a href="{{ url_for('groups.detail', group_id=p.group.id) }}">{{ p.group.label }}</a>{% else %}—{% endif %}</td>
+            <td>{{ badge(p.status.value) }}</td>
+            <td class="date">{{ p.group.flower_start|d if p.group else '—' }}</td>
+            <td class="date">{{ p.group.flower_end|d if p.group else '—' }}</td>
+            <td class="muted small">{{ p.end_reason or p.notes or '' }}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="6" class="empty">No plants of this strain yet.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  <section>
+    <div class="section-head"><h2>Details</h2></div>
+    <div class="panel">
+      <dl class="kv">
+        <dt>Lineage</dt><dd>{{ strain.lineage or '—' }}</dd>
+        <dt>Breeder</dt><dd>{{ strain.breeder or '—' }}</dd>
+        <dt>Seed type</dt><dd>{{ strain.seed_type.value }}</dd>
+        <dt>Flower days</dt><dd>{{ strain.flower_days }}</dd>
+        <dt>Plant size</dt><dd>{{ strain.size.value }}</dd>
+        <dt>Seeds on hand</dt><dd>{{ strain.seeds_on_hand }}</dd>
+      </dl>
+      {% if strain.notes %}<p class="mt soft" style="white-space: pre-wrap">{{ strain.notes }}</p>{% endif %}
+    </div>
+  </section>
+</div>
+{% endblock %}

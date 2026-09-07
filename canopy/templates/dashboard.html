@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge, timeline, csrf %}
+{% from "_quicklog.html" import quicklog %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Season at a glance</h1>
+    <p class="sub">{{ active|length }} group{{ 's' if active|length != 1 }} in flower · {{ counts.flowering }} plants flowering · next event {{ upcoming[0].on|d if upcoming else 'none in 30 days' }}</p>
+  </div>
+  <div class="actions">
+    <a class="btn" href="{{ url_for('schedule.export_markdown') }}">Export Markdown</a>
+    <a class="btn primary" href="{{ url_for('groups.create') }}">New group</a>
+  </div>
+</div>
+
+<div class="stat-strip">
+  <div class="stat"><div class="n">{{ active|length }}</div><div class="l">groups in flower</div></div>
+  <div class="stat"><div class="n">{{ counts.flowering }}</div><div class="l">plants in flower</div></div>
+  <div class="stat"><div class="n">{{ counts.vegetative + counts.seedling }}</div><div class="l">plants in veg</div></div>
+  <div class="stat"><div class="n">{{ inventory.strains }}</div><div class="l">strains · {{ inventory.seeds_on_hand }} seeds</div></div>
+  <div class="stat"><div class="n">{{ '%.0f'|format(dry_total) }} g</div><div class="l">dry weight this season</div></div>
+  <div class="stat {{ 'warn' if conflicts }}"><div class="n">{{ conflicts|length }}</div><div class="l">schedule alerts</div></div>
+</div>
+
+<section>
+  <div class="section-head"><h2>Flowering timeline</h2><span class="hint">Full schedule, exports and openings on the <a href="{{ url_for('schedule.index') }}">Schedule</a> page</span></div>
+  <div class="panel">{{ timeline(rows, ref) }}</div>
+</section>
+
+<div class="grid-main-side">
+  <div>
+    <section>
+      <div class="section-head"><h2>In flower now</h2><span class="hint">sorted by harvest date</span></div>
+      {% if active %}
+      <div class="flower-list">
+        {% for g in active %}
+        <div class="flower-card" style="border-left-color: {{ g.color }}">
+          <div class="title"><a href="{{ url_for('groups.detail', group_id=g.id) }}">{{ g.label }}</a><span class="mono small muted">day {{ g.day_of_flower(ref) }}/{{ g.flower_days }}</span></div>
+          <div class="strains" title="{{ g.strain_summary() }}">{{ g.strain_summary() or 'no living plants' }}</div>
+          <div class="progress"><i style="width: {{ (g.progress(ref) * 100)|round }}%; background: {{ g.color }}"></i></div>
+          <div class="meta"><span>{{ g.flower_start|d }}</span><span>harvest {{ g.flower_end|d }}</span></div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="panel empty">Nothing is flowering today. <a href="{{ url_for('groups.index') }}">Schedule a group</a> to get started.</div>
+      {% endif %}
+    </section>
+
+    {% if unscheduled %}
+    <section>
+      <div class="section-head"><h2>Waiting for a slot</h2><span class="hint">groups without a flower start date</span></div>
+      <div class="panel tight table-wrap">
+        <table>
+          <thead><tr><th>Group</th><th>Plants</th><th>Status</th><th>Suggested flip</th><th></th></tr></thead>
+          <tbody>
+          {% for g in unscheduled %}
+            {% set s = suggestions[g.id] %}
+            <tr>
+              <td><span class="swatch" style="background: {{ g.color }}"></span><a href="{{ url_for('groups.detail', group_id=g.id) }}">{{ g.label }}</a></td>
+              <td class="soft">{{ g.strain_summary() or '—' }}</td>
+              <td>{{ badge(g.status.value) }}</td>
+              <td>{% if s %}<span class="mono">{{ s.on|d }}</span> <span class="muted small">when {{ s.freed_by.label }} finishes{% if s.space %} in {{ s.space.name }}{% endif %}</span>{% else %}<span class="muted">no opening found</span>{% endif %}</td>
+              <td class="right">{% if s %}<form class="inline" method="post" action="{{ url_for('groups.schedule', group_id=g.id) }}">{{ csrf() }}<button class="btn small primary" type="submit">Schedule</button></form>{% endif %}</td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+    {% endif %}
+  </div>
+
+  <div>
+    <section>
+      <div class="section-head"><h2>Log today</h2><span class="hint"><a href="{{ url_for('journal.index') }}">journal</a></span></div>
+      <div class="panel">{{ quicklog(quick, url_for('journal.quick')) }}</div>
+    </section>
+
+    <section>
+      <div class="section-head"><h2>Spaces</h2><span class="hint"><a href="{{ url_for('spaces.index') }}">planner</a></span></div>
+      <div class="panel">
+        {% for o in occupancy %}
+        <div class="space-row">
+          <div class="row spread"><span><strong>{{ o.space.name }}</strong> <span class="muted small">{{ o.space.stage.value }}</span></span><span class="mono small muted">{{ o.count }} plants{% if o.space.area_sqft %} · {{ o.used_sqft|round(1) }}/{{ o.space.area_sqft|round(1) }} sq ft{% endif %}</span></div>
+          <div class="progress"><i style="width: {{ [(o.load * 100)|round, 100]|min }}%; background: {{ 'var(--red)' if o.over else 'var(--accent)' }}"></i></div>
+        </div>
+        {% else %}<div class="muted">No spaces defined. <a href="{{ url_for('spaces.create') }}">Add one</a>.</div>{% endfor %}
+      </div>
+    </section>
+
+    <section>
+      <div class="section-head"><h2>Next 30 days</h2></div>
+      <div class="panel">
+        {% if upcoming %}
+        <ul class="events">
+          {% for e in upcoming %}
+          <li><span class="when">{{ e.on|d }}</span><span class="{{ e.kind }}"><a href="{{ url_for('groups.detail', group_id=e.group.id) }}">{{ e.group.label }}</a> {{ 'starts flower' if e.kind == 'start' else 'harvest · ' ~ e.group.flower_days ~ ' days' }}</span></li>
+          {% endfor %}
+        </ul>
+        {% else %}<div class="muted">No milestones in the next 30 days.</div>{% endif %}
+      </div>
+    </section>
+
+    <section>
+      <div class="section-head"><h2>Alerts</h2></div>
+      {% if conflicts %}
+        {% for c in conflicts %}
+        <div class="alert {{ c.severity }}"><span class="dot"></span><span>{{ c.message }}{% if c.group %} <a href="{{ url_for('groups.detail', group_id=c.group.id) }}">Open</a>{% endif %}</span></div>
+        {% endfor %}
+      {% else %}
+        <div class="panel muted">No conflicts. Every space has room and every scheduled group has a space and living plants.</div>
+      {% endif %}
+    </section>
+
+    <section>
+      <div class="section-head"><h2>Upcoming openings</h2></div>
+      <div class="panel">
+        {% if openings %}
+        <ul class="events">
+          {% for o in openings %}
+          <li><span class="when">{{ o.on|d }}</span><span class="end">{{ o.freed_by.label }} finishes{% if o.space %} · {{ o.space.name }}{% endif %} <a class="small" href="{{ url_for('groups.create', start=o.on.isoformat(), space=o.space.id if o.space else None) }}">plan a group</a></span></li>
+          {% endfor %}
+        </ul>
+        {% else %}<div class="muted">No openings ahead — nothing is scheduled to finish.</div>{% endif %}
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}

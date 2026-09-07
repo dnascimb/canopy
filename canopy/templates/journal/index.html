@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% from "_macros.html" import confirm_button %}
+{% block title %}Journal{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Grow journal</h1><p class="sub">Dated notes attached to groups and plants.</p></div>
+  <div class="actions"><a class="btn primary" href="{{ url_for('journal.create') }}">New entry</a></div>
+</div>
+<form class="filters" method="get">
+  <select name="group" aria-label="Group"><option value="">Any group</option>{% for g in groups %}<option value="{{ g.id }}" {{ 'selected' if g.id == group_id }}>{{ g.label }}</option>{% endfor %}</select>
+  <select name="task" aria-label="Task"><option value="">Any task</option>{% for k, v in tasks.items() %}<option value="{{ k }}" {{ 'selected' if k == task }}>{{ v }}</option>{% endfor %}</select>
+  <button class="btn" type="submit">Filter</button>
+  {% if group_id or task %}<a class="btn ghost" href="{{ url_for('journal.index') }}">Clear</a>{% endif %}
+</form>
+<div class="panel">
+<ul class="journal">
+{% for j in entries %}
+  <li>
+    <div class="head">
+      <span class="when">{{ j.entry_date|d('%b %d, %Y') }}</span>
+      <strong>{{ j.title }}</strong>
+      <span class="tags">
+        {% if j.group %}<a class="badge planned" href="{{ url_for('groups.detail', group_id=j.group.id) }}">{{ j.group.label }}</a>{% endif %}
+        {% if j.plant %}<a class="badge planned" href="{{ url_for('plants.detail', plant_id=j.plant.id) }}">{{ j.plant.label }}</a>{% endif %}
+        <a class="btn small ghost" href="{{ url_for('journal.edit', entry_id=j.id) }}">Edit</a>
+        {{ confirm_button(url_for('journal.delete', entry_id=j.id), 'Delete', 'Delete this entry?', 'btn small ghost danger') }}
+      </span>
+    </div>
+    {% if j.task_list %}<div class="chips">{% for t in j.task_labels %}<span class="chip">{{ t }}</span>{% endfor %}</div>{% endif %}
+    {% if j.body %}<div class="body">{{ j.body }}</div>{% endif %}
+  </li>
+{% else %}
+  <li class="empty">No entries yet. <a href="{{ url_for('journal.create') }}">Write the first one</a>.</li>
+{% endfor %}
+</ul>
+</div>
+{% endblock %}

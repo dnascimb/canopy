@@ -1,0 +1,12 @@
+services:
+  canopy:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      CANOPY_SECRET_KEY: ${CANOPY_SECRET_KEY:-dev-only-change-me}
+    volumes:
+      - canopy-data:/data
+
+volumes:
+  canopy-data:

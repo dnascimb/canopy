@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% from "_macros.html" import field, csrf %}
+{% block title %}{{ 'Edit ' ~ plant.label if plant else 'Add plant' }}{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>{{ 'Edit ' ~ plant.label if plant else 'Add plant' }}</h1></div></div>
+<form method="post" class="form" novalidate>
+  {{ csrf() }}
+  <div class="form-grid">
+    {{ field(form.label, help='How you refer to it: "Boost Bx 2", "SSDD III".') }}
+    {{ field(form.strain_id) }}
+    {{ field(form.group_id) }}
+    {{ field(form.status) }}
+    {{ field(form.space_id, help='Leave automatic to place it by stage (clone shelf, veg tent, or its group\'s flower space).') }}
+    {{ field(form.started_on) }}
+    {{ field(form.ended_on) }}
+    {{ field(form.end_reason, help='Why it was killed or when it was harvested.') }}
+  </div>
+  {{ field(form.notes) }}
+  <div class="form-actions">
+    <button class="btn primary" type="submit">{{ 'Save changes' if plant else 'Add plant' }}</button>
+    <a class="btn ghost" href="{{ url_for('plants.detail', plant_id=plant.id) if plant else url_for('plants.index') }}">Cancel</a>
+  </div>
+</form>
+{% endblock %}

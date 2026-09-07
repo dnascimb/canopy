@@ -1,0 +1,55 @@
+{# Server-rendered SVG charts. No JS, prints fine, themed with CSS variables. #}
+
+{% macro hbars(items, unit='', width=560, row=26, label_w=150, decimals=0) %}
+{#- items: list of (label, value, hint|None). Horizontal bars scaled to the max. -#}
+{% set maxv = (items|map(attribute=1)|max) if items else 1 %}
+{% set maxv = maxv if maxv else 1 %}
+{% set h = items|length * row + 6 %}
+<svg class="chart" viewBox="0 0 {{ width }} {{ h }}" width="100%" role="img" aria-label="Bar chart">
+  {% for label, value, hint in items %}
+    {% set y = loop.index0 * row + 3 %}
+    {% set w = ((value / maxv) * (width - label_w - 70))|round(1) %}
+    <text x="{{ label_w - 8 }}" y="{{ y + row/2 + 4 }}" text-anchor="end" class="c-label">{{ label|truncate(22, true, '…') }}</text>
+    <rect x="{{ label_w }}" y="{{ y + 4 }}" width="{{ [w, 1]|max }}" height="{{ row - 8 }}" rx="3" class="c-bar"></rect>
+    <text x="{{ label_w + w + 6 }}" y="{{ y + row/2 + 4 }}" class="c-value">{{ value|round(decimals) if decimals else (value|round|int) }}{{ unit }}{% if hint %} <tspan class="c-hint">{{ hint }}</tspan>{% endif %}</text>
+  {% endfor %}
+</svg>
+{% endmacro %}
+
+{% macro steps(series, cap=None, width=680, height=160, ref=None, unit=' sq ft') %}
+{#- series: list of dicts with date (ISO), sqft, count. Step chart of load over time. -#}
+{% if series %}
+{% set pad_l = 40 %}{% set pad_r = 12 %}{% set pad_t = 10 %}{% set pad_b = 26 %}
+{% set d0 = series[0].date %}{% set d1 = series[-1].date %}
+{% set span = ((d1|todate) - (d0|todate)).days or 1 %}
+{% set maxv = [series|map(attribute='sqft')|max, cap or 0]|max or 1 %}
+{% set pw = width - pad_l - pad_r %}{% set ph = height - pad_t - pad_b %}
+<svg class="chart" viewBox="0 0 {{ width }} {{ height }}" width="100%" role="img" aria-label="Load over time">
+  {% for frac in [0, 0.5, 1] %}
+    {% set yy = pad_t + ph - frac * ph %}
+    <line x1="{{ pad_l }}" x2="{{ width - pad_r }}" y1="{{ yy }}" y2="{{ yy }}" class="c-grid"></line>
+    <text x="{{ pad_l - 6 }}" y="{{ yy + 4 }}" text-anchor="end" class="c-label">{{ (maxv * frac)|round|int }}</text>
+  {% endfor %}
+  {% if cap %}{% set cy = pad_t + ph - (cap / maxv) * ph %}
+    <line x1="{{ pad_l }}" x2="{{ width - pad_r }}" y1="{{ cy }}" y2="{{ cy }}" class="c-cap"></line>
+    <text x="{{ width - pad_r }}" y="{{ cy - 4 }}" text-anchor="end" class="c-cap-label">capacity {{ cap|round|int }}{{ unit }}</text>
+  {% endif %}
+  {% set ns = namespace(path='', last_label=-999) %}
+  {% for pt in series %}
+    {% set x = pad_l + (((pt.date|todate) - (d0|todate)).days / span) * pw %}
+    {% set y = pad_t + ph - (pt.sqft / maxv) * ph %}
+    {% if loop.first %}{% set ns.path = 'M' ~ x|round(1) ~ ',' ~ (pad_t + ph) ~ ' L' ~ x|round(1) ~ ',' ~ y|round(1) %}
+    {% else %}{% set ns.path = ns.path ~ ' H' ~ x|round(1) ~ ' V' ~ y|round(1) %}{% endif %}
+    {% if loop.last %}{% set ns.path = ns.path ~ ' V' ~ (pad_t + ph) ~ ' Z' %}{% endif %}
+    {% if x - ns.last_label >= 78 and x <= width - pad_r - 30 %}
+      <text x="{{ x|round(1) }}" y="{{ height - 8 }}" text-anchor="middle" class="c-label">{{ (pt.date|todate)|d }}</text>
+      {% set ns.last_label = x %}
+    {% endif %}
+  {% endfor %}
+  <path d="{{ ns.path }}" class="c-area"></path>
+  {% if ref %}{% set rx = pad_l + (((ref) - (d0|todate)).days / span) * pw %}
+    {% if rx >= pad_l and rx <= width - pad_r %}<line x1="{{ rx|round(1) }}" x2="{{ rx|round(1) }}" y1="{{ pad_t }}" y2="{{ pad_t + ph }}" class="c-today"></line>{% endif %}
+  {% endif %}
+</svg>
+{% else %}<div class="muted small">Nothing scheduled in this space.</div>{% endif %}
+{% endmacro %}

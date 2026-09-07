@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>Canopy schedule</title>
+<style>
+body{font-family:system-ui,sans-serif;color:#111;margin:32px;font-size:13px}
+h1{font-size:20px;margin:0 0 4px}h2{font-size:15px;margin:22px 0 8px}
+table{border-collapse:collapse;width:100%}th,td{border-bottom:1px solid #ddd;padding:5px 8px;text-align:left}
+th{color:#666;font-weight:500;font-size:11px}.num{text-align:right;font-family:monospace}
+pre{font-family:monospace;font-size:11px;line-height:1.3;border:1px solid #ddd;padding:10px}
+ul{padding-left:18px}.muted{color:#777}
+@media print{body{margin:0}}
+</style></head><body>
+<h1>Cultivation schedule</h1>
+<div class="muted">Generated {{ ref|dlong }}</div>
+<h2>Groups</h2>
+<ul>{% for g in groups %}<li><strong>{{ g.label }}</strong> — {{ g.strain_summary() or '(empty)' }}{% if g.killed_plants %} <span class="muted">(killed: {{ g.killed_plants|map(attribute='label')|join(', ') }})</span>{% endif %}</li>{% endfor %}</ul>
+<h2>Events</h2>
+<table><thead><tr><th>Date</th><th>Event</th><th class="num">Days</th></tr></thead><tbody>
+{% for e in events %}<tr><td>{{ e.on|d }}</td><td>{{ e.label }}</td><td class="num">{{ e.group.flower_days if e.kind == 'end' else '' }}</td></tr>{% endfor %}
+</tbody></table>
+<h2>Timeline</h2>
+<pre>{{ ascii }}</pre>
+<script>window.print && setTimeout(() => window.print(), 300);</script>
+</body></html>

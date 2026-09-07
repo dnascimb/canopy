@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% from "_macros.html" import field, csrf %}
+{% block title %}{{ 'Edit ' ~ space.name if space else 'Add space' }}{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>{{ 'Edit ' ~ space.name if space else 'Add space' }}</h1><p class="sub">Give it a stage and dimensions and Canopy will estimate how many plants fit; the maximum is a hard cap on top of that.</p></div></div>
+<form method="post" class="form" novalidate>
+  {{ csrf() }}
+  <div class="form-grid">
+    {{ field(form.name, help='e.g. "Clone Shelf", "Veg Tent", "5×10 Flower"') }}
+    {{ field(form.stage, help='Plants moved here take this stage.') }}
+    {{ field(form.width_ft) }}
+    {{ field(form.length_ft) }}
+    {{ field(form.capacity, help='Never plan more than this many plants here, whatever the area says.') }}
+  </div>
+  {{ field(form.notes) }}
+  <div class="form-actions"><button class="btn primary" type="submit">{{ 'Save changes' if space else 'Add space' }}</button><a class="btn ghost" href="{{ url_for('spaces.index') }}">Cancel</a></div>
+</form>
+{% endblock %}

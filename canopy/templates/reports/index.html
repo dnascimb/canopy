@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% from "_charts.html" import hbars, steps %}
+{% block title %}Reports{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Reports</h1><p class="sub">How strains and groups have performed. Group-level harvests are split evenly across the plants in the group.</p></div></div>
+
+<div class="grid-2">
+  <section>
+    <div class="section-head"><h2>Dry yield per strain</h2><span class="hint">grams, all harvests</span></div>
+    <div class="panel">{% if yield_items %}{{ hbars(yield_items, ' g') }}{% else %}<div class="muted">No harvests recorded yet.</div>{% endif %}</div>
+  </section>
+  <section>
+    <div class="section-head"><h2>Dry grams per plant</h2><span class="hint">by strain</span></div>
+    <div class="panel">{% if gpp_items %}{{ hbars(gpp_items, ' g', decimals=1) }}{% else %}<div class="muted">No harvests recorded yet.</div>{% endif %}</div>
+  </section>
+</div>
+
+<div class="grid-2">
+  <section>
+    <div class="section-head"><h2>Survival per strain</h2><span class="hint">harvested ÷ (harvested + killed)</span></div>
+    <div class="panel">{% if survival_items %}{{ hbars(survival_items, '%') }}{% else %}<div class="muted">No finished plants yet.</div>{% endif %}</div>
+  </section>
+  <section>
+    <div class="section-head"><h2>Why plants were lost</h2></div>
+    <div class="panel">{% if reason_items %}{{ hbars(reason_items) }}{% else %}<div class="muted">No plants killed. Nice.</div>{% endif %}</div>
+  </section>
+</div>
+
+<section>
+  <div class="section-head"><h2>Yield per group</h2></div>
+  <div class="panel tight table-wrap">
+    <table>
+      <thead><tr><th>Group</th><th>Flip</th><th>Harvest</th><th class="num">Plants</th><th class="num">Wet</th><th class="num">Dry</th><th class="num">Dry / plant</th><th>Strains</th></tr></thead>
+      <tbody>
+      {% for y in yields %}
+        <tr>
+          <td><span class="swatch" style="background: {{ y.group.color }}"></span><a href="{{ url_for('groups.detail', group_id=y.group.id) }}">{{ y.group.label }}</a></td>
+          <td class="date">{{ y.group.flower_start|d }}</td><td class="date">{{ y.group.flower_end|d }}</td>
+          <td class="num">{{ y.plants }}</td><td class="num">{{ y.wet_g|grams }}</td><td class="num">{{ y.dry_g|grams }}</td>
+          <td class="num">{{ y.g_per_plant|grams }}</td>
+          <td class="muted small">{{ y.group.strain_summary() }}</td>
+        </tr>
+      {% else %}<tr><td colspan="8" class="empty">No harvests recorded yet.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+{% for space, series in load.items() %}
+<section>
+  <div class="section-head"><h2>{{ space.name }} load over the season</h2><span class="hint">projected from the schedule</span></div>
+  <div class="panel">{{ steps(series, cap=space.area_sqft, ref=ref) }}</div>
+</section>
+{% endfor %}
+
+<section>
+  <div class="section-head"><h2>All strains</h2></div>
+  <div class="panel tight table-wrap">
+    <table>
+      <thead><tr><th>Strain</th><th>Size</th><th class="num">Grown</th><th class="num">Harvested</th><th class="num">Killed</th><th class="num">Survival</th><th class="num">Dry</th><th class="num">Dry / plant</th><th class="num">Groups</th></tr></thead>
+      <tbody>
+      {% for s in stats %}
+        <tr><td><a href="{{ url_for('strains.detail', strain_id=s.strain.id) }}">{{ s.strain.name }}</a></td><td class="muted">{{ s.strain.size.value }}</td>
+          <td class="num">{{ s.plants }}</td><td class="num">{{ s.harvested }}</td><td class="num">{{ s.killed }}</td>
+          <td class="num">{{ (s.survival * 100)|round|int ~ '%' if s.survival is not none else '—' }}</td>
+          <td class="num">{{ s.dry_g|grams if s.dry_g else '—' }}</td><td class="num">{{ s.g_per_plant|grams if s.g_per_plant else '—' }}</td>
+          <td class="num">{{ s.groups|length }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}
