@@ -35,6 +35,15 @@ class SpaceStage(enum.StrEnum):
     flowering = "flowering"
 
 
+class Expression(enum.StrEnum):
+    """How a cultivar expresses, as catalogued in the collection index."""
+
+    sativa = "sativa"
+    haze = "haze"
+    indica = "indica"
+    hybrid = "hybrid"
+
+
 class PlantSize(enum.StrEnum):
     small = "small"
     medium = "medium"
@@ -146,6 +155,10 @@ class Strain(TimestampMixin, db.Model):
     seeds_on_hand: Mapped[int] = mapped_column(default=0, nullable=False)
     size: Mapped[PlantSize] = mapped_column(
         db.Enum(PlantSize, native_enum=False, length=10), default=PlantSize.medium, nullable=False
+    )
+    # Nullable: plenty of strains predate the collection index and have no stated type.
+    expression: Mapped[Expression | None] = mapped_column(
+        db.Enum(Expression, native_enum=False, length=10)
     )
     notes: Mapped[str | None] = mapped_column(db.Text)
 

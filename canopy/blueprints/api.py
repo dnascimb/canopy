@@ -168,6 +168,7 @@ def list_strains():
                 "flower_days": s.flower_days,
                 "seeds_on_hand": s.seeds_on_hand,
                 "size": s.size.value,
+                "expression": s.expression.value if s.expression else None,
                 "plants": len(s.plants),
             }
             for s in db.session.query(Strain).order_by(Strain.name)

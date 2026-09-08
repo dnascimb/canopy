@@ -15,6 +15,10 @@
     {% for b in breeders %}<option value="{{ b }}" {{ 'selected' if b == breeder }}>{{ b }}</option>{% endfor %}
     <option value="{{ no_breeder }}" {{ 'selected' if breeder == no_breeder }}>— no breeder —</option>
   </select>
+  <select name="expression" aria-label="Expression">
+    <option value="">Any expression</option>
+    {% for e in expressions %}<option value="{{ e.value }}" {{ 'selected' if e.value == expression }}>{{ e.value }}</option>{% endfor %}
+  </select>
   <select name="days" aria-label="Flower days">
     <option value="">Any flower length</option>
     {% for key, spec in day_ranges.items() %}<option value="{{ key }}" {{ 'selected' if key == days }}>{{ spec[0] }}</option>{% endfor %}
@@ -24,7 +28,7 @@
 </form>
 <div class="panel tight table-wrap">
 <table class="sortable" data-sort-col="0" data-sort-dir="desc">
-  <thead><tr><th>Strain</th><th>Breeder</th><th>Lineage</th><th>Type</th><th>Size</th><th class="num">Flower days</th><th class="num">Seeds</th><th data-no-sort></th><th class="num">Plants</th></tr></thead>
+  <thead><tr><th>Strain</th><th>Breeder</th><th>Lineage</th><th>Type</th><th>Expression</th><th>Size</th><th class="num">Flower days</th><th class="num">Seeds</th><th data-no-sort></th><th class="num">Plants</th></tr></thead>
   <tbody>
   {% for s in strains %}
     <tr>
@@ -32,6 +36,7 @@
       <td class="soft" data-v="{{ s.breeder or '' }}">{{ s.breeder or '—' }}</td>
       <td class="muted small" data-v="{{ s.lineage or '' }}">{{ s.lineage or '' }}</td>
       <td data-v="{{ s.seed_type.value }}">{{ badge(s.seed_type.value) }}</td>
+      <td class="muted" data-v="{{ s.expression.value if s.expression else '' }}">{{ s.expression.value if s.expression else '—' }}</td>
       <td class="muted" data-v="{{ size_rank[s.size.value] }}">{{ s.size.value }}</td>
       <td class="num" data-v="{{ s.flower_days }}">{{ s.flower_days }}</td>
       <td class="num" data-v="{{ s.seeds_on_hand }}">{{ s.seeds_on_hand }}</td>
@@ -42,7 +47,7 @@
       <td class="num" data-v="{{ s.plants|length }}">{{ s.plants|length }}</td>
     </tr>
   {% else %}
-    <tr data-no-sort><td colspan="9" class="empty">{% if filtered %}No strains match that filter. <a href="{{ url_for('strains.index') }}">Clear it</a>.{% else %}Nothing in inventory yet. <a href="{{ url_for('strains.create') }}">Add your first strain</a>.{% endif %}</td></tr>
+    <tr data-no-sort><td colspan="10" class="empty">{% if filtered %}No strains match that filter. <a href="{{ url_for('strains.index') }}">Clear it</a>.{% else %}Nothing in inventory yet. <a href="{{ url_for('strains.create') }}">Add your first strain</a>.{% endif %}</td></tr>
   {% endfor %}
   </tbody>
 </table>

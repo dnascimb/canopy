@@ -15,7 +15,7 @@ from wtforms import (
 from wtforms.validators import DataRequired, Length, NumberRange, Optional, Regexp
 from wtforms.widgets import CheckboxInput, ListWidget
 
-from .models import TASKS, GroupStatus, PlantSize, PlantStatus, SeedType, SpaceStage
+from .models import TASKS, Expression, GroupStatus, PlantSize, PlantStatus, SeedType, SpaceStage
 
 
 def _choices(enum_cls, blank: str | None = None):
@@ -46,6 +46,9 @@ class StrainForm(FlaskForm):
         "Seeds on hand", validators=[Optional(), NumberRange(min=0, max=100_000)], default=0
     )
     size = SelectField("Plant size", choices=_choices(PlantSize), default="medium")
+    expression = SelectField(
+        "Expression", choices=_choices(Expression, blank="Unknown"), validators=[Optional()]
+    )
     notes = TextAreaField("Notes", validators=[Optional()])
 
 

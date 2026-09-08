@@ -14,3 +14,7 @@ dist/
 build/
 *.egg-info/
 .DS_Store
+
+# Personal collection notes — never commit
+collection-index.md
+Cannabis/

@@ -197,6 +197,45 @@ def test_inventory_defaults_to_descending_name(client):
     assert names == sorted(names, key=str.lower, reverse=True)
 
 
+def test_expression_round_trips_and_filters(client):
+    s = db.session.query(Strain).filter_by(name="EQ Haze").one()
+    assert s.expression is None  # nullable: unknown until someone says otherwise
+    client.post(
+        f"/strains/{s.id}/edit",
+        data={
+            "name": s.name,
+            "breeder": s.breeder or "",
+            "lineage": s.lineage or "",
+            "seed_type": s.seed_type.value,
+            "flower_days": s.flower_days,
+            "seeds_on_hand": s.seeds_on_hand,
+            "size": s.size.value,
+            "expression": "haze",
+            "notes": "",
+        },
+        follow_redirects=True,
+    )
+    db.session.refresh(s)
+    assert s.expression is not None and s.expression.value == "haze"
+    assert "EQ Haze" in rows(client, "?expression=haze")
+    assert "EQ Haze" not in rows(client, "?expression=indica")
+    # Blank clears it again rather than sticking on the last value.
+    payload = {
+        "name": s.name,
+        "breeder": s.breeder or "",
+        "lineage": s.lineage or "",
+        "seed_type": s.seed_type.value,
+        "flower_days": s.flower_days,
+        "seeds_on_hand": s.seeds_on_hand,
+        "size": s.size.value,
+        "expression": "",
+        "notes": "",
+    }
+    client.post(f"/strains/{s.id}/edit", data=payload, follow_redirects=True)
+    db.session.refresh(s)
+    assert s.expression is None
+
+
 def test_space_create_edit_delete(client):
     client.post("/spaces/new", data={"name": "Closet", "capacity": 4}, follow_redirects=True)
     s = db.session.query(Space).filter_by(name="Closet").one()

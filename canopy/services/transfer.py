@@ -6,6 +6,7 @@ from datetime import date
 
 from ..extensions import db
 from ..models import (
+    Expression,
     Group,
     GroupStatus,
     Harvest,
@@ -55,6 +56,7 @@ def dump() -> dict:
                 "flower_days": s.flower_days,
                 "seeds_on_hand": s.seeds_on_hand,
                 "size": s.size.value,
+                "expression": s.expression.value if s.expression else None,
                 "notes": s.notes,
             }
             for s in db.session.query(Strain).order_by(Strain.id)
@@ -147,6 +149,7 @@ def load(payload: dict, *, replace: bool = True) -> dict[str, int]:
             flower_days=s.get("flower_days", 70),
             seeds_on_hand=s.get("seeds_on_hand", 0),
             size=PlantSize(s.get("size", "medium")),
+            expression=Expression(s["expression"]) if s.get("expression") else None,
             notes=s.get("notes"),
         )
         db.session.add(obj)

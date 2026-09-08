@@ -5,7 +5,7 @@ from sqlalchemy import func
 
 from ..extensions import db
 from ..forms import StrainForm
-from ..models import PlantSize, PlantStatus, SeedType, Strain
+from ..models import Expression, PlantSize, PlantStatus, SeedType, Strain
 
 bp = Blueprint("strains", __name__)
 
@@ -28,6 +28,7 @@ def index():
     seed_type = request.args.get("type", "")
     breeder = request.args.get("breeder", "")
     days = request.args.get("days", "")
+    expression = request.args.get("expression", "")
     query = db.session.query(Strain)
     if q:
         like = f"%{q}%"
@@ -36,6 +37,8 @@ def index():
         )
     if seed_type:
         query = query.filter(Strain.seed_type == SeedType(seed_type))
+    if expression:
+        query = query.filter(Strain.expression == Expression(expression))
     if breeder == NO_BREEDER:
         query = query.filter((Strain.breeder.is_(None)) | (Strain.breeder == ""))
     elif breeder:
@@ -59,11 +62,13 @@ def index():
         seed_type=seed_type,
         breeder=breeder,
         days=days,
+        expression=expression,
         seed_types=list(SeedType),
+        expressions=list(Expression),
         breeders=breeders,
         day_ranges=DAY_RANGES,
         no_breeder=NO_BREEDER,
-        filtered=bool(q or seed_type or breeder or days),
+        filtered=bool(q or seed_type or breeder or days or expression),
     )
 
 
@@ -75,6 +80,7 @@ def create():
         form.populate_obj(s)
         s.seed_type = SeedType(form.seed_type.data)
         s.size = PlantSize(form.size.data)
+        s.expression = Expression(form.expression.data) if form.expression.data else None
         db.session.add(s)
         db.session.commit()
         flash(f"Added {s.name} to inventory.", "success")
@@ -97,6 +103,7 @@ def edit(strain_id: int):
         form.populate_obj(s)
         s.seed_type = SeedType(form.seed_type.data)
         s.size = PlantSize(form.size.data)
+        s.expression = Expression(form.expression.data) if form.expression.data else None
         db.session.commit()
         flash("Saved changes.", "success")
         return redirect(url_for("strains.detail", strain_id=s.id))

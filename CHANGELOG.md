@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Strains carry an **expression** (sativa / haze / indica / hybrid), nullable because
+  plenty of strains have no stated type. Existing databases need
+  `ALTER TABLE strains ADD COLUMN expression VARCHAR(10)`.
+- The inventory filters on seed type, expression, breeder and flower-length bucket, all
+  stacking, and every column sorts. Default order is strain name descending.
+
 - Timeline bars and dashboard cards collapse repeated strains to "Name xN".
 - Space capacity reports at most one note per space, styled quietly rather than as an error.
 - Configuration is read from `.env` via python-dotenv, covering gunicorn as well as the CLI.
