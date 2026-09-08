@@ -101,7 +101,6 @@ def detail(group_id: int):
         need_sqft=spacing.group_footprint(g, SpaceStage.flowering),
         PlantStatus=PlantStatus,
         GroupStatus=GroupStatus,
-        dry_total=sum(h.dry_weight_g or 0 for h in g.harvests),
         wet_total=sum(h.wet_weight_g or 0 for h in g.harvests),
     )
 

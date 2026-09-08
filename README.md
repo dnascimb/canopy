@@ -18,7 +18,7 @@ comes down, which slots free up next, and where a waiting group could go.
 | **Inventory** | Strains with breeder, lineage, seed type, default flower days and seed count with +/− adjusters and search. |
 | **Spaces & planner** | Clone shelf, veg tent, flower tent — each with a stage, dimensions and a maximum. Canopy shows where every plant is, how much room is left, how many more fit (by strain size class), a season load chart for the flower tent, and what each waiting group needs. |
 | **Journal & quick log** | One‑click daily log with task checkboxes (watered, fed, pH/EC, IPM, defoliated…), plus longer dated notes. "Last watered / fed" on every group. |
-| **Reports** | Dry yield and grams‑per‑plant per strain, survival per strain, why plants were lost, yield per group, tent load over the season. |
+| **Reports** | Survival per strain, why plants were lost, tent load over the season. |
 | **API** | Read/write JSON at `/api/v1/*` for scripts, dashboards and Claude Code. |
 
 ## Quick start

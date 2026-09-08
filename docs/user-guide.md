@@ -28,8 +28,8 @@ Screenshots use the demo season (`flask --app wsgi seed-demo`) with today pinned
 ![Dashboard, annotated](screenshots/dashboard_annotated.png)
 
 1. **Navigation.** Every screen is one click away. The current page is highlighted.
-2. **Season stats.** Groups in flower, plants in flower, plants in veg, inventory size,
-   season dry weight and the number of schedule alerts (turns red when there are any).
+2. **Season stats.** Groups in flower, plants in flower, plants in veg, inventory size
+   and the number of schedule alerts (turns red when there are any).
 3. **Flowering timeline.** One bar per scheduled group, coloured to match the group,
    labelled with its strains and flower length. The darker left part of a bar is the
    elapsed portion; the red line is today. Hover a bar for dates, day count and plant
@@ -118,8 +118,8 @@ database first, otherwise it appends. IDs are re‑mapped so relations survive.
    to the veg tent to the flower tent. Plant statuses follow the destination stage; moving
    into a flower space also sets the group's space and flip date if they were blank. The
    line shows how many square feet the group needs in flower.
-6. **Harvest.** Record wet/dry weights for the whole group or a single plant; totals appear
-   in the section heading.
+6. **Harvest.** Record the wet weight for the whole group or a single plant; the total
+   appears in the section heading.
 7. **Details and status.** Key dates and a row of status buttons. Marking a group
    *flowering* moves its living plants to flowering (and sets today as the flip date if
    none was set); marking it *drying* or *done* moves flowering plants to harvested.
@@ -229,13 +229,10 @@ the fast path.
 
 ![Reports, annotated](screenshots/reports_annotated.png)
 
-1. **Dry yield per strain** and **dry grams per plant** — the two numbers that decide
-   what you grow again. Group-level harvests (no plant chosen) are split evenly across
-   the group's plants, so mixed groups still attribute weight to each strain.
-2. **Survival per strain** (harvested ÷ finished) and **why plants were lost**, from
+1. **Survival per strain** (harvested ÷ finished) and **why plants were lost**, from
    kill reasons.
-3. **Yield per group** table, then the flower tent's load chart and a full per-strain
-   table (size class, grown, harvested, killed, survival, dry, dry per plant, groups).
+2. The flower tent's load chart over the season, then a full per-strain table
+   (size class, grown, harvested, killed, survival, groups).
 
 ## Print view
 

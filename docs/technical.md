@@ -75,7 +75,7 @@ Space 1 ──< Group 1 ──< Plant >── 1 Strain
 | `strains` | `name`, `breeder`, `lineage`, `seed_type` (regular/feminized/autoflower/clone), `flower_days ≥ 1`, `seeds_on_hand ≥ 0`, `size` (small/medium/large), `notes` | Unique on (`name`, `breeder`). Cannot be deleted while it has plants. |
 | `groups` | `number` (unique int), `name` (optional), `space_id`, `flower_start` (nullable), `flower_days ≥ 1`, `status`, `color` (#rrggbb), `notes` | `flower_end` is a property, never stored. Deleting a group unassigns its plants; harvests and journal entries cascade. |
 | `plants` | `label`, `strain_id`, `group_id` (nullable), `space_id` (nullable explicit location), `status` (clone/seedling/vegetative/flowering/harvested/killed), `started_on`, `ended_on`, `end_reason`, `notes` | Killed plants are retained. |
-| `harvests` | `group_id` / `plant_id` (at least one), `harvested_on`, `wet_weight_g`, `dry_weight_g`, `notes` | |
+| `harvests` | `group_id` / `plant_id` (at least one), `harvested_on`, `wet_weight_g`, `notes` | |
 | `journal_entries` | `entry_date`, `group_id` / `plant_id`, `title`, `body`, `tasks` (comma-separated keys from `models.TASKS`) | `task_list` / `task_labels` are derived. |
 
 All tables carry `created_at` / `updated_at` (UTC, naive). Enums are stored as short

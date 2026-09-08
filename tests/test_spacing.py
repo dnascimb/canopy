@@ -162,16 +162,14 @@ def test_journal_task_filter_and_last_done(client):
 
 
 def test_reports_page_and_stats(client):
-    stats = reports.strain_stats(
-        db.session.query(Strain).all(),
-        db.session.query(__import__("canopy.models", fromlist=["Harvest"]).Harvest).all(),
-    )
-    top = stats[0]
-    assert top.strain.name == "Gorilla Snacks" and round(top.dry_g) == 275 and top.harvested == 3
+    stats = reports.strain_stats(db.session.query(Strain).all())
+    top = next(s for s in stats if s.strain.name == "Gorilla Snacks")
+    assert top.harvested == 3
     ll = next(s for s in stats if s.strain.name == "Lemon Lime Haze")
     assert ll.killed == 5 and ll.survival == 0.0
     html = client.get("/reports/").data.decode()
-    assert "Dry yield per strain" in html and "Gorilla Snacks" in html and "<svg" in html
+    assert "Survival per strain" in html and "Gorilla Snacks" in html and "<svg" in html
+    assert "Dry" not in html and "Yield per group" not in html
     assert reports.kill_reasons(db.session.query(Plant).all())[0] == ("Culled", 3)
 
 

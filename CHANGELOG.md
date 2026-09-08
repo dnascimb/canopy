@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+- Timeline bars and dashboard cards collapse repeated strains to "Name xN".
+- Space capacity reports at most one note per space, styled quietly rather than as an error.
+- Configuration is read from `.env` via python-dotenv, covering gunicorn as well as the CLI.
+- The schedule's event table sorts on any column and shades future milestones.
+- **Removed dry weight.** `harvests.dry_weight_g` is gone, along with the dry-yield and
+  grams-per-plant reports and the yield-per-group table. Harvests still record a wet
+  weight, a date and notes. Existing databases need
+  `ALTER TABLE harvests DROP COLUMN dry_weight_g`; 1.0/1.1 backups still restore, the
+  field is simply ignored.
+
 ## 1.1.0 — 2026-09-07
 
 **Spaces & planner**

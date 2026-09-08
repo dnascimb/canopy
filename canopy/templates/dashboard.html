@@ -19,7 +19,6 @@
   <div class="stat"><div class="n">{{ counts.flowering }}</div><div class="l">plants in flower</div></div>
   <div class="stat"><div class="n">{{ counts.vegetative + counts.seedling }}</div><div class="l">plants in veg</div></div>
   <div class="stat"><div class="n">{{ inventory.strains }}</div><div class="l">strains · {{ inventory.seeds_on_hand }} seeds</div></div>
-  <div class="stat"><div class="n">{{ '%.0f'|format(dry_total) }} g</div><div class="l">dry weight this season</div></div>
   <div class="stat {{ 'warn' if conflicts }}"><div class="n">{{ conflicts|length }}</div><div class="l">schedule alerts</div></div>
 </div>
 

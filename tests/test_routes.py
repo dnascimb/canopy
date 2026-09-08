@@ -120,7 +120,6 @@ def test_record_harvest_and_journal(client):
             "plant_id": 0,
             "harvested_on": "2026-09-22",
             "wet_weight_g": "900",
-            "dry_weight_g": "210",
         },
         follow_redirects=True,
     )

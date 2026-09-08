@@ -235,15 +235,15 @@ GROUPS = [
 ]
 
 HARVESTS = [
-    # group number, plant label|None, date, wet, dry, notes
-    (15, None, D(2026, 7, 7), 412.0, 96.5, "Frosty, dense. Early amber at day 60."),
-    (1, "Swazipulco F2", D(2026, 7, 28), 380.0, 88.0, "Sativa stretch, airy tops"),
-    (1, "Gorilla Snacks I", D(2026, 7, 28), 455.0, 110.0, None),
-    (2, None, D(2026, 8, 2), 700.0, 165.0, "Both Gorilla Snacks combined"),
-    (3, None, D(2026, 8, 11), 1620.0, 381.0, "Six plants; London Pound Cake was the standout"),
-    (4, None, D(2026, 8, 16), 2100.0, 495.0, None),
-    (5, None, D(2026, 8, 23), 1280.0, 302.0, None),
-    (16, None, D(2026, 8, 24), 330.0, 74.0, "Very long, foxtailed colas"),
+    # group number, plant label|None, date, wet, notes
+    (15, None, D(2026, 7, 7), 412.0, "Frosty, dense. Early amber at day 60."),
+    (1, "Swazipulco F2", D(2026, 7, 28), 380.0, "Sativa stretch, airy tops"),
+    (1, "Gorilla Snacks I", D(2026, 7, 28), 455.0, None),
+    (2, None, D(2026, 8, 2), 700.0, "Both Gorilla Snacks combined"),
+    (3, None, D(2026, 8, 11), 1620.0, "Six plants; London Pound Cake was the standout"),
+    (4, None, D(2026, 8, 16), 2100.0, None),
+    (5, None, D(2026, 8, 23), 1280.0, None),
+    (16, None, D(2026, 8, 24), 330.0, "Very long, foxtailed colas"),
 ]
 
 JOURNAL = [
@@ -398,14 +398,13 @@ def seed_demo() -> None:
             plants[(number, label)] = p
             db.session.add(p)
 
-    for number, plabel, on, wet, dry, notes in HARVESTS:
+    for number, plabel, on, wet, notes in HARVESTS:
         db.session.add(
             Harvest(
                 group=groups[number],
                 plant=plants.get((number, plabel)) if plabel else None,
                 harvested_on=on,
                 wet_weight_g=wet,
-                dry_weight_g=dry,
                 notes=notes,
             )
         )

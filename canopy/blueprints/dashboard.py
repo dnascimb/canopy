@@ -4,7 +4,7 @@ from flask import Blueprint, render_template
 
 from ..extensions import db
 from ..forms import JournalForm
-from ..models import Group, Harvest, Plant, Space, Strain
+from ..models import Group, Plant, Space, Strain
 from ..services import scheduling as sched
 from ..services import spacing
 
@@ -24,8 +24,6 @@ def index():
     active.sort(key=lambda g: g.flower_end)
     unscheduled = [g for g in groups if g.flower_start is None]
     suggestions = {g.id: sched.suggest_start(g, groups, ref=ref) for g in unscheduled}
-
-    dry_total = sum(h.dry_weight_g or 0 for h in db.session.query(Harvest).all())
 
     quick = JournalForm(entry_date=ref)
     quick.group_id.choices = [(0, "— whole room —")] + [
@@ -48,6 +46,5 @@ def index():
         openings=sched.openings(groups, ref=ref)[:5],
         counts=sched.plant_counts(plants),
         inventory=sched.inventory_summary(strains),
-        dry_total=dry_total,
         ref=ref,
     )
