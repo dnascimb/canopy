@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
+from sqlalchemy import func
 
 from ..extensions import db
 from ..forms import StrainForm
@@ -8,11 +9,25 @@ from ..models import PlantSize, PlantStatus, SeedType, Strain
 
 bp = Blueprint("strains", __name__)
 
+NO_BREEDER = "__none__"
+
+# Flower-length buckets, week-aligned because that is how flower time is quoted.
+DAY_RANGES: dict[str, tuple[str, int | None, int | None]] = {
+    "-56": ("8 weeks or less", None, 56),
+    "57-63": ("9 weeks (57-63)", 57, 63),
+    "64-70": ("10 weeks (64-70)", 64, 70),
+    "71-77": ("11 weeks (71-77)", 71, 77),
+    "78-84": ("12 weeks (78-84)", 78, 84),
+    "85-": ("13 weeks or more", 85, None),
+}
+
 
 @bp.get("/")
 def index():
     q = request.args.get("q", "").strip()
     seed_type = request.args.get("type", "")
+    breeder = request.args.get("breeder", "")
+    days = request.args.get("days", "")
     query = db.session.query(Strain)
     if q:
         like = f"%{q}%"
@@ -21,9 +36,34 @@ def index():
         )
     if seed_type:
         query = query.filter(Strain.seed_type == SeedType(seed_type))
-    strains = query.order_by(Strain.name).all()
+    if breeder == NO_BREEDER:
+        query = query.filter((Strain.breeder.is_(None)) | (Strain.breeder == ""))
+    elif breeder:
+        query = query.filter(Strain.breeder == breeder)
+    if days in DAY_RANGES:
+        _, low, high = DAY_RANGES[days]
+        if low is not None:
+            query = query.filter(Strain.flower_days >= low)
+        if high is not None:
+            query = query.filter(Strain.flower_days <= high)
+    # Descending by default. Case-insensitive so this matches the locale-aware order
+    # sortable.js re-applies client-side; SQLite's default collation is not.
+    strains = query.order_by(func.lower(Strain.name).desc()).all()
+    breeders = [
+        b for (b,) in db.session.query(Strain.breeder).distinct().order_by(Strain.breeder) if b
+    ]
     return render_template(
-        "strains/index.html", strains=strains, q=q, seed_type=seed_type, seed_types=list(SeedType)
+        "strains/index.html",
+        strains=strains,
+        q=q,
+        seed_type=seed_type,
+        breeder=breeder,
+        days=days,
+        seed_types=list(SeedType),
+        breeders=breeders,
+        day_ranges=DAY_RANGES,
+        no_breeder=NO_BREEDER,
+        filtered=bool(q or seed_type or breeder or days),
     )
 
 

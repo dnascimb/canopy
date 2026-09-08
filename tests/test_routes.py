@@ -1,3 +1,4 @@
+import re
 from datetime import date
 
 from canopy.extensions import db
@@ -166,6 +167,34 @@ def test_strain_with_plants_cannot_be_deleted(client):
 def test_strain_search(client):
     html = client.get("/strains/?q=lebanese").data.decode()
     assert "Lebanese Honey" in html and "EQ Haze" not in html
+
+
+def rows(client, query=""):
+    """Strain names in the order the inventory table renders them."""
+    html = client.get(f"/strains/{query}").data.decode()
+    return re.findall(r'<td data-v="([^"]*)"><a href="/strains/\d+"', html)
+
+
+def test_inventory_filters_stack(client):
+    all_names = rows(client)
+    assert len(all_names) > 5
+    # Each filter narrows, and combining them narrows further rather than resetting.
+    regular = rows(client, "?type=regular")
+    eq = rows(client, "?breeder=Equilibrium")
+    both = rows(client, "?type=regular&breeder=Equilibrium")
+    assert set(both) == set(regular) & set(eq)
+    assert len(both) < len(all_names)
+    long_flower = rows(client, "?days=85-")
+    assert "EQ Haze" in long_flower and "Lebanese Honey" not in long_flower
+    assert set(rows(client, "?days=-56")).isdisjoint(long_flower)
+    assert set(rows(client, "?breeder=__none__")).isdisjoint(eq)
+    narrowed = rows(client, "?type=regular&breeder=Equilibrium&days=85-")
+    assert set(narrowed) <= set(both)
+
+
+def test_inventory_defaults_to_descending_name(client):
+    names = rows(client)
+    assert names == sorted(names, key=str.lower, reverse=True)
 
 
 def test_space_create_edit_delete(client):

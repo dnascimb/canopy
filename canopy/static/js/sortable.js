@@ -29,6 +29,7 @@
     });
     rows.forEach(function (r) { body.appendChild(r); });
     Array.prototype.forEach.call(table.tHead.rows[0].cells, function (th, n) {
+      if (th.dataset.noSort !== undefined) return;   // never claim a sort state it cannot have
       th.setAttribute('aria-sort', n !== i ? 'none'
         : (dir === 'desc' ? 'descending' : 'ascending'));
     });
