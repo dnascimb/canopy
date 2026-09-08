@@ -27,7 +27,7 @@
   {% if filtered %}<a class="btn ghost" href="{{ url_for('strains.index') }}">Clear</a>{% endif %}
 </form>
 <div class="panel tight table-wrap">
-<table class="sortable" data-sort-col="0" data-sort-dir="desc">
+<table class="sortable" data-sort-col="0" data-sort-dir="asc">
   <thead><tr><th>Strain</th><th>Breeder</th><th>Lineage</th><th>Type</th><th>Expression</th><th>Size</th><th class="num">Flower days</th><th class="num">Seeds</th><th data-no-sort></th><th class="num">Plants</th></tr></thead>
   <tbody>
   {% for s in strains %}

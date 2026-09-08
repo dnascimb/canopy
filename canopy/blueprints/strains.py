@@ -49,9 +49,9 @@ def index():
             query = query.filter(Strain.flower_days >= low)
         if high is not None:
             query = query.filter(Strain.flower_days <= high)
-    # Descending by default. Case-insensitive so this matches the locale-aware order
+    # Ascending by default. Case-insensitive so this matches the locale-aware order
     # sortable.js re-applies client-side; SQLite's default collation is not.
-    strains = query.order_by(func.lower(Strain.name).desc()).all()
+    strains = query.order_by(func.lower(Strain.name)).all()
     breeders = [
         b for (b,) in db.session.query(Strain.breeder).distinct().order_by(Strain.breeder) if b
     ]

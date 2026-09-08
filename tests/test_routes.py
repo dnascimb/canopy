@@ -192,9 +192,9 @@ def test_inventory_filters_stack(client):
     assert set(narrowed) <= set(both)
 
 
-def test_inventory_defaults_to_descending_name(client):
+def test_inventory_defaults_to_ascending_name(client):
     names = rows(client)
-    assert names == sorted(names, key=str.lower, reverse=True)
+    assert names == sorted(names, key=str.lower)
 
 
 def test_expression_round_trips_and_filters(client):
