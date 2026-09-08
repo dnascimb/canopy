@@ -12,11 +12,11 @@ comes down, which slots free up next, and where a waiting group could go.
 | Area | What you can do |
 | --- | --- |
 | **Dashboard** | Season timeline (Gantt), groups in flower with day counters, next 30 days of milestones, schedule alerts, upcoming openings, and one‑click scheduling for groups waiting on a slot. |
-| **Schedule** | Full event table (every start and end of flower), openings, conflicts, print view, Markdown export (bulleted groups + event table + ASCII timeline for Joplin/Obsidian/GitHub), JSON backup and restore. |
+| **Schedule** | Full event table (every start and end of flower, sortable on any column, future milestones shaded), openings, alerts, print view, Markdown export (bulleted groups + event table + ASCII timeline for Joplin/Obsidian/GitHub), JSON backup and restore. |
 | **Groups** | Create batches, set flip date and flower days, assign a space, track status (planned → vegetative → flowering → drying → done), record harvests and journal entries, accept a suggested flip date. |
 | **Plants** | Individual plants of a strain in a group, with status, start/end dates, kill reason, notes; filter by status, group or strain. |
 | **Inventory** | Strains with breeder, lineage, seed type, expression (sativa/haze/indica/hybrid), default flower days and seed count with +/− adjusters. Search plus stacking filters on type, expression, breeder and flower length; every column sorts. |
-| **Spaces & planner** | Clone shelf, veg tent, flower tent — each with a stage, dimensions and a maximum. Canopy shows where every plant is, how much room is left, how many more fit (by strain size class), a season load chart for the flower tent, and what each waiting group needs. |
+| **Spaces & planner** | Clone shelf, veg tent, flower tent — each with a stage, dimensions and a maximum. Canopy shows where every plant is, how much room is left, how many more fit (by strain size class), a season load chart for the flower tent, what each waiting group needs, and a red **over capacity** label on any room in breach now or on a projected date. |
 | **Journal & quick log** | One‑click daily log with task checkboxes (watered, fed, pH/EC, IPM, defoliated…), plus longer dated notes. "Last watered / fed" on every group. |
 | **Reports** | Survival per strain, why plants were lost, tent load over the season. |
 | **API** | Read/write JSON at `/api/v1/*` for scripts, dashboards and Claude Code. |

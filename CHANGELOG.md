@@ -2,21 +2,24 @@
 
 ## Unreleased
 
-- Strains carry an **expression** (sativa / haze / indica / hybrid), nullable because
-  plenty of strains have no stated type. Existing databases need
-  `ALTER TABLE strains ADD COLUMN expression VARCHAR(10)`.
-- The inventory filters on seed type, expression, breeder and flower-length bucket, all
-  stacking, and every column sorts. Default order is strain name descending.
-
-- Timeline bars and dashboard cards collapse repeated strains to "Name xN".
-- Space capacity reports at most one note per space, styled quietly rather than as an error.
-- Configuration is read from `.env` via python-dotenv, covering gunicorn as well as the CLI.
-- The schedule's event table sorts on any column and shades future milestones.
+- **Space capacity is no longer an alert.** It moved off the dashboard and schedule lists
+  onto the spaces page, as a red **over capacity** label on the room in breach with the
+  reason beside it. It is an estimate from footprints and dimensions and cannot be
+  dismissed, so it no longer follows you around; `conflicts()` reports only genuinely
+  broken schedules. The card's red state now reflects the projected peak, not just today.
 - **Removed dry weight.** `harvests.dry_weight_g` is gone, along with the dry-yield and
   grams-per-plant reports and the yield-per-group table. Harvests still record a wet
   weight, a date and notes. Existing databases need
   `ALTER TABLE harvests DROP COLUMN dry_weight_g`; 1.0/1.1 backups still restore, the
   field is simply ignored.
+- Strains carry an **expression** (sativa / haze / indica / hybrid), nullable because
+  plenty of strains have no stated type. Existing databases need
+  `ALTER TABLE strains ADD COLUMN expression VARCHAR(10)`.
+- The inventory filters on seed type, expression, breeder and flower-length bucket, all
+  stacking, and every column sorts. Default order is strain name A-Z.
+- The schedule's event table sorts on any column and shades future milestones.
+- Timeline bars and dashboard cards collapse repeated strains to "Name xN".
+- Configuration is read from `.env` via python-dotenv, covering gunicorn as well as the CLI.
 
 ## 1.1.0 — 2026-09-07
 

@@ -50,8 +50,11 @@ rendered client-side by `static/js/timeline.js` from JSON that the templates inl
 * **Footprints** (sq ft per plant) are `spacing.footprint_table()`: defaults in
   `DEFAULT_FOOTPRINT_SQFT` overridden by `app.config["FOOTPRINT_SQFT"]` (from
   `CANOPY_FOOTPRINT_*`). A space's effective capacity is `min(max plants, area ÷ footprint)`.
-* Capacity conflicts for flowering spaces come from `spacing.load_series()` and only
-  consider points **on or after today**; history is not an alert.
+* Capacity is **not** a conflict. `spacing.capacity_warning(space, groups, occ)` returns
+  the reason a space is in breach and the spaces page shows it as a red label on that
+  space; `conflicts()` reports only genuinely broken schedules. It reads the projected
+  peak from `load_series()` **on or after today** (history is not a warning) and falls
+  back to current occupancy for spaces with no schedule behind them.
 * `spacing.move_plants()` sets `plant.space` **and** aligns `plant.status` with the
   destination stage; never move plants by setting `space_id` alone.
 * Journal `tasks` is a comma-separated string of keys from `models.TASKS`; use

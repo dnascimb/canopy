@@ -119,10 +119,13 @@ if the group already has a space, prefer openings in that space.
 **`conflicts(groups, spaces)`** — returns `Conflict(severity, message, group?, space?)`:
 
 * error — group marked flowering with no start date;
-* warning — scheduled group with no space, or with no living plants (only for groups not yet finished);
-* error — space capacity exceeded. Capacity is evaluated only at each distinct start/end
-  date in that space (the occupancy step function can only change there), counting
-  living plants of groups flowering on that day.
+* warning — scheduled group with no space, or with no living plants (only for groups not yet finished).
+
+Space capacity is deliberately absent: it is an estimate from footprints and dimensions,
+so it is reported by `spacing.capacity_warning()` against the space itself rather than in
+this list. Capacity is evaluated only at each distinct start/end date in that space (the
+occupancy step function can only change there), counting living plants of groups flowering
+on that day, and falls back to current occupancy where no schedule applies.
 
 **`implied_status(group)`** — what the calendar says: planned/vegetative if unscheduled,
 vegetative before the flip, flowering inside the window, drying after. The group page
@@ -152,7 +155,7 @@ and remaining count.
 
 **Load series.** `load_series(space, groups, ref)` evaluates the schedule at every flip
 and harvest date in that space (plus today) and returns `{date, count, sqft, groups}`
-points. `peak(series, since=today)` is what conflicts use; the chart shows the full
+points. `peak(series, since=today)` is what `capacity_warning()` uses; the chart shows the full
 series with the space's area as the capacity line.
 
 **Moves.** `move_plants(plants, space)` sets `plant.space` and `plant.status =

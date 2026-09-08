@@ -15,7 +15,7 @@ in the technical guide. Dates are ISO `YYYY-MM-DD`. The API honours `CANOPY_TODA
 | PATCH | `/groups/<id>` | Update `flower_start`, `flower_days`, `status`, `space_id`, `name`, `notes`. |
 | GET | `/spaces` | Spaces with current occupancy, load, and how many plants of each size fit / still fit. |
 | GET | `/spaces/<id>/load` | Projected load of a flowering space at every flip/harvest date (plus today). |
-| GET | `/strains` | Inventory (includes `size`). |
+| GET | `/strains` | Inventory (includes `size` and `expression`). |
 | GET | `/plants` | All plants with `location`. |
 | GET | `/export` | Full JSON backup (same as Schedule → Backup). |
 | GET | `/export.md` | Markdown schedule (text/markdown). |

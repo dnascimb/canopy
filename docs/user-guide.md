@@ -44,8 +44,9 @@ Screenshots use the demo season (`flask --app wsgi seed-demo`) with today pinned
 7. **Spaces.** Every space with its plant count and square feet in use. Red when over
    capacity. Links to the planner.
 8. **Next 30 days.** Upcoming milestones: green dot = flip, amber dot = harvest.
-9. **Alerts.** Space over capacity (today or on a future date), groups scheduled without
-   a space or without living plants, and status/date mismatches.
+9. **Alerts.** Groups scheduled without a space or without living plants, and status/date
+   mismatches. Space capacity is *not* here — it is a label on the spaces page, because it
+   is an estimate rather than something broken.
 10. **Upcoming openings.** When each slot frees up; **plan a group** opens the new‑group
     form pre‑filled with that date and space.
 11. **Actions.** Export the schedule as Markdown or start a new group.
@@ -60,9 +61,10 @@ Screenshots use the demo season (`flask --app wsgi seed-demo`) with today pinned
    *ASCII timeline* (plain text that renders in any monospace box), *Export Markdown*
    (see below), *Backup JSON* (full database) and *Restore…*.
 2. **Timeline.** Same Gantt as the dashboard.
-3. **Events.** Every start and end of flower in date order. Past rows are dimmed, today's
-   row is highlighted. On a day where one group ends and another starts, the end is
-   listed first.
+3. **Events.** Every start and end of flower. Click any column header to sort by it —
+   newest date first by default. Past rows are dimmed, today's row is highlighted, and
+   future rows are tinted and tagged *upcoming*. On a day where one group ends and
+   another starts, the end is listed first.
 4. **Openings.** Dates a space becomes free, with a shortcut to plan a group on that date.
 5. **Unscheduled.** Groups that still need a flip date.
 6. **Alerts.** The same conflict checks as the dashboard.
@@ -171,10 +173,14 @@ buttons for the normal lifecycle.
 
 ![Inventory, annotated](screenshots/inventory_annotated.png)
 
-1. **Search and filter** by name, breeder or lineage, and by seed type.
+1. **Search and filter.** Free text over name, breeder and lineage, plus seed type,
+   expression, breeder and flower-length filters. They stack: each one narrows what the
+   others left.
 2. **Add strain.**
-3. **Table.** Seed type badge, default flower days (copied into groups you plan),
-   seeds on hand and the number of plants ever grown from the strain.
+3. **Table.** Seed type badge, expression (sativa / haze / indica / hybrid), size class,
+   default flower days (copied into groups you plan), seeds on hand and the number of
+   plants ever grown from the strain. Click any column header to sort by it; the default
+   is strain name A–Z.
 4. **Seed adjusters.** − / + change the count in place; it never drops below zero.
 
 ![Strain detail](screenshots/strain_detail.png)
@@ -190,10 +196,11 @@ deleted (delete the plants first) so history is never lost by accident.
 1. **One card per space**, ordered clone → veg → flower. Each shows stage, dimensions,
    maximum, a load bar (square feet in use, or plant count when there are no dimensions),
    how many *more* plants of each size fit right now, how many would fit empty, and which
-   groups are in it. The bar turns red when over capacity.
+   groups are in it. A space in breach — now or on a projected future date — gets a red
+   **over capacity** label with the reason, and its border and load bar turn red.
 2. **Load over the season** for each flowering space: square feet in use at every flip
    and harvest, the tent's area as a dashed capacity line, today in red. Peaks above the
-   line on future dates raise an alert.
+   line are what drive the over-capacity label on the card.
 3. **Coming up.** Every group that hasn't flipped yet, the square feet it will need in
    flower, whether that fits today, and the next opening. **Schedule** accepts the
    suggested date for unscheduled groups.
