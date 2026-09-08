@@ -21,7 +21,7 @@ Screenshots use the demo season (`flask --app wsgi seed-demo`) with today pinned
 | **Size class** | Per strain: small, medium or large. With the space's stage it sets the plant's footprint in square feet, which is how Canopy estimates how many fit. |
 | **Opening** | A date a space frees up because a group finishes and nothing starts that day. |
 | **Status** | Group: planned → vegetative → flowering → drying → done. Plant: clone, seedling, vegetative, flowering, harvested, killed. |
-| **Task** | A checkbox in the quick log: watered, fed, pH/EC, IPM, defoliated, trained, transplanted, flushed, took clones, cleaned. |
+| **Task** | A checkbox in the quick log: watered, fed, pest/mold treatment, defoliated, trained, transplanted, flushed, took clones, cleaned. |
 
 ## Dashboard
 
@@ -267,7 +267,7 @@ panel.
 under *Waiting for a slot* with a suggested date and in the planner's *Coming up* table
 with the square feet it needs → **Schedule**.
 
-**Daily.** Dashboard → *Log today* → tick watered / fed / pH → **Log**. Ten seconds.
+**Daily.** Dashboard → *Log today* → pick the tent, tick watered / fed → **Log**. Ten seconds.
 
 **Move a group up a stage.** Group page → *Move all living plants to* → the next tent.
 

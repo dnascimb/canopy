@@ -278,10 +278,10 @@ JOURNAL = [
         None,
         "Week 7 check",
         "Franco SLH stacking well. Mango HP smells like ripe mango.",
-        "watered,fed,ph_ec",
+        "watered,fed",
     ),
     (D(2026, 9, 3), 8, None, "Watered, fed", None, "watered,fed"),
-    (D(2026, 9, 3), 9, None, "Watered", "Plain water, runoff 6.3", "watered,ph_ec"),
+    (D(2026, 9, 3), 9, None, "Watered", "Plain water, runoff 6.3", "watered"),
     (
         D(2026, 9, 5),
         8,

@@ -350,8 +350,7 @@ class JournalEntry(TimestampMixin, db.Model):
 TASKS: dict[str, str] = {
     "watered": "Watered",
     "fed": "Fed nutrients",
-    "ph_ec": "Checked pH / EC",
-    "ipm": "IPM / pest check",
+    "ipm": "Pest/Mold treatment",
     "defoliated": "Defoliated",
     "trained": "Trained / topped",
     "transplanted": "Transplanted",

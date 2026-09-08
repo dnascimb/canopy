@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Quick-log tasks: dropped "Checked pH / EC", renamed "IPM / pest check" to
+  "Pest/Mold treatment". Existing entries keep the `ipm` key and pick up the new label;
+  `ph_ec` was stripped from the seeded entries that used it.
+
 - **Journal entries can be logged against a space.** The dashboard's quick log is now one
   section per space, so a whole tent can be logged in a pass, and the journal filters by
   space. `journal_entries.space_id` is new; existing databases need
