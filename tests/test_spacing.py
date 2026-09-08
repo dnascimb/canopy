@@ -141,36 +141,57 @@ def test_space_form_with_stage_and_dims(client):
     assert s.stage.value == "vegetative" and s.area_sqft == 9.0
 
 
-def test_quick_log_creates_titled_entry(client):
-    g = db.session.query(Group).filter_by(number=8).one()
+def test_quick_log_logs_against_a_space(client):
+    veg = db.session.query(Space).filter_by(name="Veg Tent").one()
     r = client.post(
         "/journal/quick",
         data={
             "entry_date": "2026-09-07",
-            "group_id": g.id,
-            "plant_id": 0,
+            "space_id": veg.id,
             "tasks": ["watered", "fed"],
             "body": "runoff 6.2",
         },
         follow_redirects=True,
     )
     assert b"Logged: Watered, Fed nutrients" in r.data
-    e = [j for j in g.journal_entries if j.entry_date == REF][0]
+    e = [j for j in veg.journal_entries if j.entry_date == REF][0]
     assert e.task_list == ["watered", "fed"] and e.body == "runoff 6.2"
+    assert e.group_id is None  # logged against the tent, not a group
+
+    # Nothing in particular is required, but the entry has to say something.
     r = client.post(
         "/journal/quick",
-        data={"entry_date": "2026-09-07", "group_id": 0, "plant_id": 0},
+        data={"entry_date": "2026-09-07", "space_id": veg.id},
         follow_redirects=True,
     )
-    assert b"Tick at least one task" in r.data
+    assert b"Tick a task, or write a note." in r.data
+
+    # A bare note is enough, and still gets a usable title.
+    r = client.post(
+        "/journal/quick",
+        data={"entry_date": "2026-09-07", "space_id": veg.id, "body": "topped a few"},
+        follow_redirects=True,
+    )
+    assert b"Logged: Note" in r.data
+    assert [j for j in veg.journal_entries if j.body == "topped a few"]
 
 
-def test_journal_task_filter_and_last_done(client):
+def test_journal_filters_by_space(client):
     html = client.get("/journal/?task=cloned").data.decode()
     assert "Took clones" in html and "Defoliation" not in html
-    g = db.session.query(Group).filter_by(number=8).one()
-    html = client.get(f"/groups/{g.id}").data.decode()
-    assert "defoliated Sep 05" in html and "watered Sep 05" in html
+    veg = db.session.query(Space).filter_by(name="Veg Tent").one()
+    flower = db.session.query(Space).filter_by(name="Flower Room").one()
+    client.post(
+        "/journal/quick",
+        data={"entry_date": "2026-09-07", "space_id": veg.id, "tasks": ["watered"]},
+        follow_redirects=True,
+    )
+    shown = client.get(f"/journal/?space={veg.id}").data.decode()
+    assert '<span class="chip">Watered</span>' in shown
+    # The flower tent has nothing logged against it, so the list is empty. ("Watered"
+    # still appears on the page — it is one of the task filter's options.)
+    other = client.get(f"/journal/?space={flower.id}").data.decode()
+    assert "No entries yet" in other and '<span class="chip">Watered</span>' not in other
 
 
 def test_reports_page_and_stats(client):

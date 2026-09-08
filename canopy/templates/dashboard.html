@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% from "_macros.html" import badge, timeline, csrf %}
-{% from "_quicklog.html" import quicklog %}
+{% from "_quicklog.html" import quicklog, quicklog_spaces %}
 {% block title %}Dashboard{% endblock %}
 {% block content %}
 <div class="page-head">
@@ -74,7 +74,7 @@
   <div>
     <section>
       <div class="section-head"><h2>Log today</h2><span class="hint"><a href="{{ url_for('journal.index') }}">journal</a></span></div>
-      <div class="panel">{{ quicklog(quick, url_for('journal.quick')) }}</div>
+      <div class="panel">{{ quicklog_spaces(quick, url_for('journal.quick'), spaces) }}</div>
     </section>
 
     <section>

@@ -122,7 +122,7 @@
     </section>
 
     <section id="journal">
-      <div class="section-head"><h2>Journal</h2>{% if last_done %}<span class="hint">{% for label, on in last_done[:3] %}{{ label|lower }} {{ on|d }}{{ ' · ' if not loop.last }}{% endfor %}</span>{% endif %}</div>
+      <div class="section-head"><h2>Journal</h2></div>
       <div class="panel">
         {{ quicklog(journal_form, url_for('groups.add_journal', group_id=group.id), group=group) }}
         <ul class="journal mt">
@@ -138,7 +138,7 @@
           <summary>Add a longer entry</summary>
           <form method="post" action="{{ url_for('groups.add_journal', group_id=group.id) }}" class="form mt">
             {{ csrf() }}
-            <div class="form-grid">{{ field(journal_form.entry_date) }}{{ field(journal_form.plant_id) }}</div>
+            <div class="form-grid">{{ field(journal_form.entry_date) }}</div>
             {{ field(journal_form.title) }}
             {{ field(journal_form.body) }}
             <div><button class="btn primary" type="submit">Add entry</button></div>

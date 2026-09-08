@@ -104,16 +104,19 @@ class TaskField(SelectMultipleField):
 
 class JournalForm(FlaskForm):
     entry_date = DateField("Date", validators=[DataRequired()])
-    group_id = SelectField("Group", coerce=int, validators=[Optional()])
-    plant_id = SelectField("Plant", coerce=int, validators=[Optional()])
+    space_id = SelectField("Space", coerce=int, validators=[Optional()])
     tasks = TaskField("Done today", choices=list(TASKS.items()), validators=[Optional()])
     title = StringField("Title", validators=[Optional(), Length(max=160)])
     body = TextAreaField("Entry", validators=[Optional()])
 
     def validate(self, extra_validators=None) -> bool:
         ok = super().validate(extra_validators)
-        if ok and not self.title.data and not self.tasks.data:
-            self.title.errors = list(self.title.errors) + ["Give the entry a title or tick a task."]
+        # Journal entries are free-form notes, so nothing in particular is required —
+        # only that the entry says *something*.
+        if ok and not (self.title.data or self.tasks.data or self.body.data):
+            self.title.errors = list(self.title.errors) + [
+                "Tick a task, or write a title or a note."
+            ]
             return False
         return ok
 
@@ -123,11 +126,16 @@ class JournalForm(FlaskForm):
 
     @property
     def derived_title(self) -> str:
-        return self.title.data or ", ".join(TASKS[k] for k in self.tasks.data)
+        """Title, else the ticked tasks, else a plain label — never empty."""
+        if self.title.data:
+            return self.title.data
+        if self.tasks.data:
+            return ", ".join(TASKS[k] for k in self.tasks.data)
+        return "Note"
 
 
 class QuickLogForm(JournalForm):
-    """Journal entry with the group chosen from a select and only checkboxes required."""
+    """Journal entry logged against one space, straight from the dashboard."""
 
 
 class MoveForm(FlaskForm):

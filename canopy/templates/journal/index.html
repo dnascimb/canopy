@@ -3,14 +3,14 @@
 {% block title %}Journal{% endblock %}
 {% block content %}
 <div class="page-head">
-  <div><h1>Grow journal</h1><p class="sub">Dated notes attached to groups and plants.</p></div>
+  <div><h1>Grow journal</h1><p class="sub">Dated notes, kept per space. Free-form — nothing here feeds the schedule or any report.</p></div>
   <div class="actions"><a class="btn primary" href="{{ url_for('journal.create') }}">New entry</a></div>
 </div>
 <form class="filters" method="get">
-  <select name="group" aria-label="Group"><option value="">Any group</option>{% for g in groups %}<option value="{{ g.id }}" {{ 'selected' if g.id == group_id }}>{{ g.label }}</option>{% endfor %}</select>
+  <select name="space" aria-label="Space"><option value="">Any space</option>{% for s in spaces %}<option value="{{ s.id }}" {{ 'selected' if s.id == space_id }}>{{ s.name }}</option>{% endfor %}</select>
   <select name="task" aria-label="Task"><option value="">Any task</option>{% for k, v in tasks.items() %}<option value="{{ k }}" {{ 'selected' if k == task }}>{{ v }}</option>{% endfor %}</select>
   <button class="btn" type="submit">Filter</button>
-  {% if group_id or task %}<a class="btn ghost" href="{{ url_for('journal.index') }}">Clear</a>{% endif %}
+  {% if space_id or task %}<a class="btn ghost" href="{{ url_for('journal.index') }}">Clear</a>{% endif %}
 </form>
 <div class="panel">
 <ul class="journal">
@@ -20,6 +20,7 @@
       <span class="when">{{ j.entry_date|d('%b %d, %Y') }}</span>
       <strong>{{ j.title }}</strong>
       <span class="tags">
+        {% if j.space %}<a class="badge vegetative" href="{{ url_for('spaces.index') }}">{{ j.space.name }}</a>{% endif %}
         {% if j.group %}<a class="badge planned" href="{{ url_for('groups.detail', group_id=j.group.id) }}">{{ j.group.label }}</a>{% endif %}
         {% if j.plant %}<a class="badge planned" href="{{ url_for('plants.detail', plant_id=j.plant.id) }}">{{ j.plant.label }}</a>{% endif %}
         <a class="btn small ghost" href="{{ url_for('journal.edit', entry_id=j.id) }}">Edit</a>

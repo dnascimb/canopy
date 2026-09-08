@@ -114,6 +114,7 @@ class Space(TimestampMixin, db.Model):
 
     groups: Mapped[list[Group]] = relationship(back_populates="space")
     plants: Mapped[list[Plant]] = relationship(back_populates="space")
+    journal_entries: Mapped[list[JournalEntry]] = relationship(back_populates="space")
 
     __table_args__ = (CheckConstraint("capacity >= 1", name="ck_space_capacity"),)
 
@@ -327,12 +328,14 @@ class JournalEntry(TimestampMixin, db.Model):
     entry_date: Mapped[date] = mapped_column(db.Date, nullable=False)
     group_id: Mapped[int | None] = mapped_column(db.ForeignKey("groups.id", ondelete="CASCADE"))
     plant_id: Mapped[int | None] = mapped_column(db.ForeignKey("plants.id", ondelete="CASCADE"))
+    space_id: Mapped[int | None] = mapped_column(db.ForeignKey("spaces.id", ondelete="CASCADE"))
     title: Mapped[str] = mapped_column(db.String(160), nullable=False)
     body: Mapped[str | None] = mapped_column(db.Text)
     tasks: Mapped[str | None] = mapped_column(db.String(255))  # comma-separated task keys
 
     group: Mapped[Group | None] = relationship(back_populates="journal_entries")
     plant: Mapped[Plant | None] = relationship(back_populates="journal_entries")
+    space: Mapped[Space | None] = relationship(back_populates="journal_entries")
 
     @property
     def task_list(self) -> list[str]:

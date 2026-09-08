@@ -39,8 +39,9 @@ Screenshots use the demo season (`flask --app wsgi seed-demo`) with today pinned
 5. **Waiting for a slot.** Groups without a flip date, each with the earliest suggested
    opening ("Oct 25 when Grp 10 finishes in Flower Room"). **Schedule** sets the flip
    date and space in one click.
-6. **Log today.** Pick a date and group (or the whole room), tick what you did, add an
-   optional note, **Log**. The entry's title is built from the ticks.
+6. **Log today.** One section per space. Tick what you did in that tent, add an optional
+   note, **Log**. The entry's title is built from the ticks. Nothing is required beyond
+   saying something — a bare note is a valid entry.
 7. **Spaces.** Every space with its plant count and square feet in use. Red when over
    capacity. Links to the planner.
 8. **Next 30 days.** Upcoming milestones: green dot = flip, amber dot = harvest.
@@ -125,8 +126,8 @@ database first, otherwise it appends. IDs are re‑mapped so relations survive.
 7. **Details and status.** Key dates and a row of status buttons. Marking a group
    *flowering* moves its living plants to flowering (and sets today as the flip date if
    none was set); marking it *drying* or *done* moves flowering plants to harvested.
-8. **Quick log** for this group — same checkboxes as the dashboard. The heading shows
-   when each task was last done.
+8. **Quick log** for this group — same checkboxes as the dashboard, attached to this
+   group rather than to a space.
 9. **Journal.** Entries newest first with task chips; a longer titled entry can be added
    below.
 
@@ -226,8 +227,12 @@ the timeline updates. Single plants can be moved from their own page.
 ![Journal, annotated](screenshots/journal_annotated.png)
 
 1. **New entry** for a longer note with a title and body (tasks optional).
-2. **Filter** by group and by task — "show me every time I fed Grp 8".
-3. Entries newest first, with task chips and links to their group and plant.
+2. **Filter** by space and by task — "show me every time I fed the flower tent".
+3. Entries newest first, with task chips and a tag for the space, group or plant they
+   were logged against.
+
+The journal is deliberately inert: entries are yours to read, and nothing in the app
+derives numbers or warnings from them.
 
 Most days you won't open this page: the quick log on the dashboard and group pages is
 the fast path.

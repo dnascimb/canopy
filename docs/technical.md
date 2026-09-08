@@ -54,7 +54,7 @@ request ─▶ blueprint (canopy/blueprints/*.py)
 | `plants` | `/plants` | CRUD, kill, status. |
 | `strains` | `/strains` | Inventory CRUD, search, seed adjust. |
 | `spaces` | `/spaces` | CRUD, occupancy. |
-| `journal` | `/journal` | CRUD, task filter, `POST /quick` for the checkbox log. |
+| `journal` | `/journal` | CRUD, space and task filters, `POST /quick` for the per-space checkbox log. |
 | `reports` | `/reports` | Per-strain and per-group charts and tables. |
 | `api` | `/api/v1` | JSON read endpoints + `PATCH /groups/<id>`. |
 
@@ -76,7 +76,7 @@ Space 1 ──< Group 1 ──< Plant >── 1 Strain
 | `groups` | `number` (unique int), `name` (optional), `space_id`, `flower_start` (nullable), `flower_days ≥ 1`, `status`, `color` (#rrggbb), `notes` | `flower_end` is a property, never stored. Deleting a group unassigns its plants; harvests and journal entries cascade. |
 | `plants` | `label`, `strain_id`, `group_id` (nullable), `space_id` (nullable explicit location), `status` (clone/seedling/vegetative/flowering/harvested/killed), `started_on`, `ended_on`, `end_reason`, `notes` | Killed plants are retained. |
 | `harvests` | `group_id` / `plant_id` (at least one), `harvested_on`, `wet_weight_g`, `notes` | |
-| `journal_entries` | `entry_date`, `group_id` / `plant_id`, `title`, `body`, `tasks` (comma-separated keys from `models.TASKS`) | `task_list` / `task_labels` are derived. |
+| `journal_entries` | `entry_date`, `space_id` / `group_id` / `plant_id` (all optional), `title`, `body`, `tasks` (comma-separated keys from `models.TASKS`) | `task_list` / `task_labels` are derived. Entries are notes only — nothing reads them back as data. |
 
 All tables carry `created_at` / `updated_at` (UTC, naive). Enums are stored as short
 strings (`native_enum=False`) so the schema is identical on every database.

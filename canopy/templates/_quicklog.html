@@ -1,11 +1,14 @@
 {% from "_macros.html" import csrf %}
-{% macro quicklog(form, action, group=None) %}
+
+{# One log form. The target is fixed by context — a space on the dashboard, a group on
+   the group page — so there is nothing to choose from a dropdown. #}
+{% macro quicklog(form, action, group=None, space=None) %}
 <form method="post" action="{{ action }}" class="quicklog">
   {{ csrf() }}
   <div class="row">
     {{ form.entry_date(class_='ql-date') }}
-    {% if group %}<input type="hidden" name="group_id" value="{{ group.id }}"><input type="hidden" name="plant_id" value="0">
-    {% else %}{{ form.group_id() }}<input type="hidden" name="plant_id" value="0">{% endif %}
+    {% if group %}<input type="hidden" name="group_id" value="{{ group.id }}">{% endif %}
+    {% if space %}<input type="hidden" name="space_id" value="{{ space.id }}">{% endif %}
   </div>
   <div class="ql-tasks">
     {% for value, label in form.tasks.choices %}
@@ -17,4 +20,16 @@
     <button class="btn primary" type="submit">Log</button>
   </div>
 </form>
+{% endmacro %}
+
+{# One section per space, so a tent can be logged in a single pass. #}
+{% macro quicklog_spaces(form, action, spaces) %}
+{% for s in spaces %}
+  <div class="ql-space">
+    <div class="ql-space-head">{{ s.name }}<span class="muted small">{{ s.stage.value }}</span></div>
+    {{ quicklog(form, action, space=s) }}
+  </div>
+{% else %}
+  <div class="muted">No spaces yet. <a href="{{ url_for('spaces.create') }}">Add one</a> to log against it.</div>
+{% endfor %}
 {% endmacro %}

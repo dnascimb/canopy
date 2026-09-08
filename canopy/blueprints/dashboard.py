@@ -26,12 +26,7 @@ def index():
     suggestions = {g.id: sched.suggest_start(g, groups, ref=ref) for g in unscheduled}
 
     quick = JournalForm(entry_date=ref)
-    quick.group_id.choices = [(0, "— whole room —")] + [
-        (g.id, g.label)
-        for g in sorted(groups, key=lambda g: g.number)
-        if g.status.value not in ("done",)
-    ]
-    quick.plant_id.choices = [(0, "")]
+    quick.space_id.choices = [(0, "— whole room —")] + [(s.id, s.name) for s in spaces]
 
     return render_template(
         "dashboard.html",
@@ -43,6 +38,7 @@ def index():
         conflicts=sched.conflicts(groups, spaces, plants, ref=ref),
         occupancy=sorted(spacing.occupancy(spaces, plants).values(), key=lambda o: o.space.id),
         quick=quick,
+        spaces=spaces,
         openings=sched.openings(groups, ref=ref)[:5],
         counts=sched.plant_counts(plants),
         inventory=sched.inventory_summary(strains),

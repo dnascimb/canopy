@@ -161,6 +161,8 @@ table.sortable thead th[aria-sort="descending"]::after { content: " \2193"; }
 .alert.warning .dot { background: var(--accent); }
 .alert.error .dot { background: var(--red); }
 .alert.note { background: var(--surface-2); color: var(--text-soft); }
+.ql-space + .ql-space { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
+.ql-space-head { display: flex; gap: 8px; align-items: baseline; font-weight: 600; margin-bottom: 6px; }
 .alert.note .dot { background: var(--muted); }
 
 /* ---------- forms ---------- */

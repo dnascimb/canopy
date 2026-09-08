@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- **Journal entries can be logged against a space.** The dashboard's quick log is now one
+  section per space, so a whole tent can be logged in a pass, and the journal filters by
+  space. `journal_entries.space_id` is new; existing databases need
+  `ALTER TABLE journal_entries ADD COLUMN space_id INTEGER REFERENCES spaces(id)`.
+  The group and plant pickers are gone from the entry forms — the group page still
+  attaches to its own group by context. Nothing is mandatory beyond the entry saying
+  something, and a title-less note is titled "Note".
+- **Dropped "last watered / fed" from group pages.** The journal is for notes, not
+  tracking; nothing derives meaning from entries any more.
+
 - **Space capacity is no longer an alert.** It moved off the dashboard and schedule lists
   onto the spaces page, as a red **over capacity** label on the room in breach with the
   reason beside it. It is an estimate from footprints and dimensions and cannot be

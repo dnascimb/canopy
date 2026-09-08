@@ -7,7 +7,6 @@ from flask import Blueprint, abort, flash, redirect, render_template, request, u
 from ..extensions import db
 from ..forms import GroupForm, HarvestForm, JournalForm, MoveForm
 from ..models import (
-    TASKS,
     Group,
     GroupStatus,
     Harvest,
@@ -80,13 +79,11 @@ def detail(group_id: int):
         (p.id, p.label) for p in g.living_plants
     ]
     journal_form = JournalForm(entry_date=ref)
-    journal_form.group_id.choices = [(g.id, g.label)]
-    journal_form.plant_id.choices = [(0, "Group-level")] + [(p.id, p.label) for p in g.plants]
+    journal_form.space_id.choices = [(0, "")]
     move_form = MoveForm()
     spaces = db.session.query(Space).order_by(Space.id).all()
     move_form.space_id.choices = [(s.id, f"{s.name} · {s.stage.value}") for s in spaces]
     locations = {p.id: spacing.plant_location(p, spaces) for p in g.plants}
-    last_done = _last_tasks(g)
     return render_template(
         "groups/detail.html",
         group=g,
@@ -97,21 +94,12 @@ def detail(group_id: int):
         journal_form=journal_form,
         move_form=move_form,
         locations=locations,
-        last_done=last_done,
         need_sqft=spacing.group_footprint(g, SpaceStage.flowering),
         PlantStatus=PlantStatus,
         GroupStatus=GroupStatus,
         wet_total=sum(h.wet_weight_g or 0 for h in g.harvests),
     )
 
-
-def _last_tasks(g: Group) -> list[tuple[str, date]]:
-    """Most recent date each common task was logged for the group."""
-    seen: dict[str, date] = {}
-    for j in sorted(g.journal_entries, key=lambda j: j.entry_date, reverse=True):
-        for t in j.task_list:
-            seen.setdefault(t, j.entry_date)
-    return [(TASKS[k], seen[k]) for k in TASKS if k in seen]
 
 
 @bp.post("/<int:group_id>/move")
@@ -222,12 +210,10 @@ def add_harvest(group_id: int):
 def add_journal(group_id: int):
     g = db.session.get(Group, group_id) or abort(404)
     form = JournalForm()
-    form.group_id.choices = [(g.id, g.label)]
-    form.plant_id.choices = [(0, "Group-level")] + [(p.id, p.label) for p in g.plants]
+    form.space_id.choices = [(0, "")]
     if form.validate_on_submit():
         j = JournalEntry(
-            group_id=g.id,
-            plant_id=form.plant_id.data or None,
+            group_id=g.id,          # the URL says which group; there is nothing to pick
             entry_date=form.entry_date.data,
             title=form.derived_title,
             body=form.body.data or None,
@@ -237,7 +223,7 @@ def add_journal(group_id: int):
         db.session.commit()
         flash("Journal entry added.", "success")
     else:
-        flash("Journal entries need a date and either a title or a ticked task.", "error")
+        flash("Journal entries need a date, and a task, title or note.", "error")
     return redirect(url_for("groups.detail", group_id=g.id) + "#journal")
 
 
