@@ -60,6 +60,7 @@ def index():
         series=series,
         plan=plan,
         openings=openings,
+        breach={s.id: spacing.capacity_warning(s, groups, occ[s.id], ref=ref) for s in spaces},
         footprints=spacing.footprint_table(),
         sizes=list(PlantSize),
         stages=list(SpaceStage),

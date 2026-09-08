@@ -144,6 +144,8 @@ table.sortable thead th[aria-sort="descending"]::after { content: " \2193"; }
 .badge.drying, .badge.harvested { background: var(--amber-soft); color: var(--accent); }
 .badge.done { background: var(--surface-2); color: var(--muted); }
 .badge.killed { background: var(--red-soft); color: var(--red); }
+.badge.over { background: var(--red); color: #fff; font-weight: 600; }
+.over-why { color: var(--red); margin-top: 2px; }
 .badge.regular, .badge.feminized, .badge.autoflower, .badge.clone { background: var(--surface-2); color: var(--text-soft); }
 .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
 

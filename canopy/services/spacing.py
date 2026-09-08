@@ -180,6 +180,35 @@ def peak(series: list[dict], *, since: date | None = None) -> dict | None:
     return max(pts, key=lambda p: (p["sqft"], p["count"]), default=None)
 
 
+def capacity_warning(
+    space: Space,
+    groups: Iterable[Group],
+    occupancy_now: Occupancy | None = None,
+    *,
+    ref: date | None = None,
+) -> str | None:
+    """Why *space* is in breach, or None. Lives on the spaces page, not in the alert list.
+
+    Checks the schedule's projected peak first, since that is the more useful warning,
+    and falls back to what is physically in the space today.
+    """
+    worst = peak(load_series(space, groups, ref=ref), since=ref)
+    if worst:
+        day = date.fromisoformat(worst["date"])
+        if space.area_sqft and worst["sqft"] > space.area_sqft:
+            return (
+                f"needs {worst['sqft']:g} sq ft on {day:%b %d} but has {space.area_sqft:g}"
+            )
+        if worst["count"] > space.capacity:
+            return f"{worst['count']} plants on {day:%b %d}, over the {space.capacity} maximum"
+    if occupancy_now is not None and occupancy_now.over:
+        return (
+            f"over capacity today: {occupancy_now.count} plants, "
+            f"{occupancy_now.used_sqft:g} sq ft used"
+        )
+    return None
+
+
 def move_plants(plants: Iterable[Plant], space: Space, *, ref: date | None = None) -> int:
     """Relocate plants and align their status with the destination stage."""
     n = 0

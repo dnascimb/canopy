@@ -65,20 +65,32 @@ def test_load_series_and_peak(app):
     assert spacing.peak(series, since=REF)["date"] == REF.isoformat()
 
 
-def test_conflicts_use_area_from_today(app):
+def test_capacity_warning_uses_area_from_today(app):
+    """Capacity lives on the spaces page, not in the schedule's conflict list."""
     groups = db.session.query(Group).all()
     plants = db.session.query(Plant).all()
-    assert sched.conflicts(groups, spaces(), plants, ref=REF) == []
     flower = db.session.query(Space).filter_by(name="Flower Room").one()
+    occ = spacing.occupancy(spaces(), plants)
+    assert spacing.capacity_warning(flower, groups, occ[flower.id], ref=REF) is None
+    assert sched.conflicts(groups, spaces(), plants, ref=REF) == []
+
     flower.width_ft, flower.length_ft = 2, 4
     db.session.commit()
-    found = sched.conflicts(groups, spaces(), plants, ref=REF)
-    msgs = [c.message for c in found]
-    assert any("needs 25.5 sq ft on Sep 07 but has 8" in m for m in msgs)
-    # One quiet note per space — the area shortfall above already says it, so the
-    # "over capacity today" line must not repeat it for the same space.
-    assert all(c.severity == "note" for c in found)
-    assert [c.space.name for c in found].count("Flower Room") == 1
+    occ = spacing.occupancy(spaces(), plants)
+    warn = spacing.capacity_warning(flower, groups, occ[flower.id], ref=REF)
+    assert warn is not None and "needs 25.5 sq ft on Sep 07 but has 8" in warn
+    # ...and it stays out of the conflict list, which is for genuinely broken schedules.
+    assert not [c for c in sched.conflicts(groups, spaces(), plants, ref=REF) if c.space]
+
+
+def test_capacity_warning_falls_back_to_today(app):
+    """A space with no schedule behind it still reports what is physically in it."""
+    veg = db.session.query(Space).filter_by(name="Veg Tent").one()
+    veg.capacity = 1
+    db.session.commit()
+    occ = spacing.occupancy(spaces(), db.session.query(Plant).all())
+    warn = spacing.capacity_warning(veg, db.session.query(Group).all(), occ[veg.id], ref=REF)
+    assert warn is not None and "over capacity today" in warn
 
 
 def test_move_plants_aligns_status(app):

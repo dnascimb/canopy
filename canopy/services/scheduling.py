@@ -182,45 +182,10 @@ def conflicts(
         if g.flower_start and not g.living_plants and g.flower_end >= ref:
             out.append(Conflict("warning", f"{g.label} is scheduled but has no living plants.", g))
 
-    # Capacity of flowering spaces, projected from the schedule. Uses area when the space
-    # has dimensions (footprint per plant depends on stage and strain size), and the
-    # user-set maximum plant count in every case.
-    from . import spacing
-
-    # At most one capacity note per space: these are estimates from footprints and
-    # dimensions, so they inform rather than alarm, and saying it twice is just noise.
-    reported: set[int] = set()
-    for s in spaces:
-        series = spacing.load_series(s, groups, ref=ref)
-        worst = spacing.peak(series, since=ref)  # history is not an alert
-        if not worst:
-            continue
-        day = date.fromisoformat(worst["date"])
-        if s.area_sqft and worst["sqft"] > s.area_sqft:
-            message = (
-                f"{s.name} needs {worst['sqft']:g} sq ft on {day:%b %d} but has {s.area_sqft:g}."
-            )
-        elif worst["count"] > s.capacity:
-            message = (
-                f"{s.name} exceeds its maximum ({worst['count']}/{s.capacity} plants) "
-                f"on {day:%b %d}."
-            )
-        else:
-            continue
-        out.append(Conflict("note", message, space=s))
-        reported.add(s.id)
-
-    # Current occupancy, for spaces the projection above did not already cover.
-    for occ in spacing.occupancy(spaces, plants).values():
-        if occ.over and occ.space.id not in reported:
-            out.append(
-                Conflict(
-                    "note",
-                    f"{occ.space.name} is over capacity today: {occ.count} plants, "
-                    f"{occ.used_sqft:g} sq ft used.",
-                    space=occ.space,
-                )
-            )
+    # Space capacity is deliberately not reported here. It is an estimate from footprints
+    # and dimensions, so it belongs on the spaces page as a label against the room in
+    # question — see spacing.capacity_warning() — rather than in a list of things that
+    # are actually wrong with the schedule.
     return out
 
 

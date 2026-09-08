@@ -76,12 +76,16 @@ def test_conflicts_clean_on_demo_data(app):
     assert sched.conflicts(groups(), db.session.query(Space).all(), ref=REF) == []
 
 
-def test_conflict_capacity_exceeded(app):
+def test_capacity_is_not_a_schedule_conflict(app):
+    """Over-capacity is a spaces-page label now, not an entry in the alert list."""
+    from canopy.services import spacing
+
     room = db.session.query(Space).filter_by(name="Flower Room").one()
     room.capacity = 5
     db.session.commit()
-    c = sched.conflicts(groups(), [room], ref=REF)
-    assert any(x.severity == "note" and "exceeds its maximum" in x.message for x in c)
+    assert sched.conflicts(groups(), [room], ref=REF) == []
+    warn = spacing.capacity_warning(room, groups(), ref=REF)
+    assert warn is not None and "over the 5 maximum" in warn
 
 
 def test_conflict_scheduled_without_space_or_plants(app):

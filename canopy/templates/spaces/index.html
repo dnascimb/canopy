@@ -12,10 +12,12 @@
 <div class="flower-list spaces">
 {% for s in spaces %}
   {% set o = occ[s.id] %}
-  <div class="flower-card space-card {{ 'over' if o.over }}" style="border-left-color: {{ 'var(--red)' if o.over else ('var(--green)' if s.stage.value == 'flowering' else ('var(--blue)' if s.stage.value == 'vegetative' else 'var(--accent)')) }}">
-    <div class="title"><span style="font-weight:600">{{ s.name }}</span>{{ badge(s.stage.value) }}</div>
+  {% set warn = breach[s.id] %}
+  <div class="flower-card space-card {{ 'over' if warn }}" style="border-left-color: {{ 'var(--red)' if warn else ('var(--green)' if s.stage.value == 'flowering' else ('var(--blue)' if s.stage.value == 'vegetative' else 'var(--accent)')) }}">
+    <div class="title"><span style="font-weight:600">{{ s.name }}</span>{{ badge(s.stage.value) }}{% if warn %}<span class="badge over">over capacity</span>{% endif %}</div>
     <div class="muted small">{{ s.dimensions }} · max {{ s.capacity }} plants</div>
-    <div class="progress mt"><i style="width: {{ [(o.load * 100)|round, 100]|min }}%; background: {{ 'var(--red)' if o.over else 'var(--accent)' }}"></i></div>
+    {% if warn %}<div class="over-why small">{{ warn }}</div>{% endif %}
+    <div class="progress mt"><i style="width: {{ [(o.load * 100)|round, 100]|min }}%; background: {{ 'var(--red)' if warn else 'var(--accent)' }}"></i></div>
     <div class="meta">
       <span>{{ o.count }} plant{{ 's' if o.count != 1 }}{% if s.area_sqft %} · {{ o.used_sqft|round(1) }} of {{ s.area_sqft|round|int }} sq ft{% endif %}</span>
       <span>{{ (o.load * 100)|round|int }}% full</span>
