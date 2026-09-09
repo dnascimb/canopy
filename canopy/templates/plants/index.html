@@ -29,7 +29,7 @@
       <td class="soft" data-v="{{ locations[p.id].name if locations[p.id] else '' }}">{{ locations[p.id].name if locations[p.id] else '—' }}</td>
       <td class="date" data-v="{{ p.started_on.isoformat() if p.started_on else '' }}">{{ p.started_on|d }}</td>
       <td class="date" data-v="{{ p.ended_on.isoformat() if p.ended_on else '' }}">{{ p.ended_on|d }}{% if p.end_reason %} <span class="muted small">{{ p.end_reason }}</span>{% endif %}</td>
-      <td class="muted small">{{ p.notes or '' }}</td>
+      <td class="muted small"{% if p.notes and p.notes|length > 200 %} title="{{ p.notes }}"{% endif %}>{{ p.notes|truncate(200, True, '...', 0) if p.notes else '' }}</td>
     </tr>
   {% else %}
     <tr data-no-sort><td colspan="8" class="empty">No plants match. <a href="{{ url_for('plants.create') }}">Add one</a>.</td></tr>

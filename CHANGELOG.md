@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Long notes are truncated to 200 characters in the plants table, with the whole note kept
+  on hover, so one 659-character note no longer stretches a row.
+- A new plant defaults to `seedling` rather than `vegetative`; **Take a cutting** still
+  defaults to `clone`. Plants are usually added the day they start.
+
 - **A cutting can name the plant it came from.** `plants.parent_id` is a nullable
   self-reference, so a plant page shows *Taken from* with the line above it and *Cuttings*
   below. **Take a cutting** on any living plant opens the add form with the strain, status

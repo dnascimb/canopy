@@ -78,7 +78,9 @@ class PlantForm(FlaskForm):
     parent_id = SelectField("Taken from", coerce=int, validators=[Optional()])
     group_id = SelectField("Group", coerce=int, validators=[Optional()])
     space_id = SelectField("Location", coerce=int, validators=[Optional()])
-    status = SelectField("Status", choices=_choices(PlantStatus), default="vegetative")
+    # Most plants are added the day they start: from seed, or as a cutting. "Take a
+    # cutting" overrides this to clone.
+    status = SelectField("Status", choices=_choices(PlantStatus), default="seedling")
     started_on = DateField("Started on", validators=[Optional()])
     ended_on = DateField("Ended on", validators=[Optional()])
     end_reason = StringField("End reason", validators=[Optional(), Length(max=255)])

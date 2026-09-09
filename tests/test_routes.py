@@ -497,3 +497,29 @@ def test_lineage_typed_on_the_plant_form_lands_on_the_strain(client):
     )
     db.session.refresh(eq)
     assert eq.lineage == was
+
+
+def test_plants_table_truncates_long_notes(client):
+    """Long notes would otherwise stretch the row out of the table."""
+    p = db.session.query(Plant).first()
+    p.notes = "x" * 300
+    short = db.session.query(Plant).filter(Plant.id != p.id).first()
+    short.notes = "left alone"
+    db.session.commit()
+
+    html = client.get("/plants/").data.decode()
+    cell = ">" + "x" * 197 + "..." + "</td>"
+    assert cell in html                     # the cell shows 200 chars including the ellipsis
+    assert ">" + "x" * 300 + "</td>" not in html          # never the whole thing
+    assert f'title="{"x" * 300}"' in html   # but hovering still gives you all of it
+    assert "left alone" in html             # a short note is untouched
+
+
+def test_add_plant_defaults_seedling_and_a_cutting_defaults_clone(client):
+    """Plants are added the day they start — from seed, or off another plant."""
+    plain = client.get("/plants/new").data.decode()
+    assert '<option selected value="seedling">' in plain
+
+    mother = db.session.query(Plant).filter_by(label="EQ Haze").one()
+    cutting = client.get(f"/plants/new?parent={mother.id}").data.decode()
+    assert '<option selected value="clone">' in cutting
