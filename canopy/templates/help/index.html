@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge %}
+{% block title %}Help{% endblock %}
+{% set CLONE = clone_space.name if clone_space else 'your clone space' %}
+{% set VEG = veg_space.name if veg_space else 'your veg space' %}
+{% set FLOWER = flower_space.name if flower_space else 'your flower space' %}
+{% block content %}
+<div class="page-head">
+  <div><h1>How to move a plant through its life</h1>
+  <p class="sub">Every transition, and where to click for it. Groups are containers — a plant on its own flips, schedules and harvests exactly like one in a batch.</p></div>
+</div>
+
+<section>
+  <div class="section-head"><h2>The one rule</h2></div>
+  <div class="panel">
+    <p><strong>The schedule belongs to the plant.</strong> A plant's flip date is the last time it entered flower, and its harvest is that plus its flower length. A group has no dates of its own — it shows the span of whatever is inside it.</p>
+    <p class="muted">So moving one plant and moving a whole group do the same thing. A plant with no group still gets a flip date, a projected harvest and a bar on the timeline.</p>
+  </div>
+</section>
+
+<div class="grid-2">
+  <section>
+    <div class="section-head"><h2>Starting something</h2></div>
+    <div class="panel">
+      <dl class="kv">
+        <dt>From seed</dt>
+        <dd><strong>Plants → Add plant.</strong> Set status {{ badge('seedling') }} and pick the strain. Leave <em>Location</em> blank and it goes where seedlings live ({{ VEG }}).
+        <div class="muted small mt">Seed counts in Inventory are yours to adjust with − / +; nothing changes them for you.</div></dd>
+
+        <dt>A clone from outside</dt>
+        <dd><strong>Plants → Add plant</strong>, status {{ badge('clone') }}, location {{ CLONE }}. If the strain is new, add it under <strong>Inventory → Add strain</strong> first and set its seed type to <em>clone</em>.</dd>
+
+        <dt>A cutting off your own plant</dt>
+        <dd><strong>Plants → Add plant</strong>, same strain, status {{ badge('clone') }}, location {{ CLONE }}. Name it after the mother and note which plant it came from — there is no cuttings button yet, and nothing links a cutting to its parent.</dd>
+      </dl>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><h2>Ending something</h2></div>
+    <div class="panel">
+      <dl class="kv">
+        <dt>Kill a plant</dt>
+        <dd><strong>Plant page → Mark as killed</strong>, with a date and a reason. Works at any stage.
+        <div class="muted small mt">Killed plants stay on the record — out of counts and capacity, but keeping their reason so the survival and loss reports mean something.</div></dd>
+
+        <dt>Harvest</dt>
+        <dd><strong>Group page → set status {{ badge('drying') }}</strong> (or {{ badge('done') }}). Every living plant becomes {{ badge('harvested') }} and gets an end date. Then <strong>Harvest → Record a harvest</strong> for a wet weight, if you want one.</dd>
+      </dl>
+    </div>
+  </section>
+</div>
+
+<section>
+  <div class="section-head"><h2>Moving between stages</h2><span class="hint">the same control at either level</span></div>
+  <div class="panel tight table-wrap">
+    <table>
+      <thead><tr><th>You want to</th><th>Do this</th><th>What happens</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>Put a clone straight into flower</strong><div class="muted small">long-flowering hazes</div></td>
+          <td><strong>Plant page → Move to → {{ FLOWER }} → Move</strong></td>
+          <td>Status becomes {{ badge('flowering') }} and the plant starts its own run today. Harvest is projected from its flower length. No group needed.</td>
+        </tr>
+        <tr>
+          <td><strong>Veg it first</strong><div class="muted small">indicas and hybrids</div></td>
+          <td><strong>Plant page → Move to → {{ VEG }} → Move</strong></td>
+          <td>Status becomes {{ badge('vegetative') }}. Nothing is scheduled — vegging has no end date.</td>
+        </tr>
+        <tr>
+          <td><strong>Flip a whole batch</strong></td>
+          <td><strong>Group page → Move all living plants to → {{ FLOWER }}</strong></td>
+          <td>Exactly the same as doing each plant by hand. Plants that were already flipped keep the date they had.</td>
+        </tr>
+        <tr>
+          <td><strong>Send a flowering plant back to veg</strong></td>
+          <td><strong>Plant page → Move to → {{ VEG }}</strong></td>
+          <td>It leaves flower and the group's span shrinks to whatever is still flowering. Move them all and the group drops off the timeline by itself.</td>
+        </tr>
+        <tr>
+          <td><strong>Change a flip date</strong></td>
+          <td><strong>Group page → Edit → Flower start</strong></td>
+          <td>Applies to every living plant in the group. Clearing it un-schedules them.</td>
+        </tr>
+        <tr>
+          <td><strong>Take the next free slot</strong></td>
+          <td><strong>Dashboard → Waiting for a slot → Schedule</strong></td>
+          <td>Flips the group into the earliest opening, and assigns that space if it has none.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<div class="grid-2">
+  <section>
+    <div class="section-head"><h2>Where things live</h2></div>
+    <div class="panel">
+      <dl class="kv">
+        {% for s in spaces %}
+        <dt>{{ s.name }}</dt><dd>{{ badge(s.stage.value) }} <span class="muted small">{{ s.dimensions }} · max {{ s.capacity }}</span></dd>
+        {% endfor %}
+        <dt>No location set</dt><dd class="muted">A plant with no explicit space sits in the first space matching its stage. Setting one pins it there.</dd>
+      </dl>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><h2>Good to know</h2></div>
+    <div class="panel">
+      <dl class="kv">
+        <dt>Life so far</dt><dd>Every status change is logged, so each plant page shows a strip of how long it spent as a cutting, in veg and in flower.</dd>
+        <dt>Journal</dt><dd>Notes only. Log a whole tent from the dashboard. Nothing in the app reads entries back or derives anything from them.</dd>
+        <dt>Capacity</dt><dd>An estimate from tent dimensions and per-plant footprints, shown as a label on <strong>Spaces</strong> — never as an alert. It does not know your pot sizes, so a tray of cuttings can read as needing far more room than it does.</dd>
+        <dt>Empty groups</dt><dd>A group with no plants cannot be scheduled — there is nothing to give a date to. Add plants first.</dd>
+      </dl>
+    </div>
+  </section>
+</div>
+{% endblock %}

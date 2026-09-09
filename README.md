@@ -19,6 +19,7 @@ comes down, which slots free up next, and where a waiting group could go.
 | **Spaces & planner** | Clone shelf, veg tent, flower tent — each with a stage, dimensions and a maximum. Canopy shows where every plant is, how much room is left, how many more fit (by strain size class), a season load chart for the flower tent, what each waiting group needs, and a red **over capacity** label on any room in breach now or on a projected date. |
 | **Journal & quick log** | A log section per space on the dashboard — tick what you did in that tent, add a note, done. Plus longer dated notes, filterable by space and task. Free-form: nothing in the journal feeds the schedule or any report. |
 | **Reports** | Survival per strain, why plants were lost, tent load over the season. |
+| **Help** | Every lifecycle transition and the exact control for it, written against your own space names. |
 | **API** | Read/write JSON at `/api/v1/*` for scripts, dashboards and Claude Code. |
 
 ## Quick start

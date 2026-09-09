@@ -137,6 +137,7 @@ def main() -> None:
         ("spaces", "/spaces/", True),
         ("journal", "/journal/", True),
         ("reports", "/reports/", True),
+        ("help", "/help/", True),
         ("print", "/schedule/print", True),
     ]
 

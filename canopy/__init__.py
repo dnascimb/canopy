@@ -34,6 +34,7 @@ def create_app(config_object: type[Config] | None = None) -> Flask:
         api,
         dashboard,
         groups,
+        help,
         journal,
         plants,
         reports,
@@ -50,6 +51,7 @@ def create_app(config_object: type[Config] | None = None) -> Flask:
     app.register_blueprint(spaces.bp, url_prefix="/spaces")
     app.register_blueprint(journal.bp, url_prefix="/journal")
     app.register_blueprint(reports.bp, url_prefix="/reports")
+    app.register_blueprint(help.bp, url_prefix="/help")
     app.register_blueprint(api.bp, url_prefix="/api/v1")
     csrf.exempt(api.bp)
     cli.register(app)

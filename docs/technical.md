@@ -55,6 +55,7 @@ request ─▶ blueprint (canopy/blueprints/*.py)
 | `strains` | `/strains` | Inventory CRUD, search, seed adjust. |
 | `spaces` | `/spaces` | CRUD, occupancy. |
 | `journal` | `/journal` | CRUD, space and task filters, `POST /quick` for the per-space checkbox log. |
+| `help` | `/help` | Static walkthrough of the lifecycle transitions, rendered with the garden's real space names. |
 | `reports` | `/reports` | Per-strain and per-group charts and tables. |
 | `api` | `/api/v1` | JSON read endpoints + `PATCH /groups/<id>`. |
 

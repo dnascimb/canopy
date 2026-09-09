@@ -21,6 +21,7 @@ def test_pages_render(client):
         "/spaces/new",
         "/journal/",
         "/journal/new",
+        "/help/",
     ]:
         r = client.get(url)
         assert r.status_code == 200, url

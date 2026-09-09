@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- **Help screen** at `/help`: every lifecycle transition and the control that performs it,
+  written against the garden's own space names rather than generic placeholders.
+
 - **The plant owns its schedule; a group is just a container.** `groups.flower_start` and
   `groups.flower_days` are gone. A plant's flip is read off the new `plant_events` log and
   its length from `flower_days_override` (falling back to the strain); a group reports the
