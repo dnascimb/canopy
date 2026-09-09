@@ -1,20 +1,53 @@
 from __future__ import annotations
 
-from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
+from flask import (
+    Blueprint,
+    abort,
+    current_app,
+    flash,
+    redirect,
+    render_template,
+    request,
+    url_for,
+)
 
 from ..extensions import db
 from ..forms import KillPlantForm, MoveForm, PlantForm
-from ..models import Group, Plant, PlantStatus, Space, Strain
+from ..models import Group, Plant, PlantStatus, SeedType, Space, Strain
 from ..services import lifecycle, spacing
 from ..services import scheduling as sched
 
 bp = Blueprint("plants", __name__)
 
 
+def _strain_names() -> list[str]:
+    return [s.name for s in db.session.query(Strain).order_by(Strain.name)]
+
+
+def _resolve_strain(name: str, status: PlantStatus) -> tuple[Strain, bool]:
+    """Find the strain by name, or start one. Returns (strain, was_created).
+
+    A pack of seeds or a cutting from outside is routinely a strain the inventory has
+    never seen, so typing a new name here adds it rather than sending you elsewhere.
+    """
+    name = (name or "").strip()
+    existing = (
+        db.session.query(Strain).filter(db.func.lower(Strain.name) == name.lower()).first()
+    )
+    if existing:
+        return existing, False
+    fresh = Strain(
+        name=name,
+        # A cutting is a clone; anything else came from seed until told otherwise.
+        seed_type=SeedType.clone if status == PlantStatus.clone else SeedType.regular,
+        flower_days=current_app.config.get("DEFAULT_FLOWER_DAYS", 70),
+    )
+    db.session.add(fresh)
+    db.session.flush()
+    return fresh, True
+
+
 def _populate_choices(form: PlantForm) -> None:
-    form.strain_id.choices = [
-        (s.id, s.display_name) for s in db.session.query(Strain).order_by(Strain.name)
-    ]
     form.group_id.choices = [(0, "— no group —")] + [
         (g.id, g.label) for g in db.session.query(Group).order_by(Group.number)
     ]
@@ -72,21 +105,32 @@ def create():
         if gid := request.args.get("group", type=int):
             form.group_id.data = gid
         if sid := request.args.get("strain", type=int):
-            form.strain_id.data = sid
+            known = db.session.get(Strain, sid)
+            form.strain.data = known.name if known else None
         form.started_on.data = sched.today()
     if form.validate_on_submit():
-        p = Plant()
-        form.populate_obj(p)
-        p.status = PlantStatus(form.status.data)
-        p.group_id = form.group_id.data or None
-        p.space_id = form.space_id.data or None
+        status = PlantStatus(form.status.data)
+        strain, created = _resolve_strain(form.strain.data, status)
+        p = Plant(
+            label=form.label.data,
+            strain=strain,
+            status=status,
+            group_id=form.group_id.data or None,
+            space_id=form.space_id.data or None,
+            started_on=form.started_on.data,
+            notes=form.notes.data or None,
+        )
         db.session.add(p)
         db.session.commit()
         flash(f"Added {p.label}.", "success")
+        if created:
+            flash(f"Added {strain.name} to the inventory too.", "success")
         if p.group_id:
             return redirect(url_for("groups.detail", group_id=p.group_id))
         return redirect(url_for("plants.detail", plant_id=p.id))
-    return render_template("plants/form.html", form=form, plant=None)
+    return render_template(
+        "plants/form.html", form=form, plant=None, strain_names=_strain_names()
+    )
 
 
 @bp.get("/<int:plant_id>")
@@ -115,15 +159,25 @@ def edit(plant_id: int):
     if request.method == "GET":
         form.group_id.data = p.group_id or 0
         form.space_id.data = p.space_id or 0
+        form.strain.data = p.strain.name
     if form.validate_on_submit():
-        form.populate_obj(p)
-        p.status = PlantStatus(form.status.data)
+        status = PlantStatus(form.status.data)
+        strain, created = _resolve_strain(form.strain.data, status)
+        p.label = form.label.data
+        p.strain = strain
+        p.status = status
         p.group_id = form.group_id.data or None
         p.space_id = form.space_id.data or None
+        p.started_on = form.started_on.data
+        p.ended_on = form.ended_on.data
+        p.end_reason = form.end_reason.data or None
+        p.notes = form.notes.data or None
         db.session.commit()
+        if created:
+            flash(f"Added {strain.name} to the inventory too.", "success")
         flash("Saved changes.", "success")
         return redirect(url_for("plants.detail", plant_id=p.id))
-    return render_template("plants/form.html", form=form, plant=p)
+    return render_template("plants/form.html", form=form, plant=p, strain_names=_strain_names())
 
 
 @bp.post("/<int:plant_id>/kill")

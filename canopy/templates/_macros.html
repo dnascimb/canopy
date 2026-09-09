@@ -1,8 +1,14 @@
-{% macro field(f, help=None, type=None) %}
+{% macro field(f, help=None, type=None, options=None) %}
   <div class="form-row">
     {{ f.label }}
     {% if type == 'color' %}
       <div class="row">{{ f(type='color', style='width:52px') }} {{ f(type='text', style='max-width:120px', id=f.id ~ '_hex') }}</div>
+    {% elif options is not none %}
+      {# free text with suggestions: pick an existing one or type a new one #}
+      {{ f(list=f.id ~ '_options', autocomplete='off') }}
+      <datalist id="{{ f.id }}_options">
+        {% for o in options %}<option value="{{ o }}"></option>{% endfor %}
+      </datalist>
     {% else %}
       {{ f() }}
     {% endif %}

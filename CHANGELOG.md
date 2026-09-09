@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- **Strain is typed, not picked, when adding a plant.** A new pack of seeds or a cutting
+  from outside is routinely a strain the inventory has never seen; typing an unknown name
+  now adds it (seed type `clone` for a cutting, `regular` otherwise) instead of sending
+  you off to create it first. Existing strains still suggest as you type, and matching
+  ignores case.
+- The add-plant form no longer shows *Ended on* or *End reason* — nothing has ended when
+  you are adding it. Both remain when editing.
+
 - **Help screen** at `/help`: every lifecycle transition and the control that performs it,
   written against the garden's own space names rather than generic placeholders.
 

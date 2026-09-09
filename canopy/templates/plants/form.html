@@ -7,13 +7,16 @@
   {{ csrf() }}
   <div class="form-grid">
     {{ field(form.label, help='How you refer to it: "Boost Bx 2", "SSDD III".') }}
-    {{ field(form.strain_id) }}
+    {{ field(form.strain, options=strain_names,
+             help='Pick one from inventory, or type a new name and it will be added.') }}
     {{ field(form.group_id) }}
     {{ field(form.status) }}
     {{ field(form.space_id, help='Leave automatic to place it by stage (clone shelf, veg tent, or its group\'s flower space).') }}
     {{ field(form.started_on) }}
-    {{ field(form.ended_on) }}
-    {{ field(form.end_reason, help='Why it was killed or when it was harvested.') }}
+    {% if plant %}
+      {{ field(form.ended_on) }}
+      {{ field(form.end_reason, help='Why it was killed or when it was harvested.') }}
+    {% endif %}
   </div>
   {{ field(form.notes) }}
   <div class="form-actions">

@@ -66,7 +66,7 @@ def test_create_group_and_plant(client):
         "/plants/new",
         data={
             "label": "Test plant",
-            "strain_id": strain.id,
+            "strain": strain.name,
             "group_id": g.id,
             "status": "vegetative",
             "started_on": "2026-09-01",
@@ -332,7 +332,7 @@ def test_plant_edit_and_delete(client):
         f"/plants/{p.id}/edit",
         data={
             "label": "Mango Queen #1",
-            "strain_id": p.strain_id,
+            "strain": p.strain.name,
             "group_id": 0,
             "status": "flowering",
         },
@@ -386,3 +386,55 @@ def test_strain_edit(client):
     )
     db.session.refresh(s)
     assert s.flower_days == 65
+
+
+def test_add_plant_creates_an_unknown_strain(client):
+    """A pack of seeds or an outside cutting is routinely a strain we've never seen."""
+    before = db.session.query(Strain).count()
+    r = client.post(
+        "/plants/new",
+        data={
+            "label": "Mystery 1",
+            "strain": "Totally New Cultivar",
+            "group_id": 0,
+            "space_id": 0,
+            "status": "clone",
+            "started_on": "2026-09-07",
+        },
+        follow_redirects=True,
+    )
+    assert r.status_code == 200
+    assert b"Added Totally New Cultivar to the inventory too." in r.data
+    assert db.session.query(Strain).count() == before + 1
+    made = db.session.query(Strain).filter_by(name="Totally New Cultivar").one()
+    # a cutting means a clone; anything else is assumed to have come from seed
+    assert made.seed_type.value == "clone"
+    assert db.session.query(Plant).filter_by(label="Mystery 1").one().strain_id == made.id
+
+
+def test_add_plant_reuses_a_known_strain_whatever_the_casing(client):
+    before = db.session.query(Strain).count()
+    client.post(
+        "/plants/new",
+        data={
+            "label": "Reuse 1",
+            "strain": "eq haze",          # already on file as "EQ Haze"
+            "group_id": 0,
+            "space_id": 0,
+            "status": "seedling",
+            "started_on": "2026-09-07",
+        },
+        follow_redirects=True,
+    )
+    assert db.session.query(Strain).count() == before
+    p = db.session.query(Plant).filter_by(label="Reuse 1").one()
+    assert p.strain.name == "EQ Haze"
+
+
+def test_add_plant_form_hides_the_end_fields(client):
+    """Nothing has ended when you are adding it."""
+    adding = client.get("/plants/new").data.decode()
+    assert 'name="ended_on"' not in adding and 'name="end_reason"' not in adding
+    p = db.session.query(Plant).first()
+    editing = client.get(f"/plants/{p.id}/edit").data.decode()
+    assert 'name="ended_on"' in editing and 'name="end_reason"' in editing
