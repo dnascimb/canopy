@@ -74,6 +74,8 @@ class GroupForm(FlaskForm):
 class PlantForm(FlaskForm):
     label = StringField("Label", validators=[DataRequired(), Length(max=120)])
     strain = StringField("Strain", validators=[DataRequired(), Length(max=120)])
+    lineage = StringField("Lineage", validators=[Optional(), Length(max=255)])
+    parent_id = SelectField("Taken from", coerce=int, validators=[Optional()])
     group_id = SelectField("Group", coerce=int, validators=[Optional()])
     space_id = SelectField("Location", coerce=int, validators=[Optional()])
     status = SelectField("Status", choices=_choices(PlantStatus), default="vegetative")

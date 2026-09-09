@@ -25,7 +25,9 @@ def _strain_names() -> list[str]:
     return [s.name for s in db.session.query(Strain).order_by(Strain.name)]
 
 
-def _resolve_strain(name: str, status: PlantStatus) -> tuple[Strain, bool]:
+def _resolve_strain(
+    name: str, status: PlantStatus, lineage: str | None = None
+) -> tuple[Strain, bool]:
     """Find the strain by name, or start one. Returns (strain, was_created).
 
     A pack of seeds or a cutting from outside is routinely a strain the inventory has
@@ -35,10 +37,15 @@ def _resolve_strain(name: str, status: PlantStatus) -> tuple[Strain, bool]:
     existing = (
         db.session.query(Strain).filter(db.func.lower(Strain.name) == name.lower()).first()
     )
+    lineage = (lineage or "").strip() or None
     if existing:
+        # Fill a blank rather than overwrite: the inventory entry is the authority.
+        if lineage and not existing.lineage:
+            existing.lineage = lineage
         return existing, False
     fresh = Strain(
         name=name,
+        lineage=lineage,
         # A cutting is a clone; anything else came from seed until told otherwise.
         seed_type=SeedType.clone if status == PlantStatus.clone else SeedType.regular,
         flower_days=current_app.config.get("DEFAULT_FLOWER_DAYS", 70),
@@ -46,6 +53,17 @@ def _resolve_strain(name: str, status: PlantStatus) -> tuple[Strain, bool]:
     db.session.add(fresh)
     db.session.flush()
     return fresh, True
+
+
+def _parent_choices(form: PlantForm, exclude: int | None = None) -> None:
+    rows = (
+        db.session.query(Plant)
+        .filter(Plant.status != PlantStatus.killed)
+        .order_by(Plant.label)
+    )
+    form.parent_id.choices = [(0, "— not a cutting —")] + [
+        (p.id, f"{p.label} · {p.strain.name}") for p in rows if p.id != exclude
+    ]
 
 
 def _populate_choices(form: PlantForm) -> None:
@@ -102,7 +120,14 @@ def index():
 def create():
     form = PlantForm()
     _populate_choices(form)
+    _parent_choices(form)
     if request.method == "GET":
+        if pid := request.args.get("parent", type=int):
+            mother = db.session.get(Plant, pid)
+            if mother:
+                form.parent_id.data = mother.id
+                form.strain.data = mother.strain.name
+                form.status.data = PlantStatus.clone.value
         if gid := request.args.get("group", type=int):
             form.group_id.data = gid
         if sid := request.args.get("strain", type=int):
@@ -111,13 +136,14 @@ def create():
         form.started_on.data = sched.today()
     if form.validate_on_submit():
         status = PlantStatus(form.status.data)
-        strain, created = _resolve_strain(form.strain.data, status)
+        strain, created = _resolve_strain(form.strain.data, status, form.lineage.data)
         p = Plant(
             label=form.label.data,
             strain=strain,
             status=status,
             group_id=form.group_id.data or None,
             space_id=form.space_id.data or None,
+            parent_id=form.parent_id.data or None,
             started_on=form.started_on.data,
             notes=form.notes.data or None,
         )
@@ -164,13 +190,17 @@ def edit(plant_id: int):
     p = db.session.get(Plant, plant_id) or abort(404)
     form = PlantForm(obj=p)
     _populate_choices(form)
+    _parent_choices(form, exclude=p.id)
     if request.method == "GET":
         form.group_id.data = p.group_id or 0
         form.space_id.data = p.space_id or 0
+        form.parent_id.data = p.parent_id or 0
         form.strain.data = p.strain.name
+        form.lineage.data = p.strain.lineage
     if form.validate_on_submit():
         status = PlantStatus(form.status.data)
-        strain, created = _resolve_strain(form.strain.data, status)
+        strain, created = _resolve_strain(form.strain.data, status, form.lineage.data)
+        p.parent_id = form.parent_id.data or None
         p.label = form.label.data
         p.strain = strain
         p.status = status

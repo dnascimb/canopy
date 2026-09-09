@@ -87,6 +87,7 @@ def dump() -> dict:
                 "started_on": _d(p.started_on),
                 "ended_on": _d(p.ended_on),
                 "end_reason": p.end_reason,
+                "parent_id": p.parent_id,
                 "flower_days_override": p.flower_days_override,
                 "notes": p.notes,
             }
@@ -201,6 +202,11 @@ def load(payload: dict, *, replace: bool = True) -> dict[str, int]:
         db.session.add(obj)
         db.session.flush()
         plant_ids[p["id"]] = obj.id
+
+    # Parents are wired once every plant has an id, so order in the file does not matter.
+    for p in payload.get("plants", []):
+        if p.get("parent_id") and p["parent_id"] in plant_ids:
+            db.session.get(Plant, plant_ids[p["id"]]).parent_id = plant_ids[p["parent_id"]]
 
     # The schedule lives on plant events. Newer backups carry them; older ones only have
     # the group's flip date, so rebuild one event per plant from that.

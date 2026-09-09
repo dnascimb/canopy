@@ -31,7 +31,7 @@
         <dd><strong>Plants → Add plant</strong>, status {{ badge('clone') }}, location {{ CLONE }}. Type the strain name — if it is not in inventory yet it gets added as you save.</dd>
 
         <dt>A cutting off your own plant</dt>
-        <dd><strong>Plants → Add plant</strong>, same strain, status {{ badge('clone') }}, location {{ CLONE }}. Name it after the mother and note which plant it came from — there is no cuttings button yet, and nothing links a cutting to its parent.</dd>
+        <dd><strong>Plant page → Take a cutting.</strong> Opens the add form with the strain and status already set and the mother recorded, so the two stay linked. The plant page then shows <em>Taken from</em> on the cutting and <em>Cuttings</em> on the mother.</dd>
       </dl>
     </div>
   </section>
@@ -110,6 +110,7 @@
     <div class="panel">
       <dl class="kv">
         <dt>Life so far</dt><dd>Every status change is logged, so each plant page shows a strip of how long it spent as a cutting, in veg and in flower.</dd>
+        <dt>Lineage</dt><dd>Two kinds. A <em>strain's</em> lineage is its genetics, typed on the strain or on the add-plant form. A <em>plant's</em> parent is the actual plant it was cut from, which walks back up the line.</dd>
         <dt>Journal</dt><dd>Notes only. Log a whole tent from the dashboard. Nothing in the app reads entries back or derives anything from them.</dd>
         <dt>Capacity</dt><dd>An estimate from tent dimensions and per-plant footprints, shown as a label on <strong>Spaces</strong> — never as an alert. It does not know your pot sizes, so a tray of cuttings can read as needing far more room than it does.</dd>
         <dt>Empty groups</dt><dd>A group with no plants cannot be scheduled — there is nothing to give a date to. Add plants first.</dd>

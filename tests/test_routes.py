@@ -440,3 +440,60 @@ def test_add_plant_form_hides_the_end_fields(client):
     p = db.session.query(Plant).first()
     editing = client.get(f"/plants/{p.id}/edit").data.decode()
     assert 'name="ended_on"' in editing and 'name="end_reason"' in editing
+
+
+def test_cutting_records_its_mother_and_the_line_reads_both_ways(client):
+    mother = db.session.query(Plant).filter_by(label="EQ Haze").one()
+    r = client.post(
+        "/plants/new",
+        data={
+            "label": "EQ Haze cut 1", "strain": mother.strain.name, "group_id": 0,
+            "space_id": 0, "parent_id": mother.id, "status": "clone",
+            "started_on": "2026-09-07",
+        },
+        follow_redirects=True,
+    )
+    assert r.status_code == 200
+    cut = db.session.query(Plant).filter_by(label="EQ Haze cut 1").one()
+    assert cut.parent_id == mother.id
+    assert cut in mother.cuttings                    # and it reads downward too
+    assert [a.label for a in cut.ancestry] == ["EQ Haze"]
+    # both ends are links on the pages
+    assert b"Taken from" in client.get(f"/plants/{cut.id}").data
+    assert b"Cuttings" in client.get(f"/plants/{mother.id}").data
+
+
+def test_take_a_cutting_prefills_from_the_mother(client):
+    mother = db.session.query(Plant).filter_by(label="EQ Haze").one()
+    html = client.get(f"/plants/new?parent={mother.id}").data.decode()
+    assert f'value="{mother.strain.name}"' in html      # strain carried over
+    assert '<option selected value="clone">' in html    # and it is a cutting
+
+
+def test_lineage_typed_on_the_plant_form_lands_on_the_strain(client):
+    client.post(
+        "/plants/new",
+        data={
+            "label": "Lineage probe", "strain": "Brand New Line", "group_id": 0,
+            "space_id": 0, "status": "seedling", "started_on": "2026-09-07",
+            "lineage": "Mother x Father",
+        },
+        follow_redirects=True,
+    )
+    made = db.session.query(Strain).filter_by(name="Brand New Line").one()
+    assert made.lineage == "Mother x Father"
+
+    # an existing strain that already has one is left alone
+    eq = db.session.query(Strain).filter_by(name="EQ Haze").one()
+    was = eq.lineage
+    client.post(
+        "/plants/new",
+        data={
+            "label": "Lineage probe 2", "strain": "EQ Haze", "group_id": 0,
+            "space_id": 0, "status": "seedling", "started_on": "2026-09-07",
+            "lineage": "Something Else x Wrong",
+        },
+        follow_redirects=True,
+    )
+    db.session.refresh(eq)
+    assert eq.lineage == was

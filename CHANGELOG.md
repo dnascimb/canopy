@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- **A cutting can name the plant it came from.** `plants.parent_id` is a nullable
+  self-reference, so a plant page shows *Taken from* with the line above it and *Cuttings*
+  below. **Take a cutting** on any living plant opens the add form with the strain, status
+  and mother already filled in. Existing databases need
+  `ALTER TABLE plants ADD COLUMN parent_id INTEGER REFERENCES plants(id)`.
+- The add-plant form takes a **lineage** for the strain, used when the strain is new or has
+  none recorded. A lineage already on file is never overwritten from here.
+
 - The plants table sorts on any column, defaulting to plant name A-Z. Status sorts by
   stage (clone through killed) rather than alphabetically, and group by number.
 
