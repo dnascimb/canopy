@@ -10,6 +10,7 @@ from flask import (
     request,
     url_for,
 )
+from markupsafe import Markup, escape
 
 from ..extensions import db
 from ..forms import KillPlantForm, MoveForm, PlantForm
@@ -124,7 +125,14 @@ def create():
         db.session.commit()
         flash(f"Added {p.label}.", "success")
         if created:
-            flash(f"Added {strain.name} to the inventory too.", "success")
+            flash(
+                Markup(
+                    f"Added {escape(strain.name)} to the inventory too — "
+                    f'<a href="{url_for("strains.edit", strain_id=strain.id)}">'
+                    "fill in its lineage and breeder</a>."
+                ),
+                "success",
+            )
         if p.group_id:
             return redirect(url_for("groups.detail", group_id=p.group_id))
         return redirect(url_for("plants.detail", plant_id=p.id))
@@ -174,7 +182,14 @@ def edit(plant_id: int):
         p.notes = form.notes.data or None
         db.session.commit()
         if created:
-            flash(f"Added {strain.name} to the inventory too.", "success")
+            flash(
+                Markup(
+                    f"Added {escape(strain.name)} to the inventory too — "
+                    f'<a href="{url_for("strains.edit", strain_id=strain.id)}">'
+                    "fill in its lineage and breeder</a>."
+                ),
+                "success",
+            )
         flash("Saved changes.", "success")
         return redirect(url_for("plants.detail", plant_id=p.id))
     return render_template("plants/form.html", form=form, plant=p, strain_names=_strain_names())

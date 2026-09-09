@@ -404,7 +404,9 @@ def test_add_plant_creates_an_unknown_strain(client):
         follow_redirects=True,
     )
     assert r.status_code == 200
-    assert b"Added Totally New Cultivar to the inventory too." in r.data
+    assert b"Added Totally New Cultivar to the inventory too" in r.data
+    # ...and the flash offers to go finish the strain off
+    assert b"fill in its lineage and breeder" in r.data
     assert db.session.query(Strain).count() == before + 1
     made = db.session.query(Strain).filter_by(name="Totally New Cultivar").one()
     # a cutting means a clone; anything else is assumed to have come from seed

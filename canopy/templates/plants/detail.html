@@ -20,7 +20,7 @@
       <dt>Started</dt><dd class="mono">{{ plant.started_on|dlong }}</dd>
       <dt>Ended</dt><dd class="mono">{{ plant.ended_on|dlong }}</dd>
       {% if plant.end_reason %}<dt>Reason</dt><dd>{{ plant.end_reason }}</dd>{% endif %}
-      {% if plant.group and plant.group.flower_start %}<dt>Flip</dt><dd class="mono">{{ plant.group.flower_start|d }} → {{ plant.group.flower_end|d }}</dd>{% endif %}
+      {% if plant.flower_start %}<dt>Flip</dt><dd class="mono">{{ plant.flower_start|d }} → {{ plant.flower_end|d }} <span class="muted small">{{ plant.flower_days }}d</span></dd>{% endif %}
     </dl>
     {% if plant.notes %}<p class="mt soft" style="white-space: pre-wrap">{{ plant.notes }}</p>{% endif %}
     {% if spans %}
