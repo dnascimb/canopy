@@ -31,11 +31,20 @@ rendered client-side by `static/js/timeline.js` from JSON that the templates inl
 
 ## Domain rules to preserve
 
-* `Group.flower_end = flower_start + flower_days`. It is **derived, never stored**. The end
-  date is exclusive: a group is flowering on `start <= day < end`.
+* **The plant owns the schedule; a group is a container.** `Plant.flower_start` is read
+  off `plant_events` — the last time it entered `flowering` — and `flower_end` is that
+  plus `flower_days` (`flower_days_override`, else the strain's). A group has no date
+  columns at all: `Group.flower_start` is the earliest of its plants, `flower_end` the
+  latest. The end date is exclusive: flowering on `start <= day < end`.
+* **Everything that changes a plant's status goes through `services/lifecycle.py`** —
+  `record()`, `set_flip()`, `clear_flip()` — so nothing enters a new state without
+  leaving an event. `spacing.move_plants()` is the single move path, which is what makes
+  moving one plant and moving a whole group identical operations.
+* A scheduled plant with no group is a `scheduling.LonePlant`, shown on the timeline and
+  in events like a group of one. Build the list with `scheduling.scheduled_units()`.
 * `day_of_flower` is 1-based (flip day is day 1).
-* A group with `flower_start is None` is *unscheduled*; it never appears on the timeline
-  or in events, but does appear in "Waiting for a slot" with a suggested opening.
+* A group or plant with `flower_start is None` is *unscheduled*; it never appears on the
+  timeline or in events, but does appear in "Waiting for a slot" with a suggested opening.
 * An *opening* is a group's end date unless another group in the same space starts that
   same day (the "grp1 ends / grp7 starts" convention). See `scheduling.openings()`.
 * Killed plants stay in the database with `status=killed`, `ended_on`, `end_reason`; they

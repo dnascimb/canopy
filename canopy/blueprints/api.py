@@ -8,8 +8,8 @@ from flask import Blueprint, abort, jsonify, request
 
 from ..extensions import db
 from ..models import Group, GroupStatus, Plant, PlantSize, Space, Strain
+from ..services import lifecycle, spacing, transfer
 from ..services import scheduling as sched
-from ..services import spacing, transfer
 
 bp = Blueprint("api", __name__)
 
@@ -44,7 +44,10 @@ def health():
 @bp.get("/timeline")
 def timeline():
     ref = sched.today()
-    rows = sched.timeline_rows(db.session.query(Group).all(), ref=ref)
+    units = sched.scheduled_units(
+        db.session.query(Group).all(), db.session.query(Plant).all()
+    )
+    rows = sched.timeline_rows(units, ref=ref)
     t0, t1 = sched.timeline_bounds(rows)
     return jsonify(
         {"today": ref.isoformat(), "start": t0.isoformat(), "end": t1.isoformat(), "rows": rows}
@@ -56,7 +59,11 @@ def events():
     return jsonify(
         [
             {"date": e.on.isoformat(), "kind": e.kind, "group_id": e.group.id, "label": e.label}
-            for e in sched.events(db.session.query(Group).all())
+            for e in sched.events(
+                sched.scheduled_units(
+                    db.session.query(Group).all(), db.session.query(Plant).all()
+                )
+            )
         ]
     )
 
@@ -71,7 +78,11 @@ def openings():
                 "group_id": o.freed_by.id,
                 "space": o.space.name if o.space else None,
             }
-            for o in sched.openings(db.session.query(Group).all())
+            for o in sched.openings(
+                sched.scheduled_units(
+                    db.session.query(Group).all(), db.session.query(Plant).all()
+                )
+            )
         ]
     )
 
@@ -142,10 +153,18 @@ def patch_group(group_id: int):
     """Update schedule fields: flower_start, flower_days, status, space_id, name, notes."""
     g = db.session.get(Group, group_id) or abort(404)
     data = request.get_json(silent=True) or {}
+    days = int(data["flower_days"]) if "flower_days" in data else None
     if "flower_start" in data:
-        g.flower_start = date.fromisoformat(data["flower_start"]) if data["flower_start"] else None
-    if "flower_days" in data:
-        g.flower_days = int(data["flower_days"])
+        if data["flower_start"]:
+            lifecycle.set_flip(
+                g.living_plants, date.fromisoformat(data["flower_start"]),
+                days=days, space=g.space, note="Set through the API.",
+            )
+        else:
+            lifecycle.clear_flip(g.living_plants)
+    elif days is not None:
+        for p in g.living_plants:
+            p.flower_days_override = days
     if "status" in data:
         g.status = GroupStatus(data["status"])
     for key in ("space_id", "name", "notes"):

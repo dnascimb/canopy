@@ -2,16 +2,44 @@ from datetime import date
 
 from canopy.extensions import db
 from canopy.models import Group, Plant, PlantStatus, Strain
+from canopy.services import lifecycle
 
 
-def test_group_flower_end_is_derived(app):
-    g = Group(number=900, flower_start=date(2026, 7, 28), flower_days=112)
-    assert g.flower_end == date(2026, 11, 17)
-    assert g.is_flowering_on(date(2026, 9, 7))
-    assert not g.is_flowering_on(date(2026, 11, 17))  # end date is exclusive
-    assert g.day_of_flower(date(2026, 7, 28)) == 1
+def test_plant_owns_its_schedule(app):
+    """A plant's flip is read off its events; the group is only the span of its plants."""
+    strain = db.session.query(Strain).first()
+    g = Group(number=900)
+    p = Plant(label="P1", strain=strain, group=g)
+    db.session.add_all([g, p])
+    lifecycle.set_flip([p], date(2026, 7, 28), days=112)
+    db.session.commit()
+
+    assert p.flower_start == date(2026, 7, 28)
+    assert p.flower_end == date(2026, 11, 17)
+    assert p.is_flowering_on(date(2026, 9, 7))
+    assert not p.is_flowering_on(date(2026, 11, 17))  # end date is exclusive
+    assert p.day_of_flower(date(2026, 7, 28)) == 1
+    assert p.day_of_flower(date(2026, 9, 7)) == 42
+    assert round(p.progress(date(2026, 9, 7)), 3) == round(41 / 112, 3)
+
+    # the group reports exactly what its one plant is doing
+    assert (g.flower_start, g.flower_end, g.flower_days) == (p.flower_start, p.flower_end, 112)
     assert g.day_of_flower(date(2026, 9, 7)) == 42
-    assert round(g.progress(date(2026, 9, 7)), 3) == round(41 / 112, 3)
+
+
+def test_group_span_covers_plants_that_disagree(app):
+    """Plants flipped on different days: the group spans from the first to the last."""
+    strain = db.session.query(Strain).first()
+    g = Group(number=902)
+    early = Plant(label="early", strain=strain, group=g)
+    late = Plant(label="late", strain=strain, group=g)
+    db.session.add_all([g, early, late])
+    lifecycle.set_flip([early], date(2026, 7, 1), days=60)
+    lifecycle.set_flip([late], date(2026, 7, 15), days=60)
+    db.session.commit()
+    assert g.flower_start == date(2026, 7, 1)
+    assert g.flower_end == date(2026, 9, 13)   # the later plant finishes last
+    assert g.flower_days == 74
 
 
 def test_unscheduled_group_has_no_end(app):

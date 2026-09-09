@@ -12,6 +12,7 @@ from ..models import (
     Harvest,
     JournalEntry,
     Plant,
+    PlantEvent,
     PlantSize,
     PlantStatus,
     SeedType,
@@ -86,6 +87,7 @@ def dump() -> dict:
                 "started_on": _d(p.started_on),
                 "ended_on": _d(p.ended_on),
                 "end_reason": p.end_reason,
+                "flower_days_override": p.flower_days_override,
                 "notes": p.notes,
             }
             for p in db.session.query(Plant).order_by(Plant.id)
@@ -100,6 +102,17 @@ def dump() -> dict:
                 "notes": h.notes,
             }
             for h in db.session.query(Harvest).order_by(Harvest.id)
+        ],
+        "plant_events": [
+            {
+                "plant_id": e.plant_id,
+                "on": _d(e.on),
+                "from_status": e.from_status.value if e.from_status else None,
+                "to_status": e.to_status.value,
+                "space_id": e.space_id,
+                "note": e.note,
+            }
+            for e in db.session.query(PlantEvent).order_by(PlantEvent.id)
         ],
         "journal_entries": [
             {
@@ -163,8 +176,6 @@ def load(payload: dict, *, replace: bool = True) -> dict[str, int]:
             number=g["number"],
             name=g.get("name"),
             space_id=space_ids.get(g.get("space_id")),
-            flower_start=_pd(g.get("flower_start")),
-            flower_days=g.get("flower_days", 70),
             status=GroupStatus(g.get("status", "planned")),
             color=g.get("color", "#66bb6a"),
             notes=g.get("notes"),
@@ -184,11 +195,47 @@ def load(payload: dict, *, replace: bool = True) -> dict[str, int]:
             started_on=_pd(p.get("started_on")),
             ended_on=_pd(p.get("ended_on")),
             end_reason=p.get("end_reason"),
+            flower_days_override=p.get("flower_days_override"),
             notes=p.get("notes"),
         )
         db.session.add(obj)
         db.session.flush()
         plant_ids[p["id"]] = obj.id
+
+    # The schedule lives on plant events. Newer backups carry them; older ones only have
+    # the group's flip date, so rebuild one event per plant from that.
+    if "plant_events" in payload:
+        for e in payload["plant_events"]:
+            db.session.add(
+                PlantEvent(
+                    plant_id=plant_ids[e["plant_id"]],
+                    on=_pd(e["on"]),
+                    from_status=PlantStatus(e["from_status"]) if e.get("from_status") else None,
+                    to_status=PlantStatus(e["to_status"]),
+                    space_id=space_ids.get(e.get("space_id")),
+                    note=e.get("note"),
+                )
+            )
+    else:
+        starts = {g["id"]: g.get("flower_start") for g in payload.get("groups", [])}
+        days = {g["id"]: g.get("flower_days", 70) for g in payload.get("groups", [])}
+        for p in payload.get("plants", []):
+            gid = p.get("group_id")
+            if gid is None or not starts.get(gid):
+                continue
+            plant = db.session.get(Plant, plant_ids[p["id"]])
+            plant.flower_days_override = days[gid]
+            db.session.add(
+                PlantEvent(
+                    plant=plant,
+                    on=_pd(starts[gid]),
+                    to_status=PlantStatus.flowering,
+                    space_id=space_ids.get(
+                        next(g["space_id"] for g in payload["groups"] if g["id"] == gid)
+                    ),
+                    note="Rebuilt from the group's flip date in an older backup.",
+                )
+            )
 
     for h in payload.get("harvests", []):
         db.session.add(

@@ -88,13 +88,21 @@ def test_capacity_is_not_a_schedule_conflict(app):
     assert warn is not None and "over the 5 maximum" in warn
 
 
-def test_conflict_scheduled_without_space_or_plants(app):
-    g = Group(number=950, flower_start=date(2026, 10, 1), flower_days=60)
-    db.session.add(g)
+def test_conflict_scheduled_without_a_space(app):
+    """A flipped plant whose group has no space still needs somewhere to go."""
+    from canopy.models import Plant, Strain
+    from canopy.services import lifecycle
+
+    g = Group(number=950)
+    p = Plant(label="stray", strain=db.session.query(Strain).first(), group=g)
+    db.session.add_all([g, p])
+    lifecycle.set_flip([p], date(2026, 10, 1), days=60)
     db.session.commit()
     msgs = [c.message for c in sched.conflicts(groups(), [], ref=REF)]
     assert "Grp 950 is scheduled but not assigned to a space." in msgs
-    assert "Grp 950 is scheduled but has no living plants." in msgs
+    # "scheduled but has no living plants" is gone: the dates come *from* the plants,
+    # so a scheduled group without any is no longer a state that can exist.
+    assert not any("no living plants" in m for m in msgs)
 
 
 def test_implied_status(app):

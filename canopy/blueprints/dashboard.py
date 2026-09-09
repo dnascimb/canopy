@@ -19,7 +19,8 @@ def index():
     strains = db.session.query(Strain).all()
     ref = sched.today()
 
-    rows = sched.timeline_rows(groups, ref=ref)
+    units = sched.scheduled_units(groups, plants)
+    rows = sched.timeline_rows(units, ref=ref)
     active = [g for g in groups if g.is_flowering_on(ref)]
     active.sort(key=lambda g: g.flower_end)
     unscheduled = [g for g in groups if g.flower_start is None]
@@ -34,12 +35,12 @@ def index():
         active=active,
         unscheduled=unscheduled,
         suggestions=suggestions,
-        upcoming=sched.upcoming(groups, days=30, ref=ref),
+        upcoming=sched.upcoming(units, days=30, ref=ref),
         conflicts=sched.conflicts(groups, spaces, plants, ref=ref),
         occupancy=sorted(spacing.occupancy(spaces, plants).values(), key=lambda o: o.space.id),
         quick=quick,
         spaces=spaces,
-        openings=sched.openings(groups, ref=ref)[:5],
+        openings=sched.openings(units, ref=ref)[:5],
         counts=sched.plant_counts(plants),
         inventory=sched.inventory_summary(strains),
         ref=ref,

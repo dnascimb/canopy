@@ -103,7 +103,7 @@ docs/                   user guide, technical guide, API reference, design notes
 * [User guide](docs/user-guide.md) — every screen, annotated.
 * [Technical guide](docs/technical.md) — architecture, data model, scheduling algorithms, security, deployment.
 * [API reference](docs/api.md) — `/api/v1` endpoints with examples.
-* [Plant lifecycle](docs/lifecycle.md) — how each transition works today, where it is
+* [Plant lifecycle](docs/lifecycle.html) — how each transition works today, where it is
   clunky, and what would fix it.
 * [Design notes](docs/design.md) — visual system and UX principles.
 * [Backlog](docs/backlog.md) — candidate features, roughly prioritised.

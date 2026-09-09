@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- **The plant owns its schedule; a group is just a container.** `groups.flower_start` and
+  `groups.flower_days` are gone. A plant's flip is read off the new `plant_events` log and
+  its length from `flower_days_override` (falling back to the strain); a group reports the
+  span of its plants. Moving one plant and moving a whole group are now literally the same
+  call, and a plant with no group appears on the timeline and in events like a group of
+  one. Existing databases need the events table, `plants.flower_days_override`, a
+  synthesised flip event per scheduled plant, and the two group columns dropped.
+- Backups gain a `plant_events` section; older backups without one are restored by
+  rebuilding a flip event per plant from the group's old date, so they still load.
+- Dropped the "scheduled but has no living plants" conflict — with dates derived from the
+  plants, it describes a state that can no longer exist.
+
 - Quick-log tasks: dropped "Checked pH / EC", renamed "IPM / pest check" to
   "Pest/Mold treatment". Existing entries keep the `ipm` key and pick up the new label;
   `ph_ec` was stripped from the seeded entries that used it.

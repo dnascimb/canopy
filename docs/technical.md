@@ -73,8 +73,9 @@ Space 1 ──< Group 1 ──< Plant >── 1 Strain
 | --- | --- | --- |
 | `spaces` | `name` (unique), `stage` (clone/vegetative/flowering), `width_ft`, `length_ft`, `capacity ≥ 1` (user maximum), `notes` | `area_sqft` is derived. Deleting a space nulls `groups.space_id` and `plants.space_id`. |
 | `strains` | `name`, `breeder`, `lineage`, `seed_type` (regular/feminized/autoflower/clone), `flower_days ≥ 1`, `seeds_on_hand ≥ 0`, `size` (small/medium/large), `expression` (sativa/haze/indica/hybrid, nullable), `notes` | Unique on (`name`, `breeder`). Cannot be deleted while it has plants. |
-| `groups` | `number` (unique int), `name` (optional), `space_id`, `flower_start` (nullable), `flower_days ≥ 1`, `status`, `color` (#rrggbb), `notes` | `flower_end` is a property, never stored. Deleting a group unassigns its plants; harvests and journal entries cascade. |
-| `plants` | `label`, `strain_id`, `group_id` (nullable), `space_id` (nullable explicit location), `status` (clone/seedling/vegetative/flowering/harvested/killed), `started_on`, `ended_on`, `end_reason`, `notes` | Killed plants are retained. |
+| `groups` | `number` (unique int), `name` (optional), `space_id`, `status`, `color` (#rrggbb), `notes` | **No date columns.** `flower_start` / `flower_end` / `flower_days` are properties spanning the group's plants. Deleting a group unassigns its plants; harvests and journal entries cascade. |
+| `plants` | `label`, `strain_id`, `group_id` (nullable), `space_id` (nullable explicit location), `status`, `started_on`, `ended_on`, `end_reason`, `flower_days_override` (nullable), `notes` | Killed plants are retained. `flower_start` is derived from `plant_events`; `flower_days` falls back to the strain. |
+| `plant_events` | `plant_id`, `on`, `from_status` (nullable), `to_status`, `space_id`, `note` | Append-only lifecycle log and the source of truth for flip dates. Written only by `services/lifecycle.py`. |
 | `harvests` | `group_id` / `plant_id` (at least one), `harvested_on`, `wet_weight_g`, `notes` | |
 | `journal_entries` | `entry_date`, `space_id` / `group_id` / `plant_id` (all optional), `title`, `body`, `tasks` (comma-separated keys from `models.TASKS`) | `task_list` / `task_labels` are derived. Entries are notes only — nothing reads them back as data. |
 

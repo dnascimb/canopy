@@ -21,6 +21,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .extensions import db
 
+DEFAULT_FLOWER_DAYS = 70
+
 
 class SeedType(enum.StrEnum):
     regular = "regular"
@@ -190,8 +192,6 @@ class Group(TimestampMixin, db.Model):
     number: Mapped[int] = mapped_column(unique=True, nullable=False)
     name: Mapped[str | None] = mapped_column(db.String(120))
     space_id: Mapped[int | None] = mapped_column(db.ForeignKey("spaces.id", ondelete="SET NULL"))
-    flower_start: Mapped[date | None] = mapped_column(db.Date)
-    flower_days: Mapped[int] = mapped_column(default=70, nullable=False)
     status: Mapped[GroupStatus] = mapped_column(
         db.Enum(GroupStatus, native_enum=False, length=20),
         default=GroupStatus.planned,
@@ -209,41 +209,51 @@ class Group(TimestampMixin, db.Model):
         back_populates="group", cascade="all, delete-orphan"
     )
 
-    __table_args__ = (CheckConstraint("flower_days >= 1", name="ck_group_flower_days"),)
-
-    # ---- derived schedule -------------------------------------------------
+    # ---- schedule, derived from the plants ---------------------------------
+    # A group is a container. Its span is whatever its plants are doing, so a group
+    # and a lone plant behave identically everywhere.
     @property
     def label(self) -> str:
         return self.name or f"Grp {self.number}"
 
     @property
+    def scheduled_plants(self) -> list[Plant]:
+        return [p for p in self.living_plants if p.flower_start is not None]
+
+    @property
+    def flower_start(self) -> date | None:
+        starts = [p.flower_start for p in self.scheduled_plants]
+        return min(starts) if starts else None
+
+    @property
     def flower_end(self) -> date | None:
-        if self.flower_start is None:
-            return None
-        return self.flower_start + timedelta(days=self.flower_days)
+        ends = [p.flower_end for p in self.scheduled_plants if p.flower_end]
+        return max(ends) if ends else None
+
+    @property
+    def flower_days(self) -> int:
+        """Span of the group's run. Equals the plants' own length when they agree."""
+        if self.flower_start is None or self.flower_end is None:
+            return DEFAULT_FLOWER_DAYS
+        return (self.flower_end - self.flower_start).days
 
     def is_flowering_on(self, day: date) -> bool:
-        return (
-            self.flower_start is not None
-            and self.flower_end is not None
-            and self.flower_start <= day < self.flower_end
-        )
+        return any(p.is_flowering_on(day) for p in self.scheduled_plants)
 
     def day_of_flower(self, today: date) -> int | None:
-        """1-based day in flower for *today*, or None if not in the window."""
-        if not self.is_flowering_on(today):
-            return None
-        return (today - self.flower_start).days + 1
+        """1-based day in flower for *today*, or None if nothing is in the window."""
+        days = [p.day_of_flower(today) for p in self.scheduled_plants]
+        days = [d for d in days if d is not None]
+        return max(days) if days else None
 
     def progress(self, today: date) -> float:
         """0.0–1.0 fraction of the flowering window elapsed."""
-        if self.flower_start is None:
+        start, end = self.flower_start, self.flower_end
+        if start is None or end is None or today < start:
             return 0.0
-        if today < self.flower_start:
-            return 0.0
-        if today >= self.flower_end:
+        if today >= end:
             return 1.0
-        return (today - self.flower_start).days / self.flower_days
+        return (today - start).days / max((end - start).days, 1)
 
     @property
     def living_plants(self) -> list[Plant]:
@@ -283,8 +293,14 @@ class Plant(TimestampMixin, db.Model):
     started_on: Mapped[date | None] = mapped_column(db.Date)
     ended_on: Mapped[date | None] = mapped_column(db.Date)
     end_reason: Mapped[str | None] = mapped_column(db.String(255))
+    # Planned flower length for this plant's run. None falls back to the strain.
+    flower_days_override: Mapped[int | None] = mapped_column(db.Integer)
     notes: Mapped[str | None] = mapped_column(db.Text)
 
+    events: Mapped[list[PlantEvent]] = relationship(
+        back_populates="plant", cascade="all, delete-orphan",
+        order_by="PlantEvent.on, PlantEvent.id",
+    )
     strain: Mapped[Strain] = relationship(back_populates="plants")
     group: Mapped[Group | None] = relationship(back_populates="plants")
     space: Mapped[Space | None] = relationship(back_populates="plants")
@@ -298,6 +314,41 @@ class Plant(TimestampMixin, db.Model):
     @property
     def is_alive(self) -> bool:
         return self.status != PlantStatus.killed
+
+    # ---- schedule, owned by the plant --------------------------------------
+    @property
+    def flower_days(self) -> int:
+        """This run's planned length: the plant's own, else the strain's default."""
+        return self.flower_days_override or self.strain.flower_days
+
+    @property
+    def flower_start(self) -> date | None:
+        """When this plant last entered flower, read off its lifecycle events."""
+        flips = [e.on for e in self.events if e.to_status == PlantStatus.flowering]
+        return max(flips) if flips else None
+
+    @property
+    def flower_end(self) -> date | None:
+        start = self.flower_start
+        return None if start is None else start + timedelta(days=self.flower_days)
+
+    def is_flowering_on(self, day: date) -> bool:
+        start, end = self.flower_start, self.flower_end
+        return start is not None and end is not None and start <= day < end
+
+    def day_of_flower(self, today: date) -> int | None:
+        """1-based day in flower for *today*, or None if not in the window."""
+        if not self.is_flowering_on(today):
+            return None
+        return (today - self.flower_start).days + 1
+
+    def progress(self, today: date) -> float:
+        start, end = self.flower_start, self.flower_end
+        if start is None or today < start:
+            return 0.0
+        if today >= end:
+            return 1.0
+        return (today - start).days / self.flower_days
 
     def __repr__(self) -> str:  # pragma: no cover
         return f"<Plant {self.label}>"
@@ -319,6 +370,43 @@ class Harvest(TimestampMixin, db.Model):
     __table_args__ = (
         CheckConstraint("group_id IS NOT NULL OR plant_id IS NOT NULL", name="ck_harvest_target"),
     )
+
+
+class PlantEvent(TimestampMixin, db.Model):
+    """One step in a plant's life: a status change, a move, a kill, a harvest.
+
+    Append-only and the source of truth for when a plant flipped. Everything the
+    schedule knows about timing is read back off these rows.
+    """
+
+    __tablename__ = "plant_events"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    plant_id: Mapped[int] = mapped_column(
+        db.ForeignKey("plants.id", ondelete="CASCADE"), nullable=False
+    )
+    on: Mapped[date] = mapped_column(db.Date, nullable=False)
+    from_status: Mapped[PlantStatus | None] = mapped_column(
+        db.Enum(PlantStatus, native_enum=False, length=20)
+    )
+    to_status: Mapped[PlantStatus] = mapped_column(
+        db.Enum(PlantStatus, native_enum=False, length=20), nullable=False
+    )
+    space_id: Mapped[int | None] = mapped_column(db.ForeignKey("spaces.id", ondelete="SET NULL"))
+    note: Mapped[str | None] = mapped_column(db.String(255))
+
+    plant: Mapped[Plant] = relationship(back_populates="events")
+    space: Mapped[Space | None] = relationship()
+
+    @property
+    def label(self) -> str:
+        where = f" · {self.space.name}" if self.space else ""
+        if self.from_status is None:
+            return f"started as {self.to_status.value}{where}"
+        return f"{self.from_status.value} → {self.to_status.value}{where}"
+
+    def __repr__(self) -> str:  # pragma: no cover
+        return f"<PlantEvent {self.plant_id} {self.on} {self.to_status}>"
 
 
 class JournalEntry(TimestampMixin, db.Model):

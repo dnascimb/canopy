@@ -5,8 +5,8 @@ from flask import Blueprint, abort, flash, redirect, render_template, request, u
 from ..extensions import db
 from ..forms import KillPlantForm, MoveForm, PlantForm
 from ..models import Group, Plant, PlantStatus, Space, Strain
+from ..services import lifecycle, spacing
 from ..services import scheduling as sched
-from ..services import spacing
 
 bp = Blueprint("plants", __name__)
 
@@ -102,6 +102,8 @@ def detail(plant_id: int):
         kill_form=kill_form,
         move_form=move_form,
         location=spacing.plant_location(p, spaces),
+        spans=lifecycle.stage_spans(p, ref=sched.today()),
+        history=lifecycle.history(p),
     )
 
 
@@ -129,7 +131,8 @@ def kill(plant_id: int):
     p = db.session.get(Plant, plant_id) or abort(404)
     form = KillPlantForm()
     if form.validate_on_submit():
-        p.status = PlantStatus.killed
+        lifecycle.record(p, PlantStatus.killed, on=form.ended_on.data,
+                         note=form.end_reason.data or None)
         p.ended_on = form.ended_on.data
         p.end_reason = form.end_reason.data or None
         db.session.commit()
@@ -146,7 +149,7 @@ def move(plant_id: int):
     _space_choices(form)
     if form.validate_on_submit():
         space = db.session.get(Space, form.space_id.data) or abort(404)
-        if spacing.move_plants([p], space):
+        if spacing.move_plants([p], space, ref=sched.today()):
             db.session.commit()
             flash(f"Moved {p.label} to {space.name}.", "success")
         else:
@@ -158,11 +161,16 @@ def move(plant_id: int):
 def set_status(plant_id: int):
     p = db.session.get(Plant, plant_id) or abort(404)
     try:
-        p.status = PlantStatus(request.form["status"])
+        target = PlantStatus(request.form["status"])
     except (KeyError, ValueError):
         abort(400)
-    if p.status in (PlantStatus.harvested, PlantStatus.killed) and not p.ended_on:
-        p.ended_on = sched.today()
+    today = sched.today()
+    if target == PlantStatus.flowering and p.flower_start is None:
+        lifecycle.set_flip([p], today, note="Marked flowering.")
+    else:
+        lifecycle.record(p, target, on=today)
+    if target in (PlantStatus.harvested, PlantStatus.killed) and not p.ended_on:
+        p.ended_on = today
     db.session.commit()
     flash(f"{p.label} is now {p.status.value}.", "success")
     return redirect(request.referrer or url_for("plants.detail", plant_id=p.id))

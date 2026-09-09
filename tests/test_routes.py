@@ -56,7 +56,10 @@ def test_create_group_and_plant(client):
     )
     assert r.status_code == 200
     g = db.session.query(Group).filter_by(number=20).one()
-    assert g.flower_end == date(2027, 1, 4)
+    # A group is a container: with nothing in it there is nothing to schedule, and the
+    # form says so instead of quietly losing the date.
+    assert b"no plants yet" in r.data
+    assert g.flower_start is None
     strain = db.session.query(Strain).first()
     r = client.post(
         "/plants/new",

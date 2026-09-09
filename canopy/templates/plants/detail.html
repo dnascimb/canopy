@@ -23,6 +23,22 @@
       {% if plant.group and plant.group.flower_start %}<dt>Flip</dt><dd class="mono">{{ plant.group.flower_start|d }} → {{ plant.group.flower_end|d }}</dd>{% endif %}
     </dl>
     {% if plant.notes %}<p class="mt soft" style="white-space: pre-wrap">{{ plant.notes }}</p>{% endif %}
+    {% if spans %}
+    {% set total = spans|sum(attribute='days') or 1 %}
+    <h3 class="mt mb">Life so far</h3>
+    <div class="lifestrip" role="img" aria-label="Time spent in each stage">
+      {% for s in spans %}
+        <div class="seg {{ s.status.value }}" style="flex: {{ [s.days, 1]|max }} 0 auto"
+             title="{{ s.status.value }} · {{ s.start|d }} → {{ s.end|d }} · {{ s.days }} days">
+          <span>{{ s.status.value }}</span>
+        </div>
+      {% endfor %}
+    </div>
+    <div class="lifestrip-legend">
+      {% for s in spans %}<span><b>{{ s.days }}d</b> {{ s.status.value }}</span>{% endfor %}
+      <span class="muted">since {{ spans[0].start|d }}</span>
+    </div>
+    {% endif %}
     {% if plant.is_alive and plant.status.value != 'harvested' %}
     <form method="post" action="{{ url_for('plants.move', plant_id=plant.id) }}" class="row mt">{{ csrf() }}<span class="muted small">Move to</span>{{ move_form.space_id(style='width:auto') }}<button class="btn small" type="submit">Move</button></form>
     {% endif %}

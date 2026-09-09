@@ -163,6 +163,19 @@ table.sortable thead th[aria-sort="descending"]::after { content: " \2193"; }
 .alert.note { background: var(--surface-2); color: var(--text-soft); }
 .ql-space + .ql-space { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
 .ql-space-head { display: flex; gap: 8px; align-items: baseline; font-weight: 600; margin-bottom: 6px; }
+.lifestrip { display: flex; gap: 2px; height: 30px; border-radius: 5px; overflow: hidden; }
+.lifestrip .seg { display: grid; place-items: center; min-width: 8px; overflow: hidden;
+  font-size: .72rem; font-family: var(--mono); color: var(--accent-ink); white-space: nowrap; }
+.lifestrip .seg span { padding: 0 6px; }
+.lifestrip .seg.clone { background: var(--blue); }
+.lifestrip .seg.seedling { background: var(--green-soft); color: var(--green); }
+.lifestrip .seg.vegetative { background: var(--green); }
+.lifestrip .seg.flowering { background: var(--accent); }
+.lifestrip .seg.harvested { background: var(--text-soft); }
+.lifestrip .seg.killed { background: var(--red); color: #fff; }
+.lifestrip-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 7px;
+  font-size: .82rem; color: var(--muted); font-family: var(--mono); }
+.lifestrip-legend b { color: var(--text-soft); font-weight: 500; }
 .alert.note .dot { background: var(--muted); }
 
 /* ---------- forms ---------- */

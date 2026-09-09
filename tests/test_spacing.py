@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 
 from canopy.extensions import db
 from canopy.models import Group, Plant, PlantSize, PlantStatus, Space, SpaceStage, Strain
@@ -231,3 +231,51 @@ def test_backup_roundtrip_keeps_new_fields(client):
         db.session.query(Plant).filter_by(label="Jack Herer cut 1").one().space.name
         == "Clone Shelf"
     )
+
+
+def test_a_lone_plant_schedules_exactly_like_a_group(app):
+    """The asymmetry this replaced: a plant outside a group is a first-class thing.
+
+    Moving one into flower gives it its own run and puts it on the calendar, with no
+    group needed anywhere.
+    """
+    strain = db.session.query(Strain).filter_by(name="EQ Haze").one()
+    flower = db.session.query(Space).filter_by(name="Flower Room").one()
+    loose = Plant(label="loner", strain=strain, group=None, status=PlantStatus.vegetative)
+    db.session.add(loose)
+    db.session.commit()
+    assert loose.flower_start is None
+
+    # the same call the group route makes, on one ungrouped plant
+    assert spacing.move_plants([loose], flower, ref=REF) == 1
+    db.session.commit()
+
+    assert loose.status == PlantStatus.flowering
+    assert loose.flower_start == REF
+    assert loose.flower_end == REF + timedelta(days=strain.flower_days)
+
+    units = sched.scheduled_units(db.session.query(Group).all(), db.session.query(Plant).all())
+    rows = sched.timeline_rows(units, ref=REF)
+    assert "loner" in [r["label"] for r in rows]
+    assert ("loner", "start") in [(e.group.label, e.kind) for e in sched.events(units)]
+
+    # and it leaves a trace of how it got there
+    assert [e.to_status for e in loose.events] == [PlantStatus.flowering]
+
+
+def test_group_and_plant_moves_take_the_same_path(app):
+    """Flipping via the group and via each plant must land in the same state."""
+    strain = db.session.query(Strain).first()
+    flower = db.session.query(Space).filter_by(name="Flower Room").one()
+    g = Group(number=960)
+    a = Plant(label="via-group", strain=strain, group=g, status=PlantStatus.vegetative)
+    b = Plant(label="via-plant", strain=strain, group=None, status=PlantStatus.vegetative)
+    db.session.add_all([g, a, b])
+    db.session.commit()
+
+    spacing.move_plants(g.living_plants, flower, ref=REF)   # group route
+    spacing.move_plants([b], flower, ref=REF)               # plant route
+    db.session.commit()
+
+    assert (a.status, a.flower_start, a.flower_end) == (b.status, b.flower_start, b.flower_end)
+    assert a.space == b.space == flower

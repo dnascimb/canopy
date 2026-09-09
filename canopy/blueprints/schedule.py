@@ -18,12 +18,13 @@ def index():
     ref = sched.today()
     groups = db.session.query(Group).all()
     spaces = db.session.query(Space).all()
-    rows = sched.timeline_rows(groups, ref=ref)
+    units = sched.scheduled_units(groups, db.session.query(Plant).all())
+    rows = sched.timeline_rows(units, ref=ref)
     return render_template(
         "schedule/index.html",
         rows=rows,
-        events=sched.events(groups),
-        openings=sched.openings(groups, ref=ref),
+        events=sched.events(units),
+        openings=sched.openings(units, ref=ref),
         conflicts=sched.conflicts(groups, spaces, db.session.query(Plant).all(), ref=ref),
         unscheduled=[g for g in groups if g.flower_start is None],
         ref=ref,
@@ -42,7 +43,10 @@ def export_markdown():
 
 @bp.get("/export.txt")
 def export_ascii():
-    rows = sched.timeline_rows(db.session.query(Group).all())
+    rows = sched.timeline_rows(
+        sched.scheduled_units(db.session.query(Group).all(),
+                              db.session.query(Plant).all())
+    )
     return Response(sched.ascii_timeline(rows), mimetype="text/plain; charset=utf-8")
 
 
@@ -50,11 +54,12 @@ def export_ascii():
 def print_view():
     ref = sched.today()
     groups = db.session.query(Group).all()
-    rows = sched.timeline_rows(groups, ref=ref)
+    units = sched.scheduled_units(groups, db.session.query(Plant).all())
+    rows = sched.timeline_rows(units, ref=ref)
     return render_template(
         "schedule/print.html",
         rows=rows,
-        events=sched.events(groups),
+        events=sched.events(units),
         ascii=sched.ascii_timeline(rows, ref=ref),
         groups=sorted(groups, key=lambda g: g.number),
         ref=ref,

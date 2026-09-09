@@ -16,8 +16,8 @@ from ..models import (
     SpaceStage,
     next_group_color,
 )
+from ..services import lifecycle, spacing
 from ..services import scheduling as sched
-from ..services import spacing
 
 bp = Blueprint("groups", __name__)
 
@@ -41,6 +41,35 @@ def index():
     return render_template("groups/index.html", groups=groups, view=view, ref=ref)
 
 
+def _apply(form: GroupForm, g: Group) -> None:
+    """Copy the group's own fields. Dates are not among them — see _apply_schedule."""
+    g.number = form.number.data
+    g.name = form.name.data or None
+    g.space_id = form.space_id.data or None
+    g.status = GroupStatus(form.status.data)
+    g.notes = form.notes.data or None
+
+
+def _apply_schedule(form: GroupForm, g: Group) -> str | None:
+    """Push the form's flip date down onto the plants, which is where it lives.
+
+    Returns a warning when there is nothing to apply it to.
+    """
+    plants = g.living_plants
+    if form.flower_start.data:
+        if not plants:
+            return f"{g.label} has no plants yet — add some and the flip date will apply."
+        lifecycle.set_flip(
+            plants, form.flower_start.data, days=form.flower_days.data,
+            space=g.space, note=f"Set on {g.label}.",
+        )
+    else:
+        lifecycle.clear_flip(plants)
+        for p in plants:
+            p.flower_days_override = form.flower_days.data
+    return None
+
+
 @bp.route("/new", methods=["GET", "POST"])
 def create():
     form = GroupForm()
@@ -58,13 +87,15 @@ def create():
             form.number.errors.append("That group number is already in use.")
         else:
             g = Group()
-            form.populate_obj(g)
-            g.status = GroupStatus(form.status.data)
-            g.space_id = form.space_id.data or None
+            _apply(form, g)
             g.color = form.color.data or next_group_color(db.session.query(Group).count())
             db.session.add(g)
+            db.session.flush()
+            warning = _apply_schedule(form, g)
             db.session.commit()
             flash(f"Created {g.label}.", "success")
+            if warning:
+                flash(warning, "error")
             return redirect(url_for("groups.detail", group_id=g.id))
     return render_template("groups/form.html", form=form, group=None)
 
@@ -110,12 +141,10 @@ def move(group_id: int):
     form.space_id.choices = [(s.id, s.name) for s in db.session.query(Space)]
     if form.validate_on_submit():
         space = db.session.get(Space, form.space_id.data) or abort(404)
-        n = spacing.move_plants(g.living_plants, space)
+        n = spacing.move_plants(g.living_plants, space, ref=sched.today())
         if space.stage == SpaceStage.flowering:
             g.space_id = space.id
-            if g.status in (GroupStatus.planned, GroupStatus.vegetative):
-                g.status = GroupStatus.flowering
-                g.flower_start = g.flower_start or sched.today()
+            g.status = GroupStatus.flowering
         elif space.stage == SpaceStage.vegetative and g.status == GroupStatus.planned:
             g.status = GroupStatus.vegetative
         db.session.commit()
@@ -131,6 +160,8 @@ def edit(group_id: int):
     if request.method == "GET":
         form.space_id.data = g.space_id or 0
         form.status.data = g.status.value
+        form.flower_start.data = g.flower_start
+        form.flower_days.data = g.flower_days
     if form.validate_on_submit():
         clash = (
             db.session.query(Group)
@@ -140,11 +171,13 @@ def edit(group_id: int):
         if clash:
             form.number.errors.append("That group number is already in use.")
         else:
-            form.populate_obj(g)
-            g.status = GroupStatus(form.status.data)
-            g.space_id = form.space_id.data or None
+            _apply(form, g)
+            g.color = form.color.data or g.color
+            warning = _apply_schedule(form, g)
             db.session.commit()
             flash("Saved changes.", "success")
+            if warning:
+                flash(warning, "error")
             return redirect(url_for("groups.detail", group_id=g.id))
     return render_template("groups/form.html", form=form, group=g)
 
@@ -157,11 +190,13 @@ def schedule(group_id: int):
     if suggestion is None:
         flash("No opening available to suggest.", "error")
     else:
-        g.flower_start = suggestion.on
         if suggestion.space and not g.space_id:
             g.space_id = suggestion.space.id
-        if g.status == GroupStatus.planned:
-            g.status = GroupStatus.vegetative
+        lifecycle.set_flip(
+            g.living_plants, suggestion.on, space=g.space,
+            note=f"Scheduled into the opening left by {suggestion.freed_by.label}.",
+        )
+        g.status = GroupStatus.flowering
         db.session.commit()
         flash(f"Scheduled {g.label} to flip on {suggestion.on:%b %d}.", "success")
     return redirect(url_for("groups.detail", group_id=g.id))
@@ -174,16 +209,20 @@ def set_status(group_id: int):
         g.status = GroupStatus(request.form["status"])
     except (KeyError, ValueError):
         abort(400)
+    today = sched.today()
     if g.status == GroupStatus.flowering:
+        # Keep any flip the plants already have; only the unflipped start today.
+        unflipped = [p for p in g.living_plants if p.flower_start is None]
+        lifecycle.set_flip(unflipped, today, space=g.space, note=f"{g.label} marked flowering.")
         for p in g.living_plants:
-            p.status = PlantStatus.flowering
-        if g.flower_start is None:
-            g.flower_start = sched.today()
+            lifecycle.record(p, PlantStatus.flowering, on=today)
     elif g.status in (GroupStatus.drying, GroupStatus.done):
         for p in g.living_plants:
             if p.status == PlantStatus.flowering:
-                p.status = PlantStatus.harvested
-                p.ended_on = p.ended_on or g.flower_end or sched.today()
+                end = p.flower_end or today
+                lifecycle.record(p, PlantStatus.harvested, on=end,
+                                 note=f"{g.label} marked {g.status.value}.")
+                p.ended_on = p.ended_on or end
     db.session.commit()
     flash(f"{g.label} is now {g.status.value}.", "success")
     return redirect(url_for("groups.detail", group_id=g.id))

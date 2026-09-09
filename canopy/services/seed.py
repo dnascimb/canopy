@@ -11,6 +11,7 @@ from ..models import (
     Harvest,
     JournalEntry,
     Plant,
+    PlantEvent,
     PlantSize,
     PlantStatus,
     SeedType,
@@ -367,15 +368,14 @@ def seed_demo() -> None:
             number=number,
             name=name,
             space=spaces.get(space) if space else None,
-            flower_start=start,
-            flower_days=days,
             color=next_group_color(i),
         )
-        if start is None:
+        # The group's dates are derived from its plants now, so work out the run from
+        # the seed data directly and hang a flip event on each plant below.
+        end = start + timedelta(days=days) if start else None
+        if start is None or ref < start:
             g.status = GroupStatus.vegetative
-        elif ref < start:
-            g.status = GroupStatus.vegetative
-        elif g.is_flowering_on(ref):
+        elif start <= ref < end:
             g.status = GroupStatus.flowering
         else:
             g.status = GroupStatus.done
@@ -389,12 +389,21 @@ def seed_demo() -> None:
                 p.ended_on = start or ref
             elif g.status == GroupStatus.done:
                 p.status = PlantStatus.harvested
-                p.ended_on = g.flower_end
+                p.ended_on = end
             elif g.status == GroupStatus.flowering:
                 p.status = PlantStatus.flowering
             else:
                 p.status = PlantStatus.vegetative
             p.started_on = (start - timedelta(days=56)) if start else None
+            if start is not None:
+                p.flower_days_override = days
+                db.session.add(
+                    PlantEvent(
+                        plant=p, on=start, from_status=None,
+                        to_status=PlantStatus.flowering,
+                        space=g.space, note="Flipped.",
+                    )
+                )
             plants[(number, label)] = p
             db.session.add(p)
 

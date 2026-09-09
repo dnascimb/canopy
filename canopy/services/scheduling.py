@@ -34,6 +34,86 @@ def today() -> date:
 
 
 # ---------------------------------------------------------------------------
+# Scheduled units: a group, or a plant standing on its own
+# ---------------------------------------------------------------------------
+@dataclass(frozen=True)
+class LonePlant:
+    """A scheduled plant with no group, presented to the calendar as a group of one.
+
+    Groups are containers. A plant outside one is still a thing with a flip date and a
+    harvest, so it belongs on the timeline and in the event table exactly like a group.
+    """
+
+    plant: Plant
+
+    @property
+    def id(self) -> int:
+        return self.plant.id
+
+    @property
+    def number(self) -> float:
+        # Sorts after real groups without colliding with their integer numbers.
+        return 10_000 + (self.plant.id or 0)
+
+    @property
+    def label(self) -> str:
+        return self.plant.label
+
+    @property
+    def color(self) -> str:
+        return "#9e9e9e"
+
+    @property
+    def status(self) -> GroupStatus:
+        return GroupStatus.flowering if self.plant.flower_start else GroupStatus.planned
+
+    @property
+    def space(self) -> Space | None:
+        return self.plant.space
+
+    @property
+    def space_id(self) -> int | None:
+        return self.plant.space_id
+
+    @property
+    def flower_start(self) -> date | None:
+        return self.plant.flower_start
+
+    @property
+    def flower_end(self) -> date | None:
+        return self.plant.flower_end
+
+    @property
+    def flower_days(self) -> int:
+        return self.plant.flower_days
+
+    @property
+    def living_plants(self) -> list[Plant]:
+        return [self.plant] if self.plant.is_alive else []
+
+    def strain_labels(self) -> list[str]:
+        return [self.plant.strain.name]
+
+    def is_flowering_on(self, day: date) -> bool:
+        return self.plant.is_flowering_on(day)
+
+    def day_of_flower(self, day: date) -> int | None:
+        return self.plant.day_of_flower(day)
+
+    def progress(self, day: date) -> float:
+        return self.plant.progress(day)
+
+
+def scheduled_units(groups: Iterable[Group], plants: Iterable[Plant] = ()) -> list:
+    """Everything the calendar should show: groups, plus scheduled plants without one."""
+    units = list(groups)
+    units += [
+        LonePlant(p) for p in plants if p.group_id is None and p.flower_start is not None
+    ]
+    return units
+
+
+# ---------------------------------------------------------------------------
 # Events
 # ---------------------------------------------------------------------------
 @dataclass(frozen=True)
@@ -170,6 +250,8 @@ def conflicts(
     plants = list(plants)
     out: list[Conflict] = []
 
+    # A group's dates come from its plants, so "scheduled with nothing in it" is no
+    # longer a state that can exist and is not checked for.
     for g in groups:
         if g.status == GroupStatus.flowering and g.flower_start is None:
             out.append(
@@ -179,8 +261,6 @@ def conflicts(
             out.append(
                 Conflict("warning", f"{g.label} is scheduled but not assigned to a space.", g)
             )
-        if g.flower_start and not g.living_plants and g.flower_end >= ref:
-            out.append(Conflict("warning", f"{g.label} is scheduled but has no living plants.", g))
 
     # Space capacity is deliberately not reported here. It is an estimate from footprints
     # and dimensions, so it belongs on the spaces page as a label against the room in

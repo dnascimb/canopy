@@ -154,6 +154,7 @@ def load_series(space: Space, groups: Iterable[Group], *, ref: date | None = Non
     Returns points at every start/end checkpoint (plus *ref* if given): date, plant
     count, used sq ft, active group labels.
     """
+    # "groups" here is whatever the caller schedules — real groups and lone plants alike.
     sg = [g for g in groups if g.space_id == space.id and g.flower_start]
     if not sg:
         return []
@@ -210,12 +211,23 @@ def capacity_warning(
 
 
 def move_plants(plants: Iterable[Plant], space: Space, *, ref: date | None = None) -> int:
-    """Relocate plants and align their status with the destination stage."""
+    """Relocate plants, align status with the destination stage, and log the move.
+
+    Moving into a flowering space flips the plant: it starts its own run on *ref* unless
+    it already has one. This is the only move path, so a single plant and a whole group
+    go through exactly the same code and end up in exactly the same state.
+    """
+    from . import lifecycle  # local: lifecycle reads models, spacing is imported by it
+
+    on = ref or date.today()
+    target = STATUS_FOR_STAGE[space.stage]
     n = 0
     for p in plants:
         if p.status in (PlantStatus.harvested, PlantStatus.killed):
             continue
-        p.space = space
-        p.status = STATUS_FOR_STAGE[space.stage]
+        if target == PlantStatus.flowering and p.flower_start is None:
+            lifecycle.set_flip([p], on, space=space, note=f"Moved into {space.name}.")
+        else:
+            lifecycle.record(p, target, on=on, space=space, note=f"Moved into {space.name}.")
         n += 1
     return n
