@@ -66,6 +66,10 @@ rendered client-side by `static/js/timeline.js` from JSON that the templates inl
   back to current occupancy for spaces with no schedule behind them.
 * `spacing.move_plants()` sets `plant.space` **and** aligns `plant.status` with the
   destination stage; never move plants by setting `space_id` alone.
+* **Lineage is two things.** `Strain.lineage` is genetics as text. `Plant.parent_id`
+  is the actual plant a cutting came off — `parent` / `cuttings` read both ways and
+  `ancestry` climbs the line loop-safely. Deleting a mother nulls the link (SET NULL),
+  never the cutting.
 * Journal `tasks` is a comma-separated string of keys from `models.TASKS`; use
   `JournalForm.tasks_csv` / `derived_title` when saving.
 

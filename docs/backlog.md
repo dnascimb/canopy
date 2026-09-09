@@ -39,11 +39,11 @@ order of value ÷ effort. Each has a one-line sketch of where it would live.
 14. **Perpetual-harvest optimiser**: given tent sizes and target harvest cadence, propose
     group sizes and flip dates that keep the flower tent near capacity.
 
-15. **Clone tracking.** Mark a veg plant as cloned and record the cuttings taken off it,
-    so mother and offspring stay linked and each runs its own timeline and cycle count.
-    Needs a self-referential `Plant.parent_id`, a "took clones" action that creates N
-    children on the clone shelf, and lineage shown on the plant page. (`models.Plant`,
-    `blueprints/plants.py`, and the `cloned` journal task that already exists.)
+15. **Take *N* cuttings at once.** `Plant.parent_id`, the *Take a cutting* action and
+    the lineage shown on the plant page are all built; what remains is doing more than one
+    at a time — how many and into which space, in one submission, creating the children
+    with their parent set and their first lifecycle event written.
+    (`blueprints/plants.py`, `services/lifecycle.py`.)
 
 16. **Container-driven footprints.** Floor space is set by the pot, not by the strain's
     size class. Add `Plant.container` (16oz cup, 32oz cup, 1/2/3/5/7 gal) with a sq ft

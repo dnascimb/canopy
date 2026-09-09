@@ -112,7 +112,7 @@
   <h1>Moving a plant through its life</h1>
   <p class="lede">Every transition a plant makes and how the app performs it. Groups are
   containers: a plant on its own schedules, flips and harvests exactly like one in a
-  batch. Written against the running app on 8&nbsp;September&nbsp;2026 — screenshots are
+  batch. Written against the running app on 9&nbsp;September&nbsp;2026 — screenshots are
   the real screens.</p>
 </header>
 
@@ -289,8 +289,9 @@
   <div class="move">
     <div class="flow"><span class="chip c-flower">flowering</span><span class="arrow">→</span><span class="chip c-clone">clone</span></div>
     <h3>Take a cutting off a flowering plant</h3>
-    <p>Identical to taking one off a veg plant, and just as manual. Nothing records that a
-    mother was cloned before she came down.</p>
+    <p>Identical to taking one off a veg plant — the same <strong>Take a cutting</strong>
+    button, on any plant still alive. The mother keeps the link after she comes down, so a
+    harvested plant still shows what was taken off her.</p>
   </div>
 
   <div class="move">
@@ -323,18 +324,12 @@
 </section>
 
 <section>
-  <div class="sec-head"><h2>Where it still falls back on you</h2><span class="count">three gaps</span></div>
+  <div class="sec-head"><h2>Where it still falls back on you</h2><span class="count">two gaps</span></div>
   <div class="gap">
     <div class="gap-row">
-      <h3>Cloning has no action</h3>
-      <p>The most frequent operation in the garden is manual data entry, one row at a time,
-      with the parent recorded only in prose.</p>
-    </div>
-    <div class="gap-row">
-      <h3>Lineage is invisible</h3>
-      <p><code>Plant</code> has no <code>parent_id</code>. The Gorilla Snacks line — mother
-      harvested, her clone now in flower, a cutting off that clone on the shelf — is three
-      rows that only a person reading three notes can connect.</p>
+      <h3>Cuttings are taken one at a time</h3>
+      <p>A tray of thirty-eight is thirty-eight passes through the form. The link and the
+      prefill are there; the bulk action is not.</p>
     </div>
     <div class="gap-row">
       <h3>Containers aren't modelled</h3>
@@ -345,7 +340,7 @@
 </section>
 
 <section>
-  <div class="sec-head"><h2>The plan</h2><span class="count">one done, two to go</span></div>
+  <div class="sec-head"><h2>The plan</h2><span class="count">two done, two to go</span></div>
 
   <div class="fix">
     <div class="key">done</div>
@@ -368,14 +363,23 @@
   </div>
 
   <div class="fix">
-    <div class="key">then</div>
+    <div class="key">done</div>
     <div>
-      <h3>A “take clones” action, and lineage links</h3>
-      <p>A button on any living plant: how many, into which space. It creates the children
-      with <code>parent_id</code> set, on the clone shelf, labelled from the mother, and
-      writes an event on both sides. One action replaces thirty-eight rows. With
-      <code>parent_id</code> in place the plant page can show <em>taken from</em> and
-      <em>cuttings taken</em>, each a link.</p>
+      <h3>Lineage links</h3>
+      <p><code>Plant.parent_id</code> records the plant a cutting came off.
+      <strong>Take a cutting</strong> prefills the strain, status and mother, and both ends
+      show the link. The Gorilla Snacks line — mother harvested, her clone in flower, a
+      cutting off that clone on the shelf — is now three clicks rather than three notes.</p>
+    </div>
+  </div>
+
+  <div class="fix">
+    <div class="key">next</div>
+    <div>
+      <h3>Take <em>N</em> cuttings at once</h3>
+      <p>How many, into which space, in one submission — creating the children with their
+      parent set and their first event written. The only part of propagation still done a
+      row at a time.</p>
     </div>
   </div>
 
@@ -391,9 +395,10 @@
 </section>
 
 <div class="footer">
-  <p>The lifecycle log is built and the plant/group split is gone. Take-clones, lineage and
+  <p>The lifecycle log, the plant/group split and lineage links are built. Bulk cuttings and
   the action preview are not — they are written down here so the shape is agreed first. The
-  walkthrough above describes the app exactly as it stands.</p>
+  walkthrough above describes the app exactly as it stands, on
+  9&nbsp;September&nbsp;2026.</p>
 </div>
 </div>
 </body>

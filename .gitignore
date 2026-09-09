@@ -18,3 +18,11 @@ build/
 # Personal collection notes — never commit
 collection-index.md
 Cannabis/
+
+# Data backups and DB snapshots — the garden's real data, never in the repo.
+# `flask --app wsgi export-json` output belongs outside the working tree; these
+# patterns are a backstop for when it is written inside it by accident.
+canopy-backup*.json
+canopy-db*.sqlite
+backups/
+*.bak
