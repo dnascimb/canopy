@@ -81,7 +81,7 @@ def index():
     locations = {p.id: spacing.plant_location(p, spaces) for p in plants}
     if space_id:
         plants = [p for p in plants if locations[p.id] and locations[p.id].id == space_id]
-    plants.sort(key=lambda p: (p.group.number if p.group else 9999, p.label))
+    plants.sort(key=lambda p: p.label.lower())
     return render_template(
         "plants/index.html",
         plants=plants,

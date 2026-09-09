@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- The plants table sorts on any column, defaulting to plant name A-Z. Status sorts by
+  stage (clone through killed) rather than alphabetically, and group by number.
+
 - **Strain is typed, not picked, when adding a plant.** A new pack of seeds or a cutting
   from outside is routinely a strain the inventory has never seen; typing an unknown name
   now adds it (seed type `clone` for a cutting, `regular` otherwise) instead of sending

@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% from "_macros.html" import badge %}
 {% block title %}Plants{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/sortable.js') }}"></script>{% endblock %}
 {% block content %}
 <div class="page-head">
   <div><h1>Plants</h1><p class="sub">{{ counts.flowering }} flowering · {{ counts.vegetative + counts.seedling }} in veg · {{ counts.harvested }} harvested · {{ counts.killed }} killed</p></div>
@@ -15,22 +16,23 @@
   {% if status or group_id or strain_id or space_id %}<a class="btn ghost" href="{{ url_for('plants.index') }}">Clear</a>{% endif %}
 </form>
 <div class="panel tight table-wrap">
-<table>
-  <thead><tr><th>Plant</th><th>Strain</th><th>Group</th><th>Status</th><th>Location</th><th>Started</th><th>Ended</th><th>Notes</th></tr></thead>
+{% set stage_rank = {'clone': 1, 'seedling': 2, 'vegetative': 3, 'flowering': 4, 'harvested': 5, 'killed': 6} %}
+<table class="sortable" data-sort-col="0" data-sort-dir="asc">
+  <thead><tr><th>Plant</th><th>Strain</th><th>Group</th><th>Status</th><th>Location</th><th>Started</th><th>Ended</th><th data-no-sort>Notes</th></tr></thead>
   <tbody>
   {% for p in plants %}
     <tr class="{{ 'done' if p.status.value in ('killed','harvested') }}">
-      <td><a href="{{ url_for('plants.detail', plant_id=p.id) }}">{{ p.label }}</a></td>
-      <td class="soft"><a href="{{ url_for('strains.detail', strain_id=p.strain.id) }}">{{ p.strain.name }}</a></td>
-      <td>{% if p.group %}<span class="swatch" style="background: {{ p.group.color }}"></span><a href="{{ url_for('groups.detail', group_id=p.group.id) }}">{{ p.group.label }}</a>{% else %}<span class="muted">—</span>{% endif %}</td>
-      <td>{{ badge(p.status.value) }}</td>
-      <td class="soft">{{ locations[p.id].name if locations[p.id] else '—' }}</td>
-      <td class="date">{{ p.started_on|d }}</td>
-      <td class="date">{{ p.ended_on|d }}{% if p.end_reason %} <span class="muted small">{{ p.end_reason }}</span>{% endif %}</td>
+      <td data-v="{{ p.label }}"><a href="{{ url_for('plants.detail', plant_id=p.id) }}">{{ p.label }}</a></td>
+      <td class="soft" data-v="{{ p.strain.name }}"><a href="{{ url_for('strains.detail', strain_id=p.strain.id) }}">{{ p.strain.name }}</a></td>
+      <td data-v="{{ p.group.number if p.group else '' }}">{% if p.group %}<span class="swatch" style="background: {{ p.group.color }}"></span><a href="{{ url_for('groups.detail', group_id=p.group.id) }}">{{ p.group.label }}</a>{% else %}<span class="muted">—</span>{% endif %}</td>
+      <td data-v="{{ stage_rank[p.status.value] }}">{{ badge(p.status.value) }}</td>
+      <td class="soft" data-v="{{ locations[p.id].name if locations[p.id] else '' }}">{{ locations[p.id].name if locations[p.id] else '—' }}</td>
+      <td class="date" data-v="{{ p.started_on.isoformat() if p.started_on else '' }}">{{ p.started_on|d }}</td>
+      <td class="date" data-v="{{ p.ended_on.isoformat() if p.ended_on else '' }}">{{ p.ended_on|d }}{% if p.end_reason %} <span class="muted small">{{ p.end_reason }}</span>{% endif %}</td>
       <td class="muted small">{{ p.notes or '' }}</td>
     </tr>
   {% else %}
-    <tr><td colspan="8" class="empty">No plants match. <a href="{{ url_for('plants.create') }}">Add one</a>.</td></tr>
+    <tr data-no-sort><td colspan="8" class="empty">No plants match. <a href="{{ url_for('plants.create') }}">Add one</a>.</td></tr>
   {% endfor %}
   </tbody>
 </table>
