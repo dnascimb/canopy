@@ -2,7 +2,7 @@ import re
 from datetime import date
 
 from canopy.extensions import db
-from canopy.models import Group, JournalEntry, Plant, Space, Strain
+from canopy.models import Group, JournalEntry, Plant, PlantStatus, Space, Strain
 
 
 def test_pages_render(client):
@@ -523,3 +523,42 @@ def test_add_plant_defaults_seedling_and_a_cutting_defaults_clone(client):
     mother = db.session.query(Plant).filter_by(label="EQ Haze").one()
     cutting = client.get(f"/plants/new?parent={mother.id}").data.decode()
     assert '<option selected value="clone">' in cutting
+
+
+def test_take_several_cuttings_at_once(client):
+    mother = db.session.query(Plant).filter_by(label="EQ Haze").one()
+    shelf = db.session.query(Space).filter_by(name="Clone Shelf").one()
+    r = client.post(
+        f"/plants/{mother.id}/cuttings",
+        data={"count": 4, "space_id": shelf.id, "taken_on": "2026-09-09"},
+        follow_redirects=True,
+    )
+    assert r.status_code == 200
+    made = sorted(mother.cuttings, key=lambda p: p.id)
+    assert [c.label for c in made] == [f"EQ Haze c{n}" for n in (1, 2, 3, 4)]
+    assert all(c.parent_id == mother.id for c in made)
+    assert all(c.strain_id == mother.strain_id for c in made)
+    assert all(c.status == PlantStatus.clone and c.space_id == shelf.id for c in made)
+    # each one starts its own life log
+    assert all([e.to_status for e in c.events] == [PlantStatus.clone] for c in made)
+
+    # a second pass continues the numbering rather than colliding
+    client.post(
+        f"/plants/{mother.id}/cuttings",
+        data={"count": 2, "space_id": shelf.id, "taken_on": "2026-09-09"},
+        follow_redirects=True,
+    )
+    labels = sorted(c.label for c in mother.cuttings)
+    assert labels == [f"EQ Haze c{n}" for n in (1, 2, 3, 4, 5, 6)]
+
+
+def test_cannot_take_cuttings_off_a_dead_plant(client):
+    dead = db.session.query(Plant).filter_by(status=PlantStatus.killed).first()
+    before = len(dead.cuttings)
+    r = client.post(
+        f"/plants/{dead.id}/cuttings",
+        data={"count": 3, "space_id": 0, "taken_on": "2026-09-09"},
+        follow_redirects=True,
+    )
+    assert b"nothing to cut" in r.data
+    assert len(dead.cuttings) == before

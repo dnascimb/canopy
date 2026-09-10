@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **Take several cuttings at once.** A control on any living plant: how many, into which
+  space, on what date. They are numbered from the mother (`Mango #7 c1`, `c2`, …),
+  continuing where a previous batch left off, each linked back to her and each opening its
+  own lifecycle log.
+- New plants get a first lifecycle row — `lifecycle.born()` — so the "life so far" strip
+  starts from the day a plant arrives rather than from its first move.
+
 - Long notes are truncated to 200 characters in the plants table, with the whole note kept
   on hover, so one 659-character note no longer stretches a row.
 - A new plant defaults to `seedling` rather than `vegetative`; **Take a cutting** still

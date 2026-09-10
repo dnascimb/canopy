@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 from flask import (
     Blueprint,
     abort,
@@ -13,8 +15,8 @@ from flask import (
 from markupsafe import Markup, escape
 
 from ..extensions import db
-from ..forms import KillPlantForm, MoveForm, PlantForm
-from ..models import Group, Plant, PlantStatus, SeedType, Space, Strain
+from ..forms import KillPlantForm, MoveForm, PlantForm, TakeCuttingsForm
+from ..models import Group, Plant, PlantStatus, SeedType, Space, SpaceStage, Strain
 from ..services import lifecycle, spacing
 from ..services import scheduling as sched
 
@@ -148,6 +150,12 @@ def create():
             notes=form.notes.data or None,
         )
         db.session.add(p)
+        db.session.flush()
+        lifecycle.born(
+            p,
+            on=p.started_on or sched.today(),
+            note=f"Cutting from {p.parent.label}." if p.parent else "Added.",
+        )
         db.session.commit()
         flash(f"Added {p.label}.", "success")
         if created:
@@ -174,12 +182,20 @@ def detail(plant_id: int):
     move_form = MoveForm()
     _space_choices(move_form)
     spaces = db.session.query(Space).all()
+    cuttings_form = TakeCuttingsForm(taken_on=sched.today())
+    cuttings_form.space_id.choices = [(0, "— by stage (automatic) —")] + [
+        (s.id, f"{s.name} · {s.stage.value}") for s in sorted(spaces, key=lambda s: s.id)
+    ]
+    clone_shelf = spacing.default_space(SpaceStage.clone, spaces)
+    if clone_shelf:
+        cuttings_form.space_id.data = clone_shelf.id
     return render_template(
         "plants/detail.html",
         plant=p,
         kill_form=kill_form,
         move_form=move_form,
         location=spacing.plant_location(p, spaces),
+        cuttings_form=cuttings_form,
         spans=lifecycle.stage_spans(p, ref=sched.today()),
         history=lifecycle.history(p),
     )
@@ -273,6 +289,59 @@ def set_status(plant_id: int):
     db.session.commit()
     flash(f"{p.label} is now {p.status.value}.", "success")
     return redirect(request.referrer or url_for("plants.detail", plant_id=p.id))
+
+
+@bp.post("/<int:plant_id>/cuttings")
+def take_cuttings(plant_id: int):
+    """Take N cuttings off one plant, each linked back to it."""
+    mother = db.session.get(Plant, plant_id) or abort(404)
+    form = TakeCuttingsForm()
+    spaces = db.session.query(Space).order_by(Space.id).all()
+    form.space_id.choices = [(0, "— by stage (automatic) —")] + [
+        (s.id, f"{s.name} · {s.stage.value}") for s in spaces
+    ]
+    if not form.validate_on_submit():
+        flash("Tell me how many cuttings and when they were taken.", "error")
+        return redirect(url_for("plants.detail", plant_id=mother.id))
+    if not mother.is_alive or mother.status == PlantStatus.harvested:
+        flash(f"{mother.label} is {mother.status.value} — nothing to cut.", "error")
+        return redirect(url_for("plants.detail", plant_id=mother.id))
+
+    # Continue the mother's own numbering rather than restarting at 1.
+    used = [
+        int(m.group(1))
+        for c in mother.cuttings
+        if (m := re.fullmatch(rf"{re.escape(mother.label)} c(\d+)", c.label))
+    ]
+    start = max(used, default=0) + 1
+    space = db.session.get(Space, form.space_id.data) if form.space_id.data else None
+
+    made = []
+    for i in range(form.count.data):
+        cut = Plant(
+            label=f"{mother.label} c{start + i}",
+            strain=mother.strain,
+            parent=mother,
+            status=PlantStatus.clone,
+            space=space,
+            started_on=form.taken_on.data,
+            notes=f"Cutting taken from {mother.label} on {form.taken_on.data:%d %b %Y}.",
+        )
+        db.session.add(cut)
+        db.session.flush()
+        lifecycle.born(
+            cut, on=form.taken_on.data, space=space, note=f"Cut from {mother.label}."
+        )
+        made.append(cut)
+    db.session.commit()
+
+    where = f" into {space.name}" if space else ""
+    flash(
+        f"Took {len(made)} cutting{'s' if len(made) != 1 else ''} off {mother.label}"
+        f"{where}: {made[0].label} to {made[-1].label}.",
+        "success",
+    )
+    return redirect(url_for("plants.detail", plant_id=mother.id))
 
 
 @bp.post("/<int:plant_id>/delete")

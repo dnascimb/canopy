@@ -142,6 +142,16 @@ class QuickLogForm(JournalForm):
     """Journal entry logged against one space, straight from the dashboard."""
 
 
+class TakeCuttingsForm(FlaskForm):
+    """Take several cuttings off one plant in a single pass."""
+
+    count = IntegerField(
+        "How many", validators=[DataRequired(), NumberRange(min=1, max=200)], default=2
+    )
+    space_id = SelectField("Into", coerce=int, validators=[Optional()])
+    taken_on = DateField("Taken on", validators=[DataRequired()])
+
+
 class MoveForm(FlaskForm):
     space_id = SelectField("Move to", coerce=int, validators=[DataRequired()])
 

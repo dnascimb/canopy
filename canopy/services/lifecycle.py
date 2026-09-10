@@ -44,6 +44,31 @@ def record(
     return event
 
 
+def born(
+    plant: Plant,
+    *,
+    on: date,
+    space: Space | None = None,
+    note: str | None = None,
+) -> PlantEvent:
+    """The first row in a plant's log.
+
+    Not a transition — a plant arrives already in some state — so `record()` would see
+    nothing changing and write nothing. `from_status` is None, which reads as
+    "started as a clone" rather than "None to clone".
+    """
+    event = PlantEvent(
+        plant=plant,
+        on=on,
+        from_status=None,
+        to_status=plant.status,
+        space=space if space is not None else plant.space,
+        note=note,
+    )
+    db.session.add(event)
+    return event
+
+
 def set_flip(
     plants: Iterable[Plant],
     on: date,

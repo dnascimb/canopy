@@ -5,7 +5,6 @@
 <div class="page-head">
   <div><h1>{{ plant.label }}</h1><p class="sub">{{ badge(plant.status.value) }} · <a href="{{ url_for('strains.detail', strain_id=plant.strain.id) }}">{{ plant.strain.display_name }}</a>{% if plant.group %} · <a href="{{ url_for('groups.detail', group_id=plant.group.id) }}">{{ plant.group.label }}</a>{% endif %}</p></div>
   <div class="actions">
-    {% if plant.is_alive and plant.status.value != 'harvested' %}<a class="btn" href="{{ url_for('plants.create', parent=plant.id) }}">Take a cutting</a>{% endif %}
     <a class="btn" href="{{ url_for('plants.edit', plant_id=plant.id) }}">Edit</a>
     {{ confirm_button(url_for('plants.delete', plant_id=plant.id), 'Delete', 'Delete ' ~ plant.label ~ ' permanently?', 'btn danger') }}
   </div>
@@ -44,6 +43,17 @@
     {% endif %}
     {% if plant.is_alive and plant.status.value != 'harvested' %}
     <form method="post" action="{{ url_for('plants.move', plant_id=plant.id) }}" class="row mt">{{ csrf() }}<span class="muted small">Move to</span>{{ move_form.space_id(style='width:auto') }}<button class="btn small" type="submit">Move</button></form>
+    {% endif %}
+    {% if plant.is_alive and plant.status.value != 'harvested' %}
+    <form method="post" action="{{ url_for('plants.take_cuttings', plant_id=plant.id) }}" class="row mt">
+      {{ csrf() }}
+      <span class="muted small">Take</span>
+      {{ cuttings_form.count(style='width:64px', min=1, max=200) }}
+      <span class="muted small">cuttings into</span>
+      {{ cuttings_form.space_id(style='width:auto') }}
+      {{ cuttings_form.taken_on(style='width:auto') }}
+      <button class="btn small" type="submit">Take</button>
+    </form>
     {% endif %}
     <div class="row mt">
       <span class="muted small">Set status:</span>
