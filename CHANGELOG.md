@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- **Weights are gone entirely.** `harvests.wet_weight_g` follows the dry weight out; a
+  harvest now records a date, a target and notes. The `grams` template filter went with
+  it. Existing databases need `ALTER TABLE harvests DROP COLUMN wet_weight_g`.
+- **Recording a harvest brings the plants down.** It marks everything it covers as
+  harvested with an end date, writes each plant's lifecycle event, and moves the group to
+  *drying* once nothing is left in flower. Harvesting a single plant leaves the rest
+  flowering. Previously this only raised a "the calendar says it should be drying" note.
+
 - **Photos on journal entries.** A **Photo** button on each space's daily log and a field on
   the full entry form. Files are stored under `instance/uploads` under a generated name —
   the browser's filename is never used as a path — and served through a route that cannot

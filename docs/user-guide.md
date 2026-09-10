@@ -121,8 +121,9 @@ database first, otherwise it appends. IDs are re‑mapped so relations survive.
    to the veg tent to the flower tent. Plant statuses follow the destination stage; moving
    into a flower space also sets the group's space and flip date if they were blank. The
    line shows how many square feet the group needs in flower.
-6. **Harvest.** Record the wet weight for the whole group or a single plant; the total
-   appears in the section heading.
+6. **Harvest.** Record a harvest for the whole group or a single plant, with a date and
+   any notes. The plants it covers are marked harvested, and the group moves to *drying*
+   once nothing is left in flower — no second step.
 7. **Details and status.** Key dates and a row of status buttons. Marking a group
    *flowering* moves its living plants to flowering (and sets today as the flip date if
    none was set); marking it *drying* or *done* moves flowering plants to harvested.

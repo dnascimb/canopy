@@ -81,5 +81,6 @@ order of value ÷ effort. Each has a one-line sketch of where it would live.
   nothing changes it automatically.
 * **Deriving anything from the journal.** Entries are notes to refer back to, not data.
   No "last watered" counters, no inferred schedules.
-* **Yield reporting.** Dry weight was removed and yield-per-strain, grams-per-plant and
-  yield-per-group went with it. Harvests record a wet weight, a date and notes.
+* **Weights and yield reporting.** Neither dry nor wet weight is recorded, and the
+  yield-per-strain, grams-per-plant and yield-per-group reports went with them. A harvest
+  is a date, a target and notes.

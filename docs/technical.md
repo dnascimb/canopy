@@ -41,7 +41,7 @@ request ─▶ blueprint (canopy/blueprints/*.py)
 3. Initialises `db` and `csrf` (`canopy/extensions.py`).
 4. Registers blueprints with URL prefixes; exempts the API blueprint from CSRF.
 5. Registers CLI commands, Jinja globals (`today`, `app_version`) and filters
-   (`|d`, `|dlong`, `|grams`), and the 404 handler.
+   (`|d`, `|dlong`), and the 404 handler.
 6. `db.create_all()` so a fresh checkout runs without a migration step.
 
 ### Blueprints
@@ -77,7 +77,7 @@ Space 1 ──< Group 1 ──< Plant >── 1 Strain
 | `groups` | `number` (unique int), `name` (optional), `space_id`, `status`, `color` (#rrggbb), `notes` | **No date columns.** `flower_start` / `flower_end` / `flower_days` are properties spanning the group's plants. Deleting a group unassigns its plants; harvests and journal entries cascade. |
 | `plants` | `label`, `strain_id`, `group_id` (nullable), `space_id` (nullable explicit location), `status`, `started_on`, `ended_on`, `end_reason`, `flower_days_override` (nullable), `parent_id` (nullable self-reference, SET NULL), `notes` | Killed plants are retained. `parent` / `cuttings` walk the propagation line; `ancestry` climbs it, loop-safe. `flower_start` is derived from `plant_events`; `flower_days` falls back to the strain. |
 | `plant_events` | `plant_id`, `on`, `from_status` (nullable), `to_status`, `space_id`, `note` | Append-only lifecycle log and the source of truth for flip dates. Written only by `services/lifecycle.py`. |
-| `harvests` | `group_id` / `plant_id` (at least one), `harvested_on`, `wet_weight_g`, `notes` | |
+| `harvests` | `group_id` / `plant_id` (at least one), `harvested_on`, `notes` | No weights are recorded. Adding one marks the plants it covers harvested and moves the group to drying once nothing is left in flower. |
 | `journal_entries` | `entry_date`, `space_id` / `group_id` / `plant_id` (all optional), `title`, `body`, `tasks` (comma-separated keys from `models.TASKS`), `photo_path` | `task_list` / `task_labels` are derived. Entries are notes only — nothing reads them back as data. |
 
 All tables carry `created_at` / `updated_at` (UTC, naive). Enums are stored as short
