@@ -88,7 +88,3 @@ def _register_template_helpers(app: Flask) -> None:
     @app.template_filter("todate")
     def to_date(value) -> date:
         return value if isinstance(value, date) else date.fromisoformat(value)
-
-    @app.template_filter("grams")
-    def fmt_grams(value: float | None) -> str:
-        return f"{value:,.1f} g" if value is not None else "—"

@@ -74,13 +74,13 @@
     </section>
 
     <section id="harvest">
-      <div class="section-head"><h2>Harvest</h2><span class="hint">{% if group.harvests %}{{ wet_total|grams }} wet{% endif %}</span></div>
+      <div class="section-head"><h2>Harvest</h2>{% if group.harvests %}<span class="hint">{{ group.harvests|length }} recorded</span>{% endif %}</div>
       <div class="panel">
         {% if group.harvests %}
         <table class="mb">
-          <thead><tr><th>Date</th><th>Plant</th><th class="num">Wet</th><th>Notes</th></tr></thead>
+          <thead><tr><th>Date</th><th>Plant</th><th>Notes</th></tr></thead>
           <tbody>{% for h in group.harvests|sort(attribute='harvested_on') %}
-            <tr><td class="date">{{ h.harvested_on|d }}</td><td>{{ h.plant.label if h.plant else 'Whole group' }}</td><td class="num">{{ h.wet_weight_g|grams }}</td><td class="muted small">{{ h.notes or '' }}</td></tr>
+            <tr><td class="date">{{ h.harvested_on|d }}</td><td>{{ h.plant.label if h.plant else 'Whole group' }}</td><td class="muted small">{{ h.notes or '' }}</td></tr>
           {% endfor %}</tbody>
         </table>
         {% endif %}
@@ -90,7 +90,6 @@
             {{ csrf() }}
             {{ field(harvest_form.plant_id) }}
             {{ field(harvest_form.harvested_on) }}
-            {{ field(harvest_form.wet_weight_g) }}
             <div class="form-row" style="flex:1 1 200px">{{ harvest_form.notes.label }}{{ harvest_form.notes(rows=1, style='min-height:36px') }}</div>
             <button class="btn primary" type="submit">Save harvest</button>
           </form>

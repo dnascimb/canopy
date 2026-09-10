@@ -382,7 +382,6 @@ class Harvest(TimestampMixin, db.Model):
     group_id: Mapped[int | None] = mapped_column(db.ForeignKey("groups.id", ondelete="CASCADE"))
     plant_id: Mapped[int | None] = mapped_column(db.ForeignKey("plants.id", ondelete="CASCADE"))
     harvested_on: Mapped[date] = mapped_column(db.Date, nullable=False)
-    wet_weight_g: Mapped[float | None] = mapped_column(db.Float)
     notes: Mapped[str | None] = mapped_column(db.Text)
 
     group: Mapped[Group | None] = relationship(back_populates="harvests")

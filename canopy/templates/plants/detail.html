@@ -76,8 +76,8 @@
     {% endif %}
     {% if plant.harvests %}
     <h3 class="mt mb">Harvest</h3>
-    <table><thead><tr><th>Date</th><th class="num">Wet</th></tr></thead><tbody>
-    {% for h in plant.harvests %}<tr><td class="date">{{ h.harvested_on|d }}</td><td class="num">{{ h.wet_weight_g|grams }}</td></tr>{% endfor %}
+    <table><thead><tr><th>Date</th><th>Notes</th></tr></thead><tbody>
+    {% for h in plant.harvests %}<tr><td class="date">{{ h.harvested_on|d }}</td><td class="muted small">{{ h.notes or '' }}</td></tr>{% endfor %}
     </tbody></table>
     {% endif %}
     {% if plant.journal_entries %}

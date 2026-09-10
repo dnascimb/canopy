@@ -98,7 +98,6 @@ class HarvestForm(FlaskForm):
         "Plant (optional — leave blank for whole group)", coerce=int, validators=[Optional()]
     )
     harvested_on = DateField("Harvest date", validators=[DataRequired()])
-    wet_weight_g = FloatField("Wet weight (g)", validators=[Optional(), NumberRange(min=0)])
     notes = TextAreaField("Notes", validators=[Optional()])
 
 

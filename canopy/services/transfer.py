@@ -99,7 +99,6 @@ def dump() -> dict:
                 "group_id": h.group_id,
                 "plant_id": h.plant_id,
                 "harvested_on": _d(h.harvested_on),
-                "wet_weight_g": h.wet_weight_g,
                 "notes": h.notes,
             }
             for h in db.session.query(Harvest).order_by(Harvest.id)
@@ -250,7 +249,6 @@ def load(payload: dict, *, replace: bool = True) -> dict[str, int]:
                 group_id=group_ids.get(h.get("group_id")),
                 plant_id=plant_ids.get(h.get("plant_id")),
                 harvested_on=_pd(h["harvested_on"]),
-                wet_weight_g=h.get("wet_weight_g"),
                 notes=h.get("notes"),
             )
         )

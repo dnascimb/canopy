@@ -11,6 +11,7 @@ from ..models import (
     GroupStatus,
     Harvest,
     JournalEntry,
+    Plant,
     PlantStatus,
     Space,
     SpaceStage,
@@ -128,7 +129,6 @@ def detail(group_id: int):
         need_sqft=spacing.group_footprint(g, SpaceStage.flowering),
         PlantStatus=PlantStatus,
         GroupStatus=GroupStatus,
-        wet_total=sum(h.wet_weight_g or 0 for h in g.harvests),
     )
 
 
@@ -234,12 +234,37 @@ def add_harvest(group_id: int):
     form = HarvestForm()
     form.plant_id.choices = [(0, "Whole group")] + [(p.id, p.label) for p in g.living_plants]
     if form.validate_on_submit():
-        h = Harvest(group=g, plant_id=form.plant_id.data or None)
-        form.populate_obj(h)
-        h.plant_id = form.plant_id.data or None
+        on = form.harvested_on.data
+        h = Harvest(
+            group=g,
+            plant_id=form.plant_id.data or None,
+            harvested_on=on,
+            notes=form.notes.data or None,
+        )
         db.session.add(h)
+
+        # Recording a harvest *is* harvesting: the plants it covers come down, and the
+        # group starts drying once nothing is left in flower. Previously this only
+        # raised a "the calendar says it should be drying" note and left it to you.
+        # h.plant is not populated until the flush, so resolve it directly.
+        one = db.session.get(Plant, h.plant_id) if h.plant_id else None
+        covered = [one] if one else list(g.living_plants)
+        picked = 0
+        for p in covered:
+            if p.status == PlantStatus.flowering:
+                lifecycle.record(p, PlantStatus.harvested, on=on, note=f"Harvested from {g.label}.")
+                p.ended_on = p.ended_on or on
+                picked += 1
+
+        moved = False
+        still_flowering = any(p.status == PlantStatus.flowering for p in g.living_plants)
+        if not still_flowering and g.status not in (GroupStatus.drying, GroupStatus.done):
+            g.status = GroupStatus.drying
+            moved = True
         db.session.commit()
-        flash("Harvest recorded.", "success")
+
+        note = f"Harvest recorded — {picked} plant{'s' if picked != 1 else ''} down"
+        flash(f"{note}, {g.label} is now drying." if moved else f"{note}.", "success")
     else:
         flash("Check the harvest form — a valid date is required.", "error")
     return redirect(url_for("groups.detail", group_id=g.id))

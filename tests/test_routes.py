@@ -121,11 +121,7 @@ def test_record_harvest_and_journal(client):
     before = len(g.harvests)
     client.post(
         f"/groups/{g.id}/harvest",
-        data={
-            "plant_id": 0,
-            "harvested_on": "2026-09-22",
-            "wet_weight_g": "900",
-        },
+        data={"plant_id": 0, "harvested_on": "2026-09-22"},
         follow_redirects=True,
     )
     db.session.refresh(g)
@@ -562,3 +558,51 @@ def test_cannot_take_cuttings_off_a_dead_plant(client):
     )
     assert b"nothing to cut" in r.data
     assert len(dead.cuttings) == before
+
+
+def test_recording_a_harvest_brings_the_group_down(client):
+    """Recording a harvest is the act of harvesting — it should not need a second step."""
+    g = db.session.query(Group).filter_by(number=6).one()
+    assert g.status.value == "flowering"
+    flowering = [p for p in g.living_plants if p.status == PlantStatus.flowering]
+    assert flowering
+
+    client.post(
+        f"/groups/{g.id}/harvest",
+        data={"plant_id": 0, "harvested_on": "2026-09-22"},
+        follow_redirects=True,
+    )
+    db.session.refresh(g)
+    assert g.status.value == "drying"
+    assert all(p.status == PlantStatus.harvested for p in flowering)
+    assert all(p.ended_on == date(2026, 9, 22) for p in flowering)
+    # and each plant's own log says so
+    assert all(p.events[-1].to_status == PlantStatus.harvested for p in flowering)
+
+
+def test_harvesting_one_plant_leaves_the_group_flowering(client):
+    g = db.session.query(Group).filter_by(number=6).one()
+    flowering = [p for p in g.living_plants if p.status == PlantStatus.flowering]
+    assert len(flowering) > 1
+    one = flowering[0]
+
+    client.post(
+        f"/groups/{g.id}/harvest",
+        data={"plant_id": one.id, "harvested_on": "2026-09-22"},
+        follow_redirects=True,
+    )
+    db.session.refresh(g)
+    assert one.status == PlantStatus.harvested
+    assert g.status.value == "flowering"          # the rest are still going
+    assert all(p.status == PlantStatus.flowering for p in flowering[1:])
+
+
+def test_weight_is_gone_from_the_app(client):
+    """Weights are not recorded anywhere any more."""
+    from canopy.models import Harvest
+
+    assert not hasattr(Harvest, "wet_weight_g")
+    g = db.session.query(Group).filter_by(number=6).one()
+    for url in ("/", f"/groups/{g.id}", "/plants/", "/reports/", "/help/"):
+        body = client.get(url).data.decode().lower()
+        assert "wet weight" not in body and "dry weight" not in body, url
