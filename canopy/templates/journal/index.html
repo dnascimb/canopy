@@ -29,6 +29,7 @@
     </div>
     {% if j.task_list %}<div class="chips">{% for t in j.task_labels %}<span class="chip">{{ t }}</span>{% endfor %}</div>{% endif %}
     {% if j.body %}<div class="body">{{ j.body }}</div>{% endif %}
+    {% if j.photo_path %}<a href="{{ url_for('journal.photo', name=j.photo_path) }}" target="_blank" rel="noopener"><img class="journal-photo" loading="lazy" src="{{ url_for('journal.photo', name=j.photo_path) }}" alt="Photo from {{ j.entry_date|d }}"></a>{% endif %}
   </li>
 {% else %}
   <li class="empty">No entries yet. <a href="{{ url_for('journal.create') }}">Write the first one</a>.</li>

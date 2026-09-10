@@ -441,6 +441,9 @@ class JournalEntry(TimestampMixin, db.Model):
     title: Mapped[str] = mapped_column(db.String(160), nullable=False)
     body: Mapped[str | None] = mapped_column(db.Text)
     tasks: Mapped[str | None] = mapped_column(db.String(255))  # comma-separated task keys
+    # Filename inside the instance uploads folder. The file itself lives outside the
+    # database and outside git; a JSON backup carries the name, not the picture.
+    photo_path: Mapped[str | None] = mapped_column(db.String(255))
 
     group: Mapped[Group | None] = relationship(back_populates="journal_entries")
     plant: Mapped[Plant | None] = relationship(back_populates="journal_entries")

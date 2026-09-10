@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from flask_wtf import FlaskForm
+from flask_wtf.file import FileAllowed, FileField
 from wtforms import (
     DateField,
     FloatField,
@@ -110,6 +111,15 @@ class JournalForm(FlaskForm):
     entry_date = DateField("Date", validators=[DataRequired()])
     space_id = SelectField("Space", coerce=int, validators=[Optional()])
     tasks = TaskField("Done today", choices=list(TASKS.items()), validators=[Optional()])
+    photo = FileField(
+        "Photo",
+        validators=[
+            Optional(),
+            FileAllowed(
+                ["jpg", "jpeg", "png", "webp", "gif", "heic"], "Images only, please."
+            ),
+        ],
+    )
     title = StringField("Title", validators=[Optional(), Length(max=160)])
     body = TextAreaField("Entry", validators=[Optional()])
 
@@ -117,9 +127,10 @@ class JournalForm(FlaskForm):
         ok = super().validate(extra_validators)
         # Journal entries are free-form notes, so nothing in particular is required —
         # only that the entry says *something*.
-        if ok and not (self.title.data or self.tasks.data or self.body.data):
+        has_photo = bool(getattr(self.photo, "data", None) and self.photo.data.filename)
+        if ok and not (self.title.data or self.tasks.data or self.body.data or has_photo):
             self.title.errors = list(self.title.errors) + [
-                "Tick a task, or write a title or a note."
+                "Tick a task, add a photo, or write a title or a note."
             ]
             return False
         return ok
@@ -135,6 +146,8 @@ class JournalForm(FlaskForm):
             return self.title.data
         if self.tasks.data:
             return ", ".join(TASKS[k] for k in self.tasks.data)
+        if getattr(self.photo, "data", None) and self.photo.data.filename:
+            return "Photo"
         return "Note"
 
 

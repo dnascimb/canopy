@@ -3,7 +3,7 @@
 {# One log form. The target is fixed by context — a space on the dashboard, a group on
    the group page — so there is nothing to choose from a dropdown. #}
 {% macro quicklog(form, action, group=None, space=None) %}
-<form method="post" action="{{ action }}" class="quicklog">
+<form method="post" action="{{ action }}" class="quicklog" enctype="multipart/form-data">
   {{ csrf() }}
   <div class="row">
     {{ form.entry_date(class_='ql-date') }}
@@ -17,6 +17,7 @@
   </div>
   <div class="row">
     <input type="text" name="body" placeholder="Note (optional)" aria-label="Note" style="flex:1">
+    <label class="btn small photo-pick">Photo<input type="file" name="photo" accept="image/*" hidden></label>
     <button class="btn primary" type="submit">Log</button>
   </div>
 </form>

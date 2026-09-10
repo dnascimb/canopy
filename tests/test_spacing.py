@@ -164,7 +164,7 @@ def test_quick_log_logs_against_a_space(client):
         data={"entry_date": "2026-09-07", "space_id": veg.id},
         follow_redirects=True,
     )
-    assert b"Tick a task, or write a note." in r.data
+    assert b"Tick a task, add a photo, or write a title or a note." in r.data
 
     # A bare note is enough, and still gets a usable title.
     r = client.post(
@@ -279,3 +279,78 @@ def test_group_and_plant_moves_take_the_same_path(app):
 
     assert (a.status, a.flower_start, a.flower_end) == (b.status, b.flower_start, b.flower_end)
     assert a.space == b.space == flower
+
+
+def _png() -> bytes:
+    """Smallest valid PNG — enough to prove the pipeline without a fixture file."""
+    import base64
+    return base64.b64decode(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+    )
+
+
+def test_quick_log_accepts_a_photo(client, app):
+    import io
+
+    from canopy.services import photos
+
+    veg = db.session.query(Space).filter_by(name="Veg Tent").one()
+    r = client.post(
+        "/journal/quick",
+        data={
+            "entry_date": "2026-09-07", "space_id": veg.id, "tasks": ["watered"],
+            "photo": (io.BytesIO(_png()), "phone-snap.png"),
+        },
+        content_type="multipart/form-data",
+        follow_redirects=True,
+    )
+    assert r.status_code == 200
+    entry = [j for j in veg.journal_entries if j.photo_path][0]
+    # the browser's filename is never used as the path
+    assert entry.photo_path != "phone-snap.png"
+    assert entry.photo_path.endswith(".png") and len(entry.photo_path) == 36
+    assert (photos.upload_dir() / entry.photo_path).is_file()
+
+    # and it is served back
+    served = client.get(f"/journal/photo/{entry.photo_path}")
+    assert served.status_code == 200 and served.data == _png()
+
+    # deleting the entry takes the file with it
+    stored = photos.upload_dir() / entry.photo_path
+    client.post(f"/journal/{entry.id}/delete", follow_redirects=True)
+    assert not stored.exists()
+
+
+def test_photo_upload_rejects_a_non_image(client):
+    import io
+
+    veg = db.session.query(Space).filter_by(name="Veg Tent").one()
+    before = len(veg.journal_entries)
+    r = client.post(
+        "/journal/quick",
+        data={
+            "entry_date": "2026-09-07", "space_id": veg.id, "tasks": ["watered"],
+            "photo": (io.BytesIO(b"#!/bin/sh\necho nope"), "sneaky.sh"),
+        },
+        content_type="multipart/form-data",
+        follow_redirects=True,
+    )
+    assert b"Images only" in r.data
+    db.session.expire_all()
+    assert len(db.session.query(Space).filter_by(name="Veg Tent").one().journal_entries) == before
+
+
+def test_a_photo_alone_is_a_valid_entry(client):
+    import io
+
+    veg = db.session.query(Space).filter_by(name="Veg Tent").one()
+    r = client.post(
+        "/journal/quick",
+        data={
+            "entry_date": "2026-09-07", "space_id": veg.id,
+            "photo": (io.BytesIO(_png()), "just-a-picture.png"),
+        },
+        content_type="multipart/form-data",
+        follow_redirects=True,
+    )
+    assert b"Logged: Photo" in r.data

@@ -3,11 +3,18 @@
 {% block title %}{{ 'Edit entry' if entry else 'New journal entry' }}{% endblock %}
 {% block content %}
 <div class="page-head"><div><h1>{{ 'Edit entry' if entry else 'New journal entry' }}</h1></div></div>
-<form method="post" class="form" novalidate>
+<form method="post" class="form" novalidate enctype="multipart/form-data">
   {{ csrf() }}
   <div class="form-grid">{{ field(form.entry_date) }}{{ field(form.space_id) }}</div>
   <div class="form-row">{{ form.tasks.label }}<div class="ql-tasks">{% for sub in form.tasks %}<label class="chip-check">{{ sub }} {{ sub.label.text }}</label>{% endfor %}</div></div>
   {{ field(form.title, help='Optional — built from the ticked tasks when left blank.') }}
+  {{ field(form.photo, help='JPEG, PNG, WebP, GIF or HEIC.') }}
+  {% if entry and entry.photo_path %}
+    <div class="form-row">
+      <img class="journal-photo" src="{{ url_for('journal.photo', name=entry.photo_path) }}" alt="">
+      <label class="row small muted mt"><input type="checkbox" name="remove_photo" value="1"> Remove this photo</label>
+    </div>
+  {% endif %}
   {{ field(form.body) }}
   <div class="form-actions"><button class="btn primary" type="submit">{{ 'Save changes' if entry else 'Add entry' }}</button><a class="btn ghost" href="{{ url_for('journal.index') }}">Cancel</a></div>
 </form>

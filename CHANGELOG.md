@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- **Photos on journal entries.** A **Photo** button on each space's daily log and a field on
+  the full entry form. Files are stored under `instance/uploads` under a generated name —
+  the browser's filename is never used as a path — and served through a route that cannot
+  reach outside that folder. Deleting an entry deletes its photo; replacing one removes the
+  old file. A photo on its own is a valid entry, titled "Photo". Existing databases need
+  `ALTER TABLE journal_entries ADD COLUMN photo_path VARCHAR(255)`.
+- The daily log now reports why a submission was rejected — "Images only, please." — rather
+  than a generic nudge.
+
 - **Take several cuttings at once.** A control on any living plant: how many, into which
   space, on what date. They are numbered from the mother (`Mango #7 c1`, `c2`, …),
   continuing where a previous batch left off, each linked back to her and each opening its

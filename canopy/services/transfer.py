@@ -125,6 +125,7 @@ def dump() -> dict:
                 "title": j.title,
                 "body": j.body,
                 "tasks": j.tasks,
+                "photo_path": j.photo_path,
             }
             for j in db.session.query(JournalEntry).order_by(JournalEntry.id)
         ],
@@ -263,6 +264,7 @@ def load(payload: dict, *, replace: bool = True) -> dict[str, int]:
                 title=j["title"],
                 body=j.get("body"),
                 tasks=j.get("tasks"),
+                photo_path=j.get("photo_path"),
             )
         )
     db.session.commit()

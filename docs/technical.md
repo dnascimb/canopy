@@ -78,7 +78,7 @@ Space 1 ──< Group 1 ──< Plant >── 1 Strain
 | `plants` | `label`, `strain_id`, `group_id` (nullable), `space_id` (nullable explicit location), `status`, `started_on`, `ended_on`, `end_reason`, `flower_days_override` (nullable), `parent_id` (nullable self-reference, SET NULL), `notes` | Killed plants are retained. `parent` / `cuttings` walk the propagation line; `ancestry` climbs it, loop-safe. `flower_start` is derived from `plant_events`; `flower_days` falls back to the strain. |
 | `plant_events` | `plant_id`, `on`, `from_status` (nullable), `to_status`, `space_id`, `note` | Append-only lifecycle log and the source of truth for flip dates. Written only by `services/lifecycle.py`. |
 | `harvests` | `group_id` / `plant_id` (at least one), `harvested_on`, `wet_weight_g`, `notes` | |
-| `journal_entries` | `entry_date`, `space_id` / `group_id` / `plant_id` (all optional), `title`, `body`, `tasks` (comma-separated keys from `models.TASKS`) | `task_list` / `task_labels` are derived. Entries are notes only — nothing reads them back as data. |
+| `journal_entries` | `entry_date`, `space_id` / `group_id` / `plant_id` (all optional), `title`, `body`, `tasks` (comma-separated keys from `models.TASKS`), `photo_path` | `task_list` / `task_labels` are derived. Entries are notes only — nothing reads them back as data. |
 
 All tables carry `created_at` / `updated_at` (UTC, naive). Enums are stored as short
 strings (`native_enum=False`) so the schema is identical on every database.

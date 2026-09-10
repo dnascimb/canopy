@@ -23,6 +23,11 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     WTF_CSRF_ENABLED = True
     DEFAULT_FLOWER_DAYS = int(os.environ.get("CANOPY_DEFAULT_FLOWER_DAYS", "70"))
+    # Photos attached to journal entries. Straight off a phone is a few MB, so the cap is
+    # generous; the folder sits under instance/, which is gitignored.
+    MAX_CONTENT_LENGTH = int(os.environ.get("CANOPY_MAX_UPLOAD_MB", "12")) * 1024 * 1024
+    UPLOAD_DIRNAME = "uploads"
+    ALLOWED_PHOTO_EXTENSIONS = frozenset({".jpg", ".jpeg", ".png", ".webp", ".gif", ".heic"})
     # Optional fixed "today" (ISO date) — handy for demos, screenshots and deterministic tests.
     TODAY_OVERRIDE: str | None = os.environ.get("CANOPY_TODAY")
     # Per-plant footprints (sq ft) as "small,medium,large" per stage; unset = defaults in

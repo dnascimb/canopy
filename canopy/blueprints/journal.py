@@ -1,10 +1,20 @@
 from __future__ import annotations
 
-from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
+from flask import (
+    Blueprint,
+    abort,
+    flash,
+    redirect,
+    render_template,
+    request,
+    send_from_directory,
+    url_for,
+)
 
 from ..extensions import db
 from ..forms import JournalForm
 from ..models import TASKS, JournalEntry, Space
+from ..services import photos
 from ..services import scheduling as sched
 
 bp = Blueprint("journal", __name__)
@@ -36,6 +46,12 @@ def index():
     )
 
 
+@bp.get("/photo/<name>")
+def photo(name: str):
+    """Serve a stored photo. send_from_directory refuses anything outside the folder."""
+    return send_from_directory(photos.upload_dir(), name)
+
+
 @bp.post("/quick")
 def quick():
     """Daily log from the dashboard: one section per space, ticked and noted."""
@@ -48,13 +64,16 @@ def quick():
             title=form.derived_title,
             body=form.body.data or None,
             tasks=form.tasks_csv,
+            photo_path=photos.save(form.photo.data),
         )
         db.session.add(j)
         db.session.commit()
         where = f" · {j.space.name}" if j.space else ""
         flash(f"Logged: {j.title}{where}.", "success")
     else:
-        flash("Tick a task, or write a note.", "error")
+        # Say what was actually wrong — "images only" beats a generic nudge.
+        reasons = [m for messages in form.errors.values() for m in messages]
+        flash(reasons[0] if reasons else "Tick a task, or write a note.", "error")
     return redirect(request.referrer or url_for("dashboard.index"))
 
 
@@ -66,11 +85,14 @@ def create():
         if sid := request.args.get("space", type=int):
             form.space_id.data = sid
     if form.validate_on_submit():
-        j = JournalEntry()
-        form.populate_obj(j)
-        j.title = form.derived_title
-        j.tasks = form.tasks_csv
-        j.space_id = form.space_id.data or None
+        j = JournalEntry(
+            entry_date=form.entry_date.data,
+            space_id=form.space_id.data or None,
+            title=form.derived_title,
+            body=form.body.data or None,
+            tasks=form.tasks_csv,
+            photo_path=photos.save(form.photo.data),
+        )
         db.session.add(j)
         db.session.commit()
         flash("Journal entry added.", "success")
@@ -87,10 +109,17 @@ def edit(entry_id: int):
         form.space_id.data = j.space_id or 0
         form.tasks.data = j.task_list
     if form.validate_on_submit():
-        form.populate_obj(j)
+        j.entry_date = form.entry_date.data
         j.title = form.derived_title
+        j.body = form.body.data or None
         j.tasks = form.tasks_csv
         j.space_id = form.space_id.data or None
+        if replacement := photos.save(form.photo.data):
+            photos.delete(j.photo_path)
+            j.photo_path = replacement
+        elif request.form.get("remove_photo"):
+            photos.delete(j.photo_path)
+            j.photo_path = None
         db.session.commit()
         flash("Saved changes.", "success")
         return redirect(url_for("journal.index"))
@@ -100,6 +129,7 @@ def edit(entry_id: int):
 @bp.post("/<int:entry_id>/delete")
 def delete(entry_id: int):
     j = db.session.get(JournalEntry, entry_id) or abort(404)
+    photos.delete(j.photo_path)
     db.session.delete(j)
     db.session.commit()
     flash("Deleted entry.", "success")
