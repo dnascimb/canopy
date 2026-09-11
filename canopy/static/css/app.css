@@ -73,7 +73,7 @@ code, .mono { font-family: var(--mono); font-size: 0.92em; }
 .nav svg { width: 17px; height: 17px; opacity: .85; }
 .sidebar-foot { margin-top: auto; font-size: 0.8rem; color: var(--muted); }
 .sidebar-foot .mono { color: var(--text-soft); }
-.main { padding: 28px var(--gutter) 60px; max-width: 1280px; width: 100%; min-width: 0; }
+.main { padding: 28px var(--gutter) 60px; max-width: none; width: 100%; min-width: 0; }
 .app > *, .grid-2 > *, .grid-3 > *, .grid-main-side > * { min-width: 0; }
 
 .page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 22px; flex-wrap: wrap; }
@@ -88,6 +88,45 @@ section { margin-bottom: 30px; }
 .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
 .grid-main-side { display: grid; grid-template-columns: 2fr 1fr; gap: 22px; }
 @media (max-width: 1080px) { .grid-2, .grid-3, .grid-main-side { grid-template-columns: 1fr; } }
+
+/* ---------- dashboard layout ----------
+   One column on a phone, two on a laptop, three past 1600px so the page gets
+   shorter instead of just wider and the left column stops dead-ending. */
+.dash { display: grid; gap: 22px; grid-template-columns: 1fr; align-items: start; }
+/* The grid-area names only exist inside these queries. Declaring them outside would
+   drop all three children into one cell and overlap them on a phone. */
+@media (min-width: 1081px) {
+  .dash { grid-template-columns: 2fr 1fr; grid-template-areas: "main log" "main rail"; }
+  .dash-main { grid-area: main; }
+  .dash-log { grid-area: log; }
+  .dash-rail { grid-area: rail; }
+}
+@media (min-width: 1600px) {
+  .dash { grid-template-columns: 1.7fr 1fr 1fr; grid-template-areas: "main log rail"; }
+}
+
+/* ---------- alert strip ----------
+   Directly under the stats, because anything below "In flower now" goes unread. */
+.alert-strip { display: flex; flex-wrap: wrap; gap: 10px; margin: -6px 0 26px; }
+.alert-strip .chip {
+  display: flex; align-items: center; gap: 9px; flex: 1 1 340px;
+  padding: 10px 13px; border-radius: var(--radius-lg); font-size: 0.92rem;
+  background: var(--blue-soft); color: var(--text); border: 1px solid transparent;
+}
+.alert-strip a.chip:hover { text-decoration: none; border-color: var(--blue); }
+.alert-strip .chip.warning { background: var(--amber-soft); }
+.alert-strip .chip.error { background: var(--red-soft); }
+.alert-strip .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--blue); flex: none; }
+.alert-strip .chip.warning .dot { background: var(--accent); }
+.alert-strip .chip.error .dot { background: var(--red); }
+
+/* ---------- mobile priority ----------
+   The phone shows what you act on: alerts, what is in flower, today's log. */
+.m-links { display: none; flex-wrap: wrap; gap: 8px; margin-bottom: 26px; }
+.m-links a {
+  padding: 9px 13px; background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius); font-size: 0.9rem; color: var(--text-soft);
+}
 
 /* ---------- panels & stats ---------- */
 .panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 16px 18px; }
@@ -258,6 +297,11 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); outline
 .progress { height: 6px; background: var(--surface-2); border-radius: 3px; overflow: hidden; }
 .progress i { display: block; height: 100%; background: var(--green); }
 .flower-card .meta { display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--muted); margin-top: 6px; font-family: var(--mono); }
+.flower-card.ramping { border-top-color: var(--blue); }
+.flower-card .ramp { display: flex; align-items: center; gap: 6px; margin-top: 7px;
+  font-size: 0.8rem; color: var(--blue); }
+.flower-card .ramp::before { content: ""; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--blue); flex: none; }
 
 /* ---------- events list ---------- */
 .events { list-style: none; margin: 0; padding: 0; }
@@ -305,6 +349,13 @@ pre.ascii { background: var(--bg); border: 1px solid var(--line); border-radius:
   .sidebar-foot { margin-left: auto; }
   .main { padding: 18px 16px 40px; }
   :root { --gutter: 16px; }
+  .m-hide { display: none !important; }
+  .m-links { display: flex; }
+  .stat-strip { grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 18px; }
+  .stat { padding: 9px 11px; }
+  .stat .n { font-size: 1.25rem; }
+  .alert-strip { gap: 8px; margin-bottom: 18px; }
+  .alert-strip .chip { flex: 1 1 100%; }
 }
 
 /* ---------- print ---------- */

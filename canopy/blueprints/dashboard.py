@@ -20,6 +20,7 @@ def index():
     ref = sched.today()
 
     units = sched.scheduled_units(groups, plants)
+    ramp = sched.ramp_down(units, spaces, ref=ref)
     rows = sched.timeline_rows(units, ref=ref)
     active = [g for g in groups if g.is_flowering_on(ref)]
     active.sort(key=lambda g: g.flower_end)
@@ -37,7 +38,9 @@ def index():
         suggestions=suggestions,
         upcoming=sched.upcoming(units, days=30, ref=ref),
         conflicts=sched.conflicts(groups, spaces, plants, ref=ref),
-        ramp=sched.ramp_down(units, spaces, ref=ref),
+        ramp=ramp,
+        # Keyed so a flower card can show its own reminder without scanning the list.
+        ramp_by_group={r.unit.id: r for r in ramp if r.lone_plant is None},
         occupancy=sorted(spacing.occupancy(spaces, plants).values(), key=lambda o: o.space.id),
         quick=quick,
         spaces=spaces,

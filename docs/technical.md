@@ -210,6 +210,19 @@ tokens, so they print and need no JavaScript.
 
 ## Front end
 
+* **Dashboard layout** — `.dash` is one column on a phone, two past 1080px
+  (`"main log" / "main rail"`) and three past 1600px (`"main log rail"`). `.main` has no
+  `max-width`, so a wide monitor is used rather than letterboxed; the third column is what
+  stops the left column dead-ending while the rail runs on. Note the `grid-area` names are
+  declared *inside* those queries — hoisting them out drops all three children into one
+  cell and overlaps them at phone width.
+* **What the phone shows** — alerts, what is in flower, today's log. Everything else
+  (`.m-hide`: timeline, Waiting for a slot, Spaces, Next 30 days, openings) is replaced by
+  a `.m-links` row pointing at the full pages.
+* **Where reminders live** — the ramp-down alert renders twice: as a chip in `.alert-strip`
+  directly under the page title, and as a line on the flower card itself via
+  `ramp_by_group`. A panel lower down the page went unread in practice, and the card is
+  where a grower is already looking when deciding what to pour.
 * **`static/css/app.css`** — tokens in `:root`, then layout (sidebar + main grid),
   then components (`.panel`, `.stat`, `.btn`, `.badge`, tables, forms, `.timeline`,
   `.flower-card`, `.events`, `.kv`, `.journal`), utilities, responsive rules (≤860px:

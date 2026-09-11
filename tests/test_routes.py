@@ -40,6 +40,45 @@ def test_dashboard_shows_active_groups_and_suggestion(client):
     assert "Oct 25" in html
 
 
+def test_ramp_down_reminder_is_above_the_fold_and_on_the_card(client, app):
+    """The reminder has to sit where it is read: the top strip and the flower card.
+
+    Dan ignores everything below "In flower now", so a panel at the bottom of the
+    dashboard was invisible in practice.
+    """
+    from datetime import date
+
+    from canopy.extensions import db
+    from canopy.models import Group, Space
+    from canopy.services import scheduling as sched
+
+    # Pull Grp 6's finish inside the two-week window.
+    g6 = next(g for g in db.session.query(Group).all() if g.number == 6)
+    for pl in g6.living_plants:
+        pl.flower_days_override = (date(2026, 9, 15) - pl.flower_start).days
+    db.session.commit()
+
+    html = client.get("/").data.decode()
+    assert "alert-strip" in html
+    assert "plain water only, half the usual amount" in html
+    # Above the fold: the strip comes before the stat tiles, not after the timeline.
+    assert html.index("alert-strip") < html.index("stat-strip")
+    # And again on the card itself, which is the part he actually reads.
+    assert html.index("flower-card ramping") > html.index("In flower now")
+    assert sched.ramp_down(
+        sched.scheduled_units(db.session.query(Group).all()),
+        db.session.query(Space).all(),
+        ref=date(2026, 9, 7),
+    )
+
+
+def test_dashboard_hides_secondary_sections_on_a_phone(client):
+    """Timeline, Waiting, Spaces and openings are desktop-only, with links instead."""
+    html = client.get("/").data.decode()
+    assert 'class="m-links"' in html
+    assert html.count("m-hide") >= 3
+
+
 def test_create_group_and_plant(client):
     r = client.post(
         "/groups/new",

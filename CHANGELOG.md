@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- **The dashboard uses the monitor, and the phone shows less.** `.main` was capped at
+  1280px, so everything right of that was dead space, and the 2fr/1fr split left the
+  left column ending at "Waiting for a slot" while the rail ran on — about 700px of
+  nothing. The cap is gone and the dashboard now goes to three columns past 1600px: the
+  page is 2055px tall on a wide monitor instead of 3306px. On a phone it shows alerts,
+  what is in flower, and today's log; the timeline, Waiting for a slot, Spaces, Next 30
+  days and openings become a row of links.
+- **Ramp-down reminders moved to where they are read.** They were in an Alerts panel
+  ~2600px down the page, below the fold and ignored. They are now a chip strip directly
+  under the page title *and* a line on the flower card itself, next to the day count and
+  harvest date that card already carries.
+
 - **Half-water reminders as a run finishes.** The dashboard's Alerts panel now flags every
   run standing in a flowering space whose harvest is within two weeks — "Franco SLH
   finishes in 6 days — plain water only, half the usual amount." It fires on the earliest living

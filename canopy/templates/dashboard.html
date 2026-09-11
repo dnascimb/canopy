@@ -14,6 +14,18 @@
   </div>
 </div>
 
+{% if ramp or conflicts %}
+<div class="alert-strip">
+  {% for r in ramp %}
+  <a class="chip water" href="{% if r.lone_plant %}{{ url_for('plants.detail', plant_id=r.lone_plant.id) }}{% else %}{{ url_for('groups.detail', group_id=r.unit.id) }}{% endif %}"><span class="dot"></span><span><strong>{{ r.label }}</strong> finishes {{ r.when }}{{ ', first plants' if r.spread }} — plain water only, half the usual amount.</span></a>
+  {% endfor %}
+  {% for c in conflicts %}
+  {% if c.group %}<a class="chip {{ c.severity }}" href="{{ url_for('groups.detail', group_id=c.group.id) }}"><span class="dot"></span><span>{{ c.message }}</span></a>
+  {% else %}<span class="chip {{ c.severity }}"><span class="dot"></span><span>{{ c.message }}</span></span>{% endif %}
+  {% endfor %}
+</div>
+{% endif %}
+
 <div class="stat-strip">
   <div class="stat"><div class="n">{{ active|length }}</div><div class="l">groups in flower</div></div>
   <div class="stat"><div class="n">{{ counts.flowering }}</div><div class="l">plants in flower</div></div>
@@ -22,23 +34,31 @@
   <div class="stat {{ 'warn' if conflicts }}"><div class="n">{{ conflicts|length + ramp|length }}</div><div class="l">schedule alerts</div></div>
 </div>
 
-<section>
+<div class="m-links">
+  <a href="{{ url_for('schedule.index') }}">Timeline &amp; openings</a>
+  <a href="{{ url_for('groups.index') }}">Waiting for a slot{% if unscheduled %} ({{ unscheduled|length }}){% endif %}</a>
+  <a href="{{ url_for('spaces.index') }}">Spaces</a>
+</div>
+
+<section class="m-hide">
   <div class="section-head"><h2>Flowering timeline</h2><span class="hint">Full schedule, exports and openings on the <a href="{{ url_for('schedule.index') }}">Schedule</a> page</span></div>
   <div class="panel">{{ timeline(rows, ref) }}</div>
 </section>
 
-<div class="grid-main-side">
-  <div>
+<div class="dash">
+  <div class="dash-main">
     <section>
       <div class="section-head"><h2>In flower now</h2><span class="hint">sorted by harvest date</span></div>
       {% if active %}
       <div class="flower-list">
         {% for g in active %}
-        <div class="flower-card" style="border-left-color: {{ g.color }}">
+        {% set r = ramp_by_group.get(g.id) %}
+        <div class="flower-card {{ 'ramping' if r }}" style="border-left-color: {{ g.color }}">
           <div class="title"><a href="{{ url_for('groups.detail', group_id=g.id) }}">{{ g.label }}</a><span class="mono small muted">day {{ g.day_of_flower(ref) }}/{{ g.flower_days }}</span></div>
           <div class="strains" title="{{ g.strain_summary() }}">{{ g.strain_summary() or 'no living plants' }}</div>
           <div class="progress"><i style="width: {{ (g.progress(ref) * 100)|round }}%; background: {{ g.color }}"></i></div>
           <div class="meta"><span>{{ g.flower_start|d }}</span><span>harvest {{ g.flower_end|d }}</span></div>
+          {% if r %}<div class="ramp">plain water only, half the usual amount</div>{% endif %}
         </div>
         {% endfor %}
       </div>
@@ -48,7 +68,7 @@
     </section>
 
     {% if unscheduled %}
-    <section>
+    <section class="m-hide">
       <div class="section-head"><h2>Waiting for a slot</h2><span class="hint">groups without a flower start date</span></div>
       <div class="panel tight table-wrap">
         <table>
@@ -71,12 +91,14 @@
     {% endif %}
   </div>
 
-  <div>
+  <div class="dash-log">
     <section>
       <div class="section-head"><h2>Log today</h2><span class="hint"><a href="{{ url_for('journal.index') }}">journal</a></span></div>
       <div class="panel">{{ quicklog_spaces(quick, url_for('journal.quick'), spaces) }}</div>
     </section>
+  </div>
 
+  <div class="dash-rail m-hide">
     <section>
       <div class="section-head"><h2>Spaces</h2><span class="hint"><a href="{{ url_for('spaces.index') }}">planner</a></span></div>
       <div class="panel">
@@ -100,21 +122,6 @@
         </ul>
         {% else %}<div class="muted">No milestones in the next 30 days.</div>{% endif %}
       </div>
-    </section>
-
-    <section>
-      <div class="section-head"><h2>Alerts</h2></div>
-      {% for r in ramp %}
-      <div class="alert water"><span class="dot"></span><span>{{ r.message }}
-        {%- if r.lone_plant %} <a href="{{ url_for('plants.detail', plant_id=r.lone_plant.id) }}">Open</a>
-        {%- else %} <a href="{{ url_for('groups.detail', group_id=r.unit.id) }}">Open</a>{% endif %}</span></div>
-      {% endfor %}
-      {% for c in conflicts %}
-      <div class="alert {{ c.severity }}"><span class="dot"></span><span>{{ c.message }}{% if c.group %} <a href="{{ url_for('groups.detail', group_id=c.group.id) }}">Open</a>{% endif %}</span></div>
-      {% endfor %}
-      {% if not conflicts and not ramp %}
-      <div class="panel muted">No conflicts. Every space has room and every scheduled group has a space and living plants.</div>
-      {% endif %}
     </section>
 
     <section>
