@@ -273,8 +273,8 @@ def test_group_and_plant_moves_take_the_same_path(app):
     db.session.add_all([g, a, b])
     db.session.commit()
 
-    spacing.move_plants(g.living_plants, flower, ref=REF)   # group route
-    spacing.move_plants([b], flower, ref=REF)               # plant route
+    spacing.move_plants(g.living_plants, flower, ref=REF)  # group route
+    spacing.move_plants([b], flower, ref=REF)  # plant route
     db.session.commit()
 
     assert (a.status, a.flower_start, a.flower_end) == (b.status, b.flower_start, b.flower_end)
@@ -284,6 +284,7 @@ def test_group_and_plant_moves_take_the_same_path(app):
 def _png() -> bytes:
     """Smallest valid PNG — enough to prove the pipeline without a fixture file."""
     import base64
+
     return base64.b64decode(
         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
     )
@@ -298,7 +299,9 @@ def test_quick_log_accepts_a_photo(client, app):
     r = client.post(
         "/journal/quick",
         data={
-            "entry_date": "2026-09-07", "space_id": veg.id, "tasks": ["watered"],
+            "entry_date": "2026-09-07",
+            "space_id": veg.id,
+            "tasks": ["watered"],
             "photo": (io.BytesIO(_png()), "phone-snap.png"),
         },
         content_type="multipart/form-data",
@@ -329,7 +332,9 @@ def test_photo_upload_rejects_a_non_image(client):
     r = client.post(
         "/journal/quick",
         data={
-            "entry_date": "2026-09-07", "space_id": veg.id, "tasks": ["watered"],
+            "entry_date": "2026-09-07",
+            "space_id": veg.id,
+            "tasks": ["watered"],
             "photo": (io.BytesIO(b"#!/bin/sh\necho nope"), "sneaky.sh"),
         },
         content_type="multipart/form-data",
@@ -347,10 +352,69 @@ def test_a_photo_alone_is_a_valid_entry(client):
     r = client.post(
         "/journal/quick",
         data={
-            "entry_date": "2026-09-07", "space_id": veg.id,
+            "entry_date": "2026-09-07",
+            "space_id": veg.id,
             "photo": (io.BytesIO(_png()), "just-a-picture.png"),
         },
         content_type="multipart/form-data",
         follow_redirects=True,
     )
     assert b"Logged: Photo" in r.data
+
+
+def test_time_in_stage_only_counts_finished_stretches(app):
+    """A plant still in flower says nothing yet about how long the strain takes."""
+    from canopy.models import PlantEvent, PlantStatus
+
+    strain = db.session.query(Strain).filter_by(name="EQ Haze").one()
+    finished = Plant(
+        label="finished", strain=strain, status=PlantStatus.harvested, ended_on=date(2026, 8, 10)
+    )
+    running = Plant(label="running", strain=strain, status=PlantStatus.flowering)
+    db.session.add_all([finished, running])
+    db.session.add_all(
+        [
+            PlantEvent(plant=finished, on=date(2026, 6, 1), to_status=PlantStatus.flowering),
+            PlantEvent(plant=running, on=date(2026, 8, 1), to_status=PlantStatus.flowering),
+        ]
+    )
+    db.session.commit()
+
+    timing = next(
+        t
+        for t in reports.time_in_stage(db.session.query(Plant).all(), ref=REF)
+        if t.strain.name == "EQ Haze"
+    )
+    # only the finished one: 1 Jun to 10 Aug
+    assert timing.runs(PlantStatus.flowering) == 1
+    assert timing.observed_flower == 70.0
+    assert timing.drift == 70.0 - strain.flower_days
+
+
+def test_a_cull_does_not_report_a_flower_length(app):
+    """A male pulled on day 12 did not finish in 12 days."""
+    from canopy.models import PlantEvent, PlantStatus
+
+    strain = db.session.query(Strain).filter_by(name="Zap").one()
+    culled = Plant(
+        label="male",
+        strain=strain,
+        status=PlantStatus.killed,
+        ended_on=date(2026, 6, 13),
+        end_reason="Male",
+    )
+    db.session.add(culled)
+    db.session.add(PlantEvent(plant=culled, on=date(2026, 6, 1), to_status=PlantStatus.flowering))
+    db.session.commit()
+
+    hit = [
+        t
+        for t in reports.time_in_stage(db.session.query(Plant).all(), ref=REF)
+        if t.strain.name == "Zap"
+    ]
+    assert not any(t.observed_flower == 12.0 for t in hit)
+
+
+def test_reports_page_shows_time_in_stage(client):
+    html = client.get("/reports/").data.decode()
+    assert "Time in each stage" in html and "On the strain" in html

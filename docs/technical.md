@@ -170,10 +170,27 @@ each space's current occupancy is checked for overflow.
 
 ## Reports (services/reports.py)
 
-`strain_stats()` walks plants per strain for grown/harvested/killed counts and attributes
-harvest weights: plant-level harvests to that plant's strain, group-level harvests split
-evenly across the group's non-killed plants. `group_yields()` and `kill_reasons()` feed
-the remaining tables. Charts are the `hbars` and `steps` macros in
+`strain_stats()` walks plants per strain for grown/harvested/killed counts and a survival
+rate over the plants that actually finished. `kill_reasons()` tallies why plants were lost.
+
+`time_in_stage()` answers how long a strain really takes, from `plant_events` rather than
+from the breeder's number. It reads `lifecycle.stage_spans()` per plant and keeps only
+stretches that are measurements:
+
+* **Open stretches are excluded.** A plant three weeks into flower says nothing yet about
+  the strain, and averaging it in would drag every figure down.
+* **The stretch a cull ended is dropped.** A male pulled on day 55 did not teach us the
+  strain finishes in 55 days. That plant's earlier, completed stretches still count.
+* **Zero-day stretches are dropped** — a status set and corrected the same day is a typo,
+  not a stage.
+
+`StrainTiming.drift` is the observed flower length minus the one on the strain record, so
+a strain that consistently finishes early is visible at a glance. Note that runs predating
+the event log derive their flip from the old group dates, so they tend to reproduce the
+strain's own number and show a drift of zero; only runs logged through `lifecycle` are
+independent evidence.
+
+Charts are the `hbars` and `steps` macros in
 `templates/_charts.html`: server-rendered SVG scaled by `viewBox`, coloured with the CSS
 tokens, so they print and need no JavaScript.
 

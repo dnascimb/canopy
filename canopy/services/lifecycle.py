@@ -137,7 +137,8 @@ def stage_spans(plant: Plant, *, ref: date | None = None) -> list[dict]:
     stop = plant.ended_on or ref or date.today()
     spans = []
     for i, e in enumerate(events):
-        end = events[i + 1].on if i + 1 < len(events) else stop
+        later = events[i + 1] if i + 1 < len(events) else None
+        end = later.on if later else stop
         if end < e.on:
             end = e.on
         spans.append(
@@ -146,6 +147,9 @@ def stage_spans(plant: Plant, *, ref: date | None = None) -> list[dict]:
                 "start": e.on,
                 "end": end,
                 "days": (end - e.on).days,
+                # A stretch is only a measurement once it has finished. The last one is
+                # still running unless the plant itself has ended.
+                "closed": later is not None or plant.ended_on is not None,
             }
         )
     return spans

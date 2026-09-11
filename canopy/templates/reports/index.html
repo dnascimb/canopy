@@ -23,6 +23,38 @@
 {% endfor %}
 
 <section>
+  <div class="section-head"><h2>Time in each stage</h2><span class="hint">what they actually did</span></div>
+  <div class="panel tight table-wrap">
+    <table class="sortable" data-sort-col="5" data-sort-dir="desc">
+      <thead><tr><th>Strain</th><th class="num">Clone</th><th class="num">Seedling</th><th class="num">Veg</th><th class="num">Flower</th><th class="num">Runs</th><th class="num">On the strain</th><th class="num">Difference</th></tr></thead>
+      <tbody>
+      {% for t in timings %}
+        {% set clone_d = t.average(PlantStatus.clone) %}
+        {% set seed_d = t.average(PlantStatus.seedling) %}
+        {% set veg_d = t.average(PlantStatus.vegetative) %}
+        <tr>
+          <td data-v="{{ t.strain.name }}"><a href="{{ url_for('strains.detail', strain_id=t.strain.id) }}">{{ t.strain.name }}</a></td>
+          <td class="num" data-v="{{ clone_d if clone_d is not none else '' }}">{{ clone_d ~ 'd' if clone_d is not none else '—' }}</td>
+          <td class="num" data-v="{{ seed_d if seed_d is not none else '' }}">{{ seed_d ~ 'd' if seed_d is not none else '—' }}</td>
+          <td class="num" data-v="{{ veg_d if veg_d is not none else '' }}">{{ veg_d ~ 'd' if veg_d is not none else '—' }}</td>
+          <td class="num" data-v="{{ t.observed_flower if t.observed_flower is not none else '' }}">{{ t.observed_flower ~ 'd' if t.observed_flower is not none else '—' }}</td>
+          <td class="num" data-v="{{ t.runs(PlantStatus.flowering) }}">{{ t.runs(PlantStatus.flowering) }}</td>
+          <td class="num" data-v="{{ t.strain.flower_days }}">{{ t.strain.flower_days }}d</td>
+          <td class="num" data-v="{{ t.drift if t.drift is not none else '' }}">
+            {% if t.drift is none %}—
+            {% elif t.drift == 0 %}<span class="muted">same</span>
+            {% else %}<span class="{{ 'drift-long' if t.drift > 0 else 'drift-short' }}">{{ '%+g'|format(t.drift) }}d</span>{% endif %}</td>
+        </tr>
+      {% else %}
+        <tr data-no-sort><td colspan="8" class="empty">No finished stretches yet. Every status change from now on feeds this.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="muted small mt" style="max-width:70ch">Only stretches that have <em>finished</em> count, and a plant that was culled does not contribute the stretch its cull ended — a male pulled on day 55 did not teach us the strain finishes in 55 days. Runs from before the lifecycle log existed take their flower length from their group's dates, so those rows tend to agree with the strain by construction; runs recorded since are real measurements.</p>
+</section>
+
+<section>
   <div class="section-head"><h2>All strains</h2></div>
   <div class="panel tight table-wrap">
     <table>
@@ -39,3 +71,4 @@
   </div>
 </section>
 {% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/sortable.js') }}"></script>{% endblock %}

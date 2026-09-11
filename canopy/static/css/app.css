@@ -176,6 +176,8 @@ table.sortable thead th[aria-sort="descending"]::after { content: " \2193"; }
 .lifestrip-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 7px;
   font-size: .82rem; color: var(--muted); font-family: var(--mono); }
 .lifestrip-legend b { color: var(--text-soft); font-weight: 500; }
+.drift-long { color: var(--accent); }
+.drift-short { color: var(--blue); }
 .journal-photo { display: block; max-width: 320px; width: 100%; height: auto;
   margin-top: 8px; border: 1px solid var(--line); border-radius: var(--radius); }
 .photo-pick { cursor: pointer; }

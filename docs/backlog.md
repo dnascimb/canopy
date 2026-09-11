@@ -26,22 +26,19 @@ order of value ÷ effort. Each has a one-line sketch of where it would live.
    lineage, notes.
 8. **Harvest curing log**: jar dates, burp reminders, moisture readings, and a
    "ready" date on the dashboard.
-9. **Time-in-stage report.** `plant_events` now records every transition, so the app can
-   answer how long a strain really takes from cut to flip to harvest, averaged across
-   runs, rather than quoting the breeder. (`services/lifecycle.stage_spans`, reports.)
 
 ## Planning
 
-10. **What-if planner**: drag a bar on the timeline (or edit dates inline) and see load
+9. **What-if planner**: drag a bar on the timeline (or edit dates inline) and see load
     and conflicts update live before saving. (`PATCH /api/v1/groups/<id>` already exists.)
-11. **Seed-run wizard**: pick strains and counts from inventory → creates the group and
+10. **Seed-run wizard**: pick strains and counts from inventory → creates the group and
     its plants, places them on the clone shelf, and shows the earliest flip date and
     whether they will fit in veg and flower.
-12. **Multiple flower spaces with different photoperiods** (e.g. an auto tent): add
+11. **Multiple flower spaces with different photoperiods** (e.g. an auto tent): add
     `light_schedule` to Space; the suggestion engine prefers matching spaces.
-13. **Perpetual-harvest optimiser**: given tent sizes and target harvest cadence, propose
+12. **Perpetual-harvest optimiser**: given tent sizes and target harvest cadence, propose
     group sizes and flip dates that keep the flower tent near capacity.
-14. **Container-driven footprints.** Floor space is set by the pot, not by the strain's
+13. **Container-driven footprints.** Floor space is set by the pot, not by the strain's
     size class. Add `Plant.container` (16oz cup, 32oz cup, 1/2/3/5/7 gal) with a sq ft
     each, falling back to the current strain-size guess when unset. Everything flows
     through one function, `spacing.plant_footprint()`, so occupancy, `load_series`,
@@ -50,15 +47,15 @@ order of value ÷ effort. Each has a one-line sketch of where it would live.
     4 sq ft, about 0.105 sq ft each. The model assumes 1.75 sq ft each and reports 66.5
     sq ft, so it flags "needs 84.75 sq ft but has 50" on a plan that fits with room to
     spare. Wrong by 17x, and in the direction that trains you to ignore the alerts.
-15. **Per-group area override.** `Group.sqft_override` for anything planted as a block,
+14. **Per-group area override.** `Group.sqft_override` for anything planted as a block,
     where no per-plant arithmetic will do: "these 38 take one 2x2, full stop." One
     nullable column, read by `spacing.group_footprint()`.
-16. **Proactive fit warnings.** For every waiting group, the earliest date it actually
+15. **Proactive fit warnings.** For every waiting group, the earliest date it actually
     fits given projected load — surfaced before you commit, not after. "Grp 23's 7 plants
-    have nowhere to go until Sep 22." Worth building only on top of 14 and 15; on today's
+    have nowhere to go until Sep 22." Worth building only on top of 13 and 14; on today's
     numbers it would just repeat false alarms more loudly. (`services/spacing.py`,
     dashboard "Waiting for a slot".)
-17. **Vertical space.** Spaces have width and length but no height, so nothing expresses
+16. **Vertical space.** Spaces have width and length but no height, so nothing expresses
     that hazes run tall and slim — lots of headroom, little floor. Add `Space.height_ft`
     and a height class on Strain, and flag a tall strain scheduled into a short tent.
     Note that flowering from clone deliberately suppresses stretch, so height needs to be
@@ -66,12 +63,12 @@ order of value ÷ effort. Each has a one-line sketch of where it would live.
 
 ## Quality of life
 
-18. **Keyboard shortcuts**: `g d` dashboard, `g s` schedule, `n` new group, `/` search.
-19. **Global search** across strains, plants, groups and journal text.
-20. **iCalendar feed** of flips, harvests and reminders for phone calendars.
-21. **CSV export** of strains, plants and harvests for spreadsheets.
-22. **Dark/light toggle** (the token system already makes this a ~20-line change).
-23. **Alembic migrations** so schema changes upgrade existing databases in place. Six
+17. **Keyboard shortcuts**: `g d` dashboard, `g s` schedule, `n` new group, `/` search.
+18. **Global search** across strains, plants, groups and journal text.
+19. **iCalendar feed** of flips, harvests and reminders for phone calendars.
+20. **CSV export** of strains, plants and harvests for spreadsheets.
+21. **Dark/light toggle** (the token system already makes this a ~20-line change).
+22. **Alembic migrations** so schema changes upgrade existing databases in place. Six
     have now been hand-written — dry weight, strain expression, journal spaces, moving the
     schedule onto the plant, cutting parentage and journal photos — each a one-off script with its own verification.
 

@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- **Time in each stage.** A new Reports section showing how long each strain actually
+  spends as a clone, seedling, in veg and in flower, averaged over finished runs, next to
+  the flower length on its strain record and the drift between them. Built on the
+  lifecycle log, so it measures what happened rather than quoting the breeder. Only
+  finished stretches count; the stretch a cull ended and same-day corrections are left
+  out. Runs that predate the event log inherit their dates from the old group columns and
+  so agree with the strain by construction — the caveat is on the page.
+
 - **Weights are gone entirely.** `harvests.wet_weight_g` follows the dry weight out; a
   harvest now records a date, a target and notes. The `grams` template filter went with
   it. Existing databases need `ALTER TABLE harvests DROP COLUMN wet_weight_g`.

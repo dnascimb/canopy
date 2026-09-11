@@ -3,7 +3,7 @@ from __future__ import annotations
 from flask import Blueprint, render_template
 
 from ..extensions import db
-from ..models import Group, Plant, Space, SpaceStage, Strain
+from ..models import Group, Plant, PlantStatus, Space, SpaceStage, Strain
 from ..services import reports, spacing
 from ..services import scheduling as sched
 
@@ -29,6 +29,8 @@ def index():
             for s in with_history
         ],
         reason_items=[(r, n, None) for r, n in reports.kill_reasons(plants)],
+        timings=reports.time_in_stage(plants, ref=ref),
+        PlantStatus=PlantStatus,
         load={s: spacing.load_series(s, groups, ref=ref) for s in flower_spaces},
         ref=ref,
     )
