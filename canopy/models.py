@@ -287,9 +287,7 @@ class Plant(TimestampMixin, db.Model):
     space_id: Mapped[int | None] = mapped_column(db.ForeignKey("spaces.id", ondelete="SET NULL"))
     # The plant this one was cut from. Kept when the mother is deleted, so a cutting is
     # never orphaned into claiming a parent that no longer exists.
-    parent_id: Mapped[int | None] = mapped_column(
-        db.ForeignKey("plants.id", ondelete="SET NULL")
-    )
+    parent_id: Mapped[int | None] = mapped_column(db.ForeignKey("plants.id", ondelete="SET NULL"))
     status: Mapped[PlantStatus] = mapped_column(
         db.Enum(PlantStatus, native_enum=False, length=20),
         default=PlantStatus.vegetative,
@@ -303,12 +301,11 @@ class Plant(TimestampMixin, db.Model):
     notes: Mapped[str | None] = mapped_column(db.Text)
 
     events: Mapped[list[PlantEvent]] = relationship(
-        back_populates="plant", cascade="all, delete-orphan",
+        back_populates="plant",
+        cascade="all, delete-orphan",
         order_by="PlantEvent.on, PlantEvent.id",
     )
-    parent: Mapped[Plant | None] = relationship(
-        back_populates="cuttings", remote_side="Plant.id"
-    )
+    parent: Mapped[Plant | None] = relationship(back_populates="cuttings", remote_side="Plant.id")
     cuttings: Mapped[list[Plant]] = relationship(back_populates="parent")
     strain: Mapped[Strain] = relationship(back_populates="plants")
     group: Mapped[Group | None] = relationship(back_populates="plants")

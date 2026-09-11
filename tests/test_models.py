@@ -38,7 +38,7 @@ def test_group_span_covers_plants_that_disagree(app):
     lifecycle.set_flip([late], date(2026, 7, 15), days=60)
     db.session.commit()
     assert g.flower_start == date(2026, 7, 1)
-    assert g.flower_end == date(2026, 9, 13)   # the later plant finishes last
+    assert g.flower_end == date(2026, 9, 13)  # the later plant finishes last
     assert g.flower_days == 74
 
 

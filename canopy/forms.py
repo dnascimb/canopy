@@ -114,9 +114,7 @@ class JournalForm(FlaskForm):
         "Photo",
         validators=[
             Optional(),
-            FileAllowed(
-                ["jpg", "jpeg", "png", "webp", "gif", "heic"], "Images only, please."
-            ),
+            FileAllowed(["jpg", "jpeg", "png", "webp", "gif", "heic"], "Images only, please."),
         ],
     )
     title = StringField("Title", validators=[Optional(), Length(max=160)])

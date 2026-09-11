@@ -416,7 +416,7 @@ def test_add_plant_reuses_a_known_strain_whatever_the_casing(client):
         "/plants/new",
         data={
             "label": "Reuse 1",
-            "strain": "eq haze",          # already on file as "EQ Haze"
+            "strain": "eq haze",  # already on file as "EQ Haze"
             "group_id": 0,
             "space_id": 0,
             "status": "seedling",
@@ -443,8 +443,12 @@ def test_cutting_records_its_mother_and_the_line_reads_both_ways(client):
     r = client.post(
         "/plants/new",
         data={
-            "label": "EQ Haze cut 1", "strain": mother.strain.name, "group_id": 0,
-            "space_id": 0, "parent_id": mother.id, "status": "clone",
+            "label": "EQ Haze cut 1",
+            "strain": mother.strain.name,
+            "group_id": 0,
+            "space_id": 0,
+            "parent_id": mother.id,
+            "status": "clone",
             "started_on": "2026-09-07",
         },
         follow_redirects=True,
@@ -452,7 +456,7 @@ def test_cutting_records_its_mother_and_the_line_reads_both_ways(client):
     assert r.status_code == 200
     cut = db.session.query(Plant).filter_by(label="EQ Haze cut 1").one()
     assert cut.parent_id == mother.id
-    assert cut in mother.cuttings                    # and it reads downward too
+    assert cut in mother.cuttings  # and it reads downward too
     assert [a.label for a in cut.ancestry] == ["EQ Haze"]
     # both ends are links on the pages
     assert b"Taken from" in client.get(f"/plants/{cut.id}").data
@@ -462,16 +466,20 @@ def test_cutting_records_its_mother_and_the_line_reads_both_ways(client):
 def test_take_a_cutting_prefills_from_the_mother(client):
     mother = db.session.query(Plant).filter_by(label="EQ Haze").one()
     html = client.get(f"/plants/new?parent={mother.id}").data.decode()
-    assert f'value="{mother.strain.name}"' in html      # strain carried over
-    assert '<option selected value="clone">' in html    # and it is a cutting
+    assert f'value="{mother.strain.name}"' in html  # strain carried over
+    assert '<option selected value="clone">' in html  # and it is a cutting
 
 
 def test_lineage_typed_on_the_plant_form_lands_on_the_strain(client):
     client.post(
         "/plants/new",
         data={
-            "label": "Lineage probe", "strain": "Brand New Line", "group_id": 0,
-            "space_id": 0, "status": "seedling", "started_on": "2026-09-07",
+            "label": "Lineage probe",
+            "strain": "Brand New Line",
+            "group_id": 0,
+            "space_id": 0,
+            "status": "seedling",
+            "started_on": "2026-09-07",
             "lineage": "Mother x Father",
         },
         follow_redirects=True,
@@ -485,8 +493,12 @@ def test_lineage_typed_on_the_plant_form_lands_on_the_strain(client):
     client.post(
         "/plants/new",
         data={
-            "label": "Lineage probe 2", "strain": "EQ Haze", "group_id": 0,
-            "space_id": 0, "status": "seedling", "started_on": "2026-09-07",
+            "label": "Lineage probe 2",
+            "strain": "EQ Haze",
+            "group_id": 0,
+            "space_id": 0,
+            "status": "seedling",
+            "started_on": "2026-09-07",
             "lineage": "Something Else x Wrong",
         },
         follow_redirects=True,
@@ -505,10 +517,10 @@ def test_plants_table_truncates_long_notes(client):
 
     html = client.get("/plants/").data.decode()
     cell = ">" + "x" * 197 + "..." + "</td>"
-    assert cell in html                     # the cell shows 200 chars including the ellipsis
-    assert ">" + "x" * 300 + "</td>" not in html          # never the whole thing
-    assert f'title="{"x" * 300}"' in html   # but hovering still gives you all of it
-    assert "left alone" in html             # a short note is untouched
+    assert cell in html  # the cell shows 200 chars including the ellipsis
+    assert ">" + "x" * 300 + "</td>" not in html  # never the whole thing
+    assert f'title="{"x" * 300}"' in html  # but hovering still gives you all of it
+    assert "left alone" in html  # a short note is untouched
 
 
 def test_add_plant_defaults_seedling_and_a_cutting_defaults_clone(client):
@@ -593,7 +605,7 @@ def test_harvesting_one_plant_leaves_the_group_flowering(client):
     )
     db.session.refresh(g)
     assert one.status == PlantStatus.harvested
-    assert g.status.value == "flowering"          # the rest are still going
+    assert g.status.value == "flowering"  # the rest are still going
     assert all(p.status == PlantStatus.flowering for p in flowering[1:])
 
 

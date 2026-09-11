@@ -44,8 +44,7 @@ def export_markdown():
 @bp.get("/export.txt")
 def export_ascii():
     rows = sched.timeline_rows(
-        sched.scheduled_units(db.session.query(Group).all(),
-                              db.session.query(Plant).all())
+        sched.scheduled_units(db.session.query(Group).all(), db.session.query(Plant).all())
     )
     return Response(sched.ascii_timeline(rows), mimetype="text/plain; charset=utf-8")
 

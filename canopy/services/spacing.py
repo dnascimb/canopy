@@ -197,9 +197,7 @@ def capacity_warning(
     if worst:
         day = date.fromisoformat(worst["date"])
         if space.area_sqft and worst["sqft"] > space.area_sqft:
-            return (
-                f"needs {worst['sqft']:g} sq ft on {day:%b %d} but has {space.area_sqft:g}"
-            )
+            return f"needs {worst['sqft']:g} sq ft on {day:%b %d} but has {space.area_sqft:g}"
         if worst["count"] > space.capacity:
             return f"{worst['count']} plants on {day:%b %d}, over the {space.capacity} maximum"
     if occupancy_now is not None and occupancy_now.over:

@@ -36,9 +36,7 @@ def _resolve_strain(
     never seen, so typing a new name here adds it rather than sending you elsewhere.
     """
     name = (name or "").strip()
-    existing = (
-        db.session.query(Strain).filter(db.func.lower(Strain.name) == name.lower()).first()
-    )
+    existing = db.session.query(Strain).filter(db.func.lower(Strain.name) == name.lower()).first()
     lineage = (lineage or "").strip() or None
     if existing:
         # Fill a blank rather than overwrite: the inventory entry is the authority.
@@ -58,11 +56,7 @@ def _resolve_strain(
 
 
 def _parent_choices(form: PlantForm, exclude: int | None = None) -> None:
-    rows = (
-        db.session.query(Plant)
-        .filter(Plant.status != PlantStatus.killed)
-        .order_by(Plant.label)
-    )
+    rows = db.session.query(Plant).filter(Plant.status != PlantStatus.killed).order_by(Plant.label)
     form.parent_id.choices = [(0, "— not a cutting —")] + [
         (p.id, f"{p.label} · {p.strain.name}") for p in rows if p.id != exclude
     ]
@@ -170,9 +164,7 @@ def create():
         if p.group_id:
             return redirect(url_for("groups.detail", group_id=p.group_id))
         return redirect(url_for("plants.detail", plant_id=p.id))
-    return render_template(
-        "plants/form.html", form=form, plant=None, strain_names=_strain_names()
-    )
+    return render_template("plants/form.html", form=form, plant=None, strain_names=_strain_names())
 
 
 @bp.get("/<int:plant_id>")
@@ -246,8 +238,9 @@ def kill(plant_id: int):
     p = db.session.get(Plant, plant_id) or abort(404)
     form = KillPlantForm()
     if form.validate_on_submit():
-        lifecycle.record(p, PlantStatus.killed, on=form.ended_on.data,
-                         note=form.end_reason.data or None)
+        lifecycle.record(
+            p, PlantStatus.killed, on=form.ended_on.data, note=form.end_reason.data or None
+        )
         p.ended_on = form.ended_on.data
         p.end_reason = form.end_reason.data or None
         db.session.commit()
@@ -329,9 +322,7 @@ def take_cuttings(plant_id: int):
         )
         db.session.add(cut)
         db.session.flush()
-        lifecycle.born(
-            cut, on=form.taken_on.data, space=space, note=f"Cut from {mother.label}."
-        )
+        lifecycle.born(cut, on=form.taken_on.data, space=space, note=f"Cut from {mother.label}.")
         made.append(cut)
     db.session.commit()
 

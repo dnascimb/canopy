@@ -24,7 +24,10 @@ def index():
     openings = sched.openings(sched.scheduled_units(groups, plants), ref=ref)
 
     flower_spaces = [s for s in spaces if s.stage == SpaceStage.flowering]
-    series = {s.id: spacing.load_series(s, sched.scheduled_units(groups, plants), ref=ref) for s in flower_spaces}
+    series = {
+        s.id: spacing.load_series(s, sched.scheduled_units(groups, plants), ref=ref)
+        for s in flower_spaces
+    }
 
     # Planning table: groups that have not flipped yet, and what they need in flower.
     waiting = [
@@ -60,7 +63,12 @@ def index():
         series=series,
         plan=plan,
         openings=openings,
-        breach={s.id: spacing.capacity_warning(s, sched.scheduled_units(groups, plants), occ[s.id], ref=ref) for s in spaces},
+        breach={
+            s.id: spacing.capacity_warning(
+                s, sched.scheduled_units(groups, plants), occ[s.id], ref=ref
+            )
+            for s in spaces
+        },
         footprints=spacing.footprint_table(),
         sizes=list(PlantSize),
         stages=list(SpaceStage),

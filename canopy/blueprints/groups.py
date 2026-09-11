@@ -61,8 +61,11 @@ def _apply_schedule(form: GroupForm, g: Group) -> str | None:
         if not plants:
             return f"{g.label} has no plants yet — add some and the flip date will apply."
         lifecycle.set_flip(
-            plants, form.flower_start.data, days=form.flower_days.data,
-            space=g.space, note=f"Set on {g.label}.",
+            plants,
+            form.flower_start.data,
+            days=form.flower_days.data,
+            space=g.space,
+            note=f"Set on {g.label}.",
         )
     else:
         lifecycle.clear_flip(plants)
@@ -132,7 +135,6 @@ def detail(group_id: int):
     )
 
 
-
 @bp.post("/<int:group_id>/move")
 def move(group_id: int):
     """Move every living plant in the group to a space (and align their status)."""
@@ -193,7 +195,9 @@ def schedule(group_id: int):
         if suggestion.space and not g.space_id:
             g.space_id = suggestion.space.id
         lifecycle.set_flip(
-            g.living_plants, suggestion.on, space=g.space,
+            g.living_plants,
+            suggestion.on,
+            space=g.space,
             note=f"Scheduled into the opening left by {suggestion.freed_by.label}.",
         )
         g.status = GroupStatus.flowering
@@ -220,8 +224,9 @@ def set_status(group_id: int):
         for p in g.living_plants:
             if p.status == PlantStatus.flowering:
                 end = p.flower_end or today
-                lifecycle.record(p, PlantStatus.harvested, on=end,
-                                 note=f"{g.label} marked {g.status.value}.")
+                lifecycle.record(
+                    p, PlantStatus.harvested, on=end, note=f"{g.label} marked {g.status.value}."
+                )
                 p.ended_on = p.ended_on or end
     db.session.commit()
     flash(f"{g.label} is now {g.status.value}.", "success")
@@ -277,7 +282,7 @@ def add_journal(group_id: int):
     form.space_id.choices = [(0, "")]
     if form.validate_on_submit():
         j = JournalEntry(
-            group_id=g.id,          # the URL says which group; there is nothing to pick
+            group_id=g.id,  # the URL says which group; there is nothing to pick
             entry_date=form.entry_date.data,
             title=form.derived_title,
             body=form.body.data or None,

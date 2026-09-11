@@ -399,9 +399,12 @@ def seed_demo() -> None:
                 p.flower_days_override = days
                 db.session.add(
                     PlantEvent(
-                        plant=p, on=start, from_status=None,
+                        plant=p,
+                        on=start,
+                        from_status=None,
                         to_status=PlantStatus.flowering,
-                        space=g.space, note="Flipped.",
+                        space=g.space,
+                        note="Flipped.",
                     )
                 )
             plants[(number, label)] = p

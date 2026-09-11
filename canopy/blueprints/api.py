@@ -44,9 +44,7 @@ def health():
 @bp.get("/timeline")
 def timeline():
     ref = sched.today()
-    units = sched.scheduled_units(
-        db.session.query(Group).all(), db.session.query(Plant).all()
-    )
+    units = sched.scheduled_units(db.session.query(Group).all(), db.session.query(Plant).all())
     rows = sched.timeline_rows(units, ref=ref)
     t0, t1 = sched.timeline_bounds(rows)
     return jsonify(
@@ -60,9 +58,7 @@ def events():
         [
             {"date": e.on.isoformat(), "kind": e.kind, "group_id": e.group.id, "label": e.label}
             for e in sched.events(
-                sched.scheduled_units(
-                    db.session.query(Group).all(), db.session.query(Plant).all()
-                )
+                sched.scheduled_units(db.session.query(Group).all(), db.session.query(Plant).all())
             )
         ]
     )
@@ -79,9 +75,7 @@ def openings():
                 "space": o.space.name if o.space else None,
             }
             for o in sched.openings(
-                sched.scheduled_units(
-                    db.session.query(Group).all(), db.session.query(Plant).all()
-                )
+                sched.scheduled_units(db.session.query(Group).all(), db.session.query(Plant).all())
             )
         ]
     )
@@ -157,8 +151,11 @@ def patch_group(group_id: int):
     if "flower_start" in data:
         if data["flower_start"]:
             lifecycle.set_flip(
-                g.living_plants, date.fromisoformat(data["flower_start"]),
-                days=days, space=g.space, note="Set through the API.",
+                g.living_plants,
+                date.fromisoformat(data["flower_start"]),
+                days=days,
+                space=g.space,
+                note="Set through the API.",
             )
         else:
             lifecycle.clear_flip(g.living_plants)
