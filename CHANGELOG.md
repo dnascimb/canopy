@@ -4,7 +4,7 @@
 
 - **Half-water reminders as a run finishes.** The dashboard's Alerts panel now flags every
   run standing in a flowering space whose harvest is within two weeks — "Franco SLH
-  finishes in 6 days — water at half the usual amount." It fires on the earliest living
+  finishes in 6 days — plain water only, half the usual amount." It fires on the earliest living
   plant to finish rather than the last, so a run whose plants finish on different days is
   flagged when the first ones are close and the message says "first plants". Runs in veg
   or on the clone shelf are never flagged. A lone plant gets the same reminder as a group.

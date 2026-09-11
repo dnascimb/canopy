@@ -175,7 +175,7 @@ def test_ramp_down_catches_a_run_inside_the_window(app):
     assert [r.label for r in rows] == ["Grp 6"]
     r = rows[0]
     assert r.days_left == 15 and r.end == date(2026, 9, 22)
-    assert "water at half the usual amount" in r.message
+    assert "plain water only, half the usual amount" in r.message
     assert not r.spread
 
 

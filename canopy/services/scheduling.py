@@ -300,7 +300,9 @@ class RampDown:
     @property
     def message(self) -> str:
         first = ", first plants" if self.spread else ""
-        return f"{self.label} finishes {self.when}{first} — water at half the usual amount."
+        return (
+            f"{self.label} finishes {self.when}{first} — plain water only, half the usual amount."
+        )
 
     @property
     def lone_plant(self) -> Plant | None:
