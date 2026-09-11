@@ -152,3 +152,76 @@ def test_inventory_and_plant_counts(app):
     assert counts["killed"] == 6
     assert counts["flowering"] == 10
     assert counts["clone"] == 3
+
+
+# ---------------------------------------------------------------------------
+# Ramp-down: half water as a run finishes
+# ---------------------------------------------------------------------------
+def spaces():
+    return db.session.query(Space).all()
+
+
+def units():
+    return sched.scheduled_units(groups(), db.session.query(Plant).all())
+
+
+def test_ramp_down_quiet_when_nothing_is_close(app):
+    """Grp 6 finishes Sep 22, 15 days out — one day beyond the window, so no alert."""
+    assert sched.ramp_down(units(), spaces(), ref=REF) == []
+
+
+def test_ramp_down_catches_a_run_inside_the_window(app):
+    rows = sched.ramp_down(units(), spaces(), ref=REF, within=15)
+    assert [r.label for r in rows] == ["Grp 6"]
+    r = rows[0]
+    assert r.days_left == 15 and r.end == date(2026, 9, 22)
+    assert "water at half the usual amount" in r.message
+    assert not r.spread
+
+
+def test_ramp_down_only_looks_at_flowering_spaces(app):
+    """A run parked in veg is not finishing anything, whatever its dates say."""
+    g6 = next(g for g in groups() if g.number == 6)
+    g6.space = db.session.query(Space).filter_by(name="Veg Tent").one()
+    db.session.commit()
+    assert sched.ramp_down(units(), spaces(), ref=REF, within=15) == []
+
+
+def test_ramp_down_triggers_on_the_earliest_plant_not_the_last(app):
+    """One plant finishing early pulls the whole run's alert forward, and says so."""
+    g6 = next(g for g in groups() if g.number == 6)
+    early = g6.living_plants[0]
+    early.flower_days_override = early.flower_days - 5
+    db.session.commit()
+
+    rows = sched.ramp_down(units(), spaces(), ref=REF, within=15)
+    assert [r.label for r in rows] == ["Grp 6"]
+    r = rows[0]
+    assert r.end == date(2026, 9, 17) and r.days_left == 10
+    assert r.spread
+    assert "first plants" in r.message
+
+
+def test_ramp_down_ignores_runs_already_past_their_date(app):
+    rows = sched.ramp_down(units(), spaces(), ref=REF, within=365)
+    assert rows and all(r.days_left >= 0 for r in rows)
+
+
+def test_ramp_down_covers_a_plant_standing_on_its_own(app):
+    """Groups are containers — a lone plant gets the same alert, and links to itself."""
+    p = Plant(
+        label="solo",
+        strain=db.session.query(Strain).first(),
+        space=db.session.query(Space).filter_by(name="Flower Room").one(),
+    )
+    db.session.add(p)
+    from canopy.services import lifecycle
+
+    lifecycle.set_flip([p], date(2026, 7, 10), days=60)  # ends Sep 08... within window
+    p.flower_days_override = 65  # ends Sep 13, 6 days out
+    db.session.commit()
+
+    rows = sched.ramp_down(units(), spaces(), ref=REF, within=14)
+    solo = next(r for r in rows if r.label == "solo")
+    assert solo.days_left == 6
+    assert solo.lone_plant is p

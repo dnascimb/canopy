@@ -123,6 +123,20 @@ if the group already has a space, prefer openings in that space.
 * error — group marked flowering with no start date;
 * warning — scheduled group with no space, or with no living plants (only for groups not yet finished).
 
+**`ramp_down(units, spaces)`** — returns `RampDown(unit, end, days_left, plants, spread)`
+for every run standing in a *flowering* space whose harvest is between today and
+`RAMP_DOWN_DAYS` (14) away, so the grower can start watering at half strength. Two
+decisions worth knowing:
+
+* The trigger is the **earliest** living plant to finish, not the latest. `Group.flower_end`
+  is the max across plants, which would raise the alert too late for a run whose plants
+  finish on different days; `spread` is set in that case and the message says "first plants".
+* **Only flowering spaces count.** Nothing in veg or on the clone shelf is finishing
+  anything, whatever dates its plants happen to carry.
+
+`RampDown.lone_plant` is the `Plant` when the unit is a `LonePlant`, else `None`, so a
+caller can link to the right page without knowing what a `LonePlant` is.
+
 Space capacity is deliberately absent: it is an estimate from footprints and dimensions,
 so it is reported by `spacing.capacity_warning()` against the space itself rather than in
 this list. Capacity is evaluated only at each distinct start/end date in that space (the

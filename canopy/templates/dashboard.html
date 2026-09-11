@@ -19,7 +19,7 @@
   <div class="stat"><div class="n">{{ counts.flowering }}</div><div class="l">plants in flower</div></div>
   <div class="stat"><div class="n">{{ counts.vegetative + counts.seedling }}</div><div class="l">plants in veg</div></div>
   <div class="stat"><div class="n">{{ inventory.strains }}</div><div class="l">strains · {{ inventory.seeds_on_hand }} seeds</div></div>
-  <div class="stat {{ 'warn' if conflicts }}"><div class="n">{{ conflicts|length }}</div><div class="l">schedule alerts</div></div>
+  <div class="stat {{ 'warn' if conflicts }}"><div class="n">{{ conflicts|length + ramp|length }}</div><div class="l">schedule alerts</div></div>
 </div>
 
 <section>
@@ -104,12 +104,16 @@
 
     <section>
       <div class="section-head"><h2>Alerts</h2></div>
-      {% if conflicts %}
-        {% for c in conflicts %}
-        <div class="alert {{ c.severity }}"><span class="dot"></span><span>{{ c.message }}{% if c.group %} <a href="{{ url_for('groups.detail', group_id=c.group.id) }}">Open</a>{% endif %}</span></div>
-        {% endfor %}
-      {% else %}
-        <div class="panel muted">No conflicts. Every space has room and every scheduled group has a space and living plants.</div>
+      {% for r in ramp %}
+      <div class="alert water"><span class="dot"></span><span>{{ r.message }}
+        {%- if r.lone_plant %} <a href="{{ url_for('plants.detail', plant_id=r.lone_plant.id) }}">Open</a>
+        {%- else %} <a href="{{ url_for('groups.detail', group_id=r.unit.id) }}">Open</a>{% endif %}</span></div>
+      {% endfor %}
+      {% for c in conflicts %}
+      <div class="alert {{ c.severity }}"><span class="dot"></span><span>{{ c.message }}{% if c.group %} <a href="{{ url_for('groups.detail', group_id=c.group.id) }}">Open</a>{% endif %}</span></div>
+      {% endfor %}
+      {% if not conflicts and not ramp %}
+      <div class="panel muted">No conflicts. Every space has room and every scheduled group has a space and living plants.</div>
       {% endif %}
     </section>
 

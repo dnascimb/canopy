@@ -10,6 +10,8 @@ Key concepts
   finishes. Unscheduled groups can be slotted into the earliest opening.
 * A **conflict** is a space whose plant capacity is exceeded on some day, or a
   group that is flowering without any space assigned.
+* A **ramp-down** is a flowering run close enough to harvest that it should be
+  watered at half strength.
 """
 
 from __future__ import annotations
@@ -20,7 +22,7 @@ from datetime import date, timedelta
 
 from flask import current_app
 
-from ..models import Group, GroupStatus, Plant, PlantStatus, Space, Strain
+from ..models import Group, GroupStatus, Plant, PlantStatus, Space, SpaceStage, Strain
 
 
 # ---------------------------------------------------------------------------
@@ -265,6 +267,78 @@ def conflicts(
     # question — see spacing.capacity_warning() — rather than in a list of things that
     # are actually wrong with the schedule.
     return out
+
+
+# ---------------------------------------------------------------------------
+# Ramp-down: cutting water back as a run finishes
+# ---------------------------------------------------------------------------
+RAMP_DOWN_DAYS = 14
+
+
+@dataclass(frozen=True)
+class RampDown:
+    """A flowering run close enough to harvest that watering should be halved."""
+
+    unit: Group | object
+    end: date
+    days_left: int
+    plants: int
+    spread: bool  # the run's plants do not all finish on the same day
+
+    @property
+    def label(self) -> str:
+        return self.unit.label
+
+    @property
+    def when(self) -> str:
+        if self.days_left == 0:
+            return "today"
+        if self.days_left == 1:
+            return "tomorrow"
+        return f"in {self.days_left} days"
+
+    @property
+    def message(self) -> str:
+        first = ", first plants" if self.spread else ""
+        return f"{self.label} finishes {self.when}{first} — water at half the usual amount."
+
+    @property
+    def lone_plant(self) -> Plant | None:
+        """The plant, when this run is one standing outside any group — else None.
+
+        Lets a caller link to the right page without knowing what a LonePlant is.
+        """
+        return getattr(self.unit, "plant", None)
+
+
+def ramp_down(
+    units: Iterable[Group],
+    spaces: Iterable[Space],
+    *,
+    ref: date | None = None,
+    within: int = RAMP_DOWN_DAYS,
+) -> list[RampDown]:
+    """Flowering runs within *within* days of harvest, which want half water.
+
+    Only runs standing in a flowering space qualify — nothing in veg or on the clone
+    shelf is finishing anything. The trigger is the *earliest* living plant to finish,
+    not the latest: once the first plants in a run are close, the whole run is being
+    watered down together, so waiting for the last one would raise the alert too late.
+    """
+    ref = ref or today()
+    flowering = {s.id for s in spaces if s.stage == SpaceStage.flowering}
+    out: list[RampDown] = []
+    for u in units:
+        if u.space_id not in flowering:
+            continue
+        ends = [p.flower_end for p in u.living_plants if p.flower_end]
+        if not ends:
+            continue
+        first, last = min(ends), max(ends)
+        days_left = (first - ref).days
+        if 0 <= days_left <= within:
+            out.append(RampDown(u, first, days_left, len(ends), first != last))
+    return sorted(out, key=lambda r: (r.days_left, r.label))
 
 
 # ---------------------------------------------------------------------------

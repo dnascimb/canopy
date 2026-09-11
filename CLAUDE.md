@@ -66,6 +66,10 @@ rendered client-side by `static/js/timeline.js` from JSON that the templates inl
   back to current occupancy for spaces with no schedule behind them.
 * `spacing.move_plants()` sets `plant.space` **and** aligns `plant.status` with the
   destination stage; never move plants by setting `space_id` alone.
+* **A ramp-down is a reminder, not a conflict.** `scheduling.ramp_down(units, spaces)`
+  lists runs in a flowering space within `RAMP_DOWN_DAYS` (14) of harvest, so watering
+  can be halved. It fires on the *earliest* living plant to finish, not the latest, and
+  ignores anything outside a flowering space.
 * **Lineage is two things.** `Strain.lineage` is genetics as text. `Plant.parent_id`
   is the actual plant a cutting came off — `parent` / `cuttings` read both ways and
   `ancestry` climbs the line loop-safely. Deleting a mother nulls the link (SET NULL),

@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- **Half-water reminders as a run finishes.** The dashboard's Alerts panel now flags every
+  run standing in a flowering space whose harvest is within two weeks — "Franco SLH
+  finishes in 6 days — water at half the usual amount." It fires on the earliest living
+  plant to finish rather than the last, so a run whose plants finish on different days is
+  flagged when the first ones are close and the message says "first plants". Runs in veg
+  or on the clone shelf are never flagged. A lone plant gets the same reminder as a group.
+  The "schedule alerts" tile counts these alongside conflicts, though the amber warning
+  styling still belongs to conflicts alone — this is a reminder, not something wrong.
+
 - **Time in each stage.** A new Reports section showing how long each strain actually
   spends as a clone, seedling, in veg and in flower, averaged over finished runs, next to
   the flower length on its strain record and the drift between them. Built on the

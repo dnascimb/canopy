@@ -37,6 +37,7 @@ def index():
         suggestions=suggestions,
         upcoming=sched.upcoming(units, days=30, ref=ref),
         conflicts=sched.conflicts(groups, spaces, plants, ref=ref),
+        ramp=sched.ramp_down(units, spaces, ref=ref),
         occupancy=sorted(spacing.occupancy(spaces, plants).values(), key=lambda o: o.space.id),
         quick=quick,
         spaces=spaces,
