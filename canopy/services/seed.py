@@ -6,6 +6,7 @@ from datetime import date, timedelta
 
 from ..extensions import db
 from ..models import (
+    GROUP_PALETTE,
     Group,
     GroupStatus,
     Harvest,
@@ -368,7 +369,7 @@ def seed_demo() -> None:
             number=number,
             name=name,
             space=spaces.get(space) if space else None,
-            color=next_group_color(i),
+            color=next_group_color(GROUP_PALETTE[:i]),
         )
         # The group's dates are derived from its plants now, so work out the run from
         # the seed data directly and hang a flip event on each plant below.

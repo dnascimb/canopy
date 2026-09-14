@@ -74,6 +74,11 @@ def _apply_schedule(form: GroupForm, g: Group) -> str | None:
     return None
 
 
+def _colors_in_use() -> list[str]:
+    """Every colour already spoken for, so a new group never repeats one."""
+    return [c for (c,) in db.session.query(Group.color).all()]
+
+
 @bp.route("/new", methods=["GET", "POST"])
 def create():
     form = GroupForm()
@@ -81,7 +86,7 @@ def create():
     if request.method == "GET":
         last = db.session.query(db.func.max(Group.number)).scalar() or 0
         form.number.data = last + 1
-        form.color.data = next_group_color(db.session.query(Group).count())
+        form.color.data = next_group_color(_colors_in_use())
         if start := request.args.get("start"):
             form.flower_start.data = date.fromisoformat(start)
         if sid := request.args.get("space", type=int):
@@ -92,7 +97,7 @@ def create():
         else:
             g = Group()
             _apply(form, g)
-            g.color = form.color.data or next_group_color(db.session.query(Group).count())
+            g.color = form.color.data or next_group_color(_colors_in_use())
             db.session.add(g)
             db.session.flush()
             warning = _apply_schedule(form, g)

@@ -13,7 +13,9 @@ Domain summary
 
 from __future__ import annotations
 
+import colorsys
 import enum
+from collections.abc import Iterable
 from datetime import UTC, date, datetime, timedelta
 
 from sqlalchemy import CheckConstraint, UniqueConstraint
@@ -470,5 +472,34 @@ TASKS: dict[str, str] = {
 }
 
 
-def next_group_color(existing_count: int) -> str:
-    return GROUP_PALETTE[existing_count % len(GROUP_PALETTE)]
+def _spun_color(step: int) -> str:
+    """A colour off the hue circle, in the palette's tonal family.
+
+    Golden-angle steps so successive colours land far apart rather than as near-identical
+    neighbours.
+    """
+    hue = (step * 137.508 % 360) / 360
+    r, g, b = colorsys.hls_to_rgb(hue, 0.60, 0.52)
+    return f"#{round(r * 255):02x}{round(g * 255):02x}{round(b * 255):02x}"
+
+
+def next_group_color(used: Iterable[str] = ()) -> str:
+    """A colour no other group is using.
+
+    Timeline bars are told apart by colour, so two groups sharing one is a genuine
+    misread — and the old rule (palette indexed by group count, modulo its length)
+    guaranteed a collision on group 17 and broke again whenever a group was deleted.
+    The palette is still preferred, in order; past it the hue circle takes over so the
+    supply never runs out.
+    """
+    taken = {c.lower() for c in used if c}
+    for c in GROUP_PALETTE:
+        if c.lower() not in taken:
+            return c
+    step = 1
+    while step < 1000:
+        c = _spun_color(step)
+        if c.lower() not in taken:
+            return c
+        step += 1
+    return GROUP_PALETTE[0]  # pragma: no cover - 1000 distinct colours in play

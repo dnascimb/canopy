@@ -58,6 +58,10 @@ rendered client-side by `static/js/timeline.js` from JSON that the templates inl
 * "Today" comes from `scheduling.today()`, which honours `CANOPY_TODAY`. Never call
   `date.today()` directly in app code.
 * Events on the same day sort **end before start**, then by group number.
+* **Group colours must be unique.** The timeline tells bars apart by colour, so
+  `next_group_color(used)` takes the colours already in use and returns one nobody has —
+  palette first, then the hue circle at golden-angle steps. Never index `GROUP_PALETTE`
+  by a group count: that repeats on group 17 and breaks again after any deletion.
 * **Spaces have a stage** (clone / vegetative / flowering). A plant's *location* is
   `spacing.plant_location()`: explicit `plant.space`, else its group's space when
   flowering, else the first space of its stage. Harvested/killed plants are nowhere.

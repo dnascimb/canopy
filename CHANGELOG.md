@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- **Group colours are unique again.** `next_group_color()` indexed the palette by how many
+  groups existed, modulo its 16 entries — so group 17 got group 1's colour, and deleting a
+  group made the next one collide too. The real garden had 27 groups sharing 16 colours:
+  10 collisions, including Super Blue Haze and Disruptor Beam sitting next to each other on
+  the timeline in the same pink. It now takes the colours already in use and returns one
+  nobody has, preferring the palette and falling back to golden-angle steps around the hue
+  circle so it never runs out. Existing databases keep each colour's first claimant and
+  reassign the duplicates.
+
 - **Cutting one plant can take its group down.** Setting a plant to harvested by hand now
   moves its group to drying when nothing is left in flower, the same way recording a
   harvest does. Previously only the group-level harvest form did this, so cutting the last

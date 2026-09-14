@@ -81,3 +81,44 @@ def test_plant_is_alive(app):
     p = Plant(label="x", status=PlantStatus.killed)
     assert not p.is_alive
     assert Plant(label="y").is_alive
+
+
+# ---------------------------------------------------------------------------
+# Group colours: the timeline tells bars apart by colour, so they must be unique
+# ---------------------------------------------------------------------------
+def test_next_group_color_skips_what_is_taken():
+    from canopy.models import GROUP_PALETTE, next_group_color
+
+    assert next_group_color([]) == GROUP_PALETTE[0]
+    assert next_group_color([GROUP_PALETTE[0]]) == GROUP_PALETTE[1]
+    # Case and blanks must not smuggle a duplicate through.
+    assert next_group_color([GROUP_PALETTE[0].upper(), None, ""]) == GROUP_PALETTE[1]
+
+
+def test_group_colors_stay_unique_past_the_palette():
+    """The old rule indexed the palette by group count, so group 17 repeated group 1."""
+    from canopy.models import GROUP_PALETTE, next_group_color
+
+    used: list[str] = []
+    for _ in range(len(GROUP_PALETTE) * 3):
+        c = next_group_color(used)
+        assert c not in used
+        used.append(c)
+    assert len(set(used)) == len(used)
+    assert used[: len(GROUP_PALETTE)] == GROUP_PALETTE
+
+
+def test_every_demo_group_has_its_own_colour(app):
+    from canopy.models import Group
+
+    colors = [g.color for g in db.session.query(Group).all()]
+    assert len(set(colors)) == len(colors)
+
+
+def test_creating_groups_does_not_reuse_a_colour(client, app):
+    from canopy.models import Group
+
+    for n in range(900, 906):
+        client.post("/groups/new", data={"number": n, "name": f"c{n}"}, follow_redirects=True)
+    colors = [g.color for g in db.session.query(Group).all()]
+    assert len(set(colors)) == len(colors)
