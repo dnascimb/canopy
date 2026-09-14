@@ -123,7 +123,10 @@ database first, otherwise it appends. IDs are re‑mapped so relations survive.
    line shows how many square feet the group needs in flower.
 6. **Harvest.** Record a harvest for the whole group or a single plant, with a date and
    any notes. The plants it covers are marked harvested, and the group moves to *drying*
-   once nothing is left in flower — no second step.
+   once nothing is left in flower — no second step. A single plant can also be cut from
+   its own page (*Set status → harvested*), which settles the group the same way when it
+   is the last one still flowering. *Harvested* is the plant-level name for *drying*;
+   there is no separate drying status for a plant.
 7. **Details and status.** Key dates and a row of status buttons. Marking a group
    *flowering* moves its living plants to flowering (and sets today as the flip date if
    none was set); marking it *drying* or *done* moves flowering plants to harvested.
@@ -276,8 +279,9 @@ with the square feet it needs → **Schedule**.
 
 **Lose a plant.** Group page → **Kill**, or the plant page for a specific date and reason.
 
-**Harvest.** Group page → *drying* (plants become harvested) → *Record a harvest* with
-weights → later *done* to archive it from the active list.
+**Harvest.** *Record a harvest* on the group (or on one plant, or *Set status →
+harvested* from the plant page); the group moves to *drying* once nothing is left in
+flower → later *done* to archive it from the active list.
 
 **Keep your notes app current.** Schedule → *Export Markdown* and paste; or
 `flask --app wsgi export-markdown > schedule.md`.

@@ -44,8 +44,12 @@
         <dd><strong>Plant page → Mark as killed</strong>, with a date and a reason. Works at any stage.
         <div class="muted small mt">Killed plants stay on the record — out of counts and capacity, but keeping their reason so the survival and loss reports mean something.</div></dd>
 
-        <dt>Harvest</dt>
-        <dd><strong>Group page → set status {{ badge('drying') }}</strong> (or {{ badge('done') }}). Every living plant becomes {{ badge('harvested') }} and gets an end date. Then <strong>Harvest → Record a harvest</strong> to note the date and anything worth remembering.</dd>
+        <dt>Harvest the whole group</dt>
+        <dd><strong>Group page → Harvest → Record a harvest</strong>, with a date and anything worth remembering. Every plant it covers becomes {{ badge('harvested') }} with an end date, and the group moves to {{ badge('drying') }} once nothing is left in flower. Setting the group's status to {{ badge('drying') }} or {{ badge('done') }} by hand does the same to its plants.</dd>
+
+        <dt>Cut a single plant</dt>
+        <dd><strong>Plant page → Set status → {{ badge('harvested') }}</strong>, or <strong>Group page → Harvest → Record a harvest</strong> for just that plant. The rest of the group keeps flowering; when the last one is cut the group moves to {{ badge('drying') }} on its own.
+        <div class="muted small mt">{{ badge('harvested') }} is the plant's word for what the group calls {{ badge('drying') }} — a plant that has been cut and hung. There is no separate drying status for a plant.</div></dd>
       </dl>
     </div>
   </section>
