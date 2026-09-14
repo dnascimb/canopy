@@ -279,8 +279,7 @@ def set_status(plant_id: int):
         lifecycle.record(p, target, on=today)
     if target in (PlantStatus.harvested, PlantStatus.killed) and not p.ended_on:
         p.ended_on = today
-    # Drying deliberately does not set ended_on: the plant is cut but the run is not
-    # over until it comes out of the dry and is marked harvested.
+    # Cutting the last flowering plant ends the group's run, however it was cut.
     settled = lifecycle.settle_group(p.group)
     db.session.commit()
     flash(
@@ -302,7 +301,7 @@ def take_cuttings(plant_id: int):
     if not form.validate_on_submit():
         flash("Tell me how many cuttings and when they were taken.", "error")
         return redirect(url_for("plants.detail", plant_id=mother.id))
-    if not mother.is_alive or mother.status in (PlantStatus.drying, PlantStatus.harvested):
+    if not mother.is_alive or mother.status == PlantStatus.harvested:
         flash(f"{mother.label} is {mother.status.value} — nothing to cut.", "error")
         return redirect(url_for("plants.detail", plant_id=mother.id))
 

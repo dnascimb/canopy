@@ -631,55 +631,38 @@ def test_recording_a_harvest_brings_the_group_down(client):
     assert all(p.events[-1].to_status == PlantStatus.harvested for p in flowering)
 
 
-def test_a_single_plant_can_be_set_to_drying(client):
-    """One plant in a group can be cut on its own — the action Dan asked for."""
+def test_cutting_one_plant_settles_the_group_when_it_is_the_last(client):
+    """Drying and harvested are the same state, so the plant button is "harvested".
+
+    The gap was never a missing status — it was that setting a plant harvested by hand
+    left the group flowering even when nothing was left in flower.
+    """
     g = db.session.query(Group).filter_by(number=6).one()
     flowering = [p for p in g.living_plants if p.status == PlantStatus.flowering]
     assert len(flowering) > 1
-    one = flowering[0]
 
-    r = client.post(f"/plants/{one.id}/status", data={"status": "drying"}, follow_redirects=True)
-    assert r.status_code == 200
-    db.session.refresh(one)
-    assert one.status == PlantStatus.drying
-    # Cut, but the run is not over: no end date until it comes out of the dry.
-    assert one.ended_on is None
-    assert one.events[-1].to_status == PlantStatus.drying
-    # The rest of the group is untouched and still flowering.
+    # Cutting one leaves the rest going.
+    client.post(
+        f"/plants/{flowering[0].id}/status", data={"status": "harvested"}, follow_redirects=True
+    )
     db.session.refresh(g)
     assert g.status.value == "flowering"
 
-
-def test_drying_the_last_flowering_plant_settles_the_group(client):
-    g = db.session.query(Group).filter_by(number=6).one()
-    flowering = [p for p in g.living_plants if p.status == PlantStatus.flowering]
-    for one in flowering:
-        client.post(f"/plants/{one.id}/status", data={"status": "drying"}, follow_redirects=True)
+    # Cutting the last one takes the group down with it.
+    for one in flowering[1:]:
+        client.post(f"/plants/{one.id}/status", data={"status": "harvested"}, follow_redirects=True)
     db.session.refresh(g)
     assert g.status.value == "drying"
 
 
-def test_a_drying_plant_is_off_the_tent_floor(client, app):
-    """Cut plants hang somewhere, but they stop occupying a slot."""
-    from canopy.models import Space
-    from canopy.services import spacing
-
-    g = db.session.query(Group).filter_by(number=6).one()
-    one = next(p for p in g.living_plants if p.status == PlantStatus.flowering)
-    spaces = db.session.query(Space).all()
-    before = spacing.plant_location(one, spaces)
-    assert before is not None
-
-    client.post(f"/plants/{one.id}/status", data={"status": "drying"}, follow_redirects=True)
-    db.session.refresh(one)
-    assert spacing.plant_location(one, spaces) is None
-
-
-def test_plant_page_offers_the_drying_action(client):
+def test_there_is_no_separate_drying_plant_status(client):
+    """Two buttons for one state is the bug, not the feature."""
+    assert not hasattr(PlantStatus, "drying")
     g = db.session.query(Group).filter_by(number=6).one()
     one = next(p for p in g.living_plants if p.status == PlantStatus.flowering)
     html = client.get(f"/plants/{one.id}").data.decode()
-    assert 'value="drying"' in html
+    assert 'value="drying"' not in html
+    assert 'value="harvested"' in html
 
 
 def test_harvesting_one_plant_leaves_the_group_flowering(client):

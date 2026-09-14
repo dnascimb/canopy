@@ -212,7 +212,6 @@ table.sortable thead th[aria-sort="descending"]::after { content: " \2193"; }
 .lifestrip .seg.seedling { background: var(--green-soft); color: var(--green); }
 .lifestrip .seg.vegetative { background: var(--green); }
 .lifestrip .seg.flowering { background: var(--accent); }
-.lifestrip .seg.drying { background: var(--amber-soft); color: var(--accent); }
 .lifestrip .seg.harvested { background: var(--text-soft); }
 .lifestrip .seg.killed { background: var(--red); color: #fff; }
 .lifestrip-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 7px;

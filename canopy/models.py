@@ -65,9 +65,8 @@ class PlantStatus(enum.StrEnum):
     seedling = "seedling"
     vegetative = "vegetative"
     flowering = "flowering"
-    # Cut and hanging. A stage of its own, not a synonym for harvested: the plant is off
-    # the tent floor but the run is not finished until it comes out of the dry.
-    drying = "drying"
+    # Cut and hanging. The group-level word for this is "drying"; at the plant level it is
+    # the same state, so there is deliberately no separate `drying` status.
     harvested = "harvested"
     killed = "killed"
 

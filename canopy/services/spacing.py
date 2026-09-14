@@ -40,7 +40,6 @@ STAGE_FOR_STATUS: dict[PlantStatus, SpaceStage | None] = {
     PlantStatus.vegetative: SpaceStage.vegetative,
     PlantStatus.flowering: SpaceStage.flowering,
     # Cut plants are off the floor: hanging somewhere, but not occupying a tent slot.
-    PlantStatus.drying: None,
     PlantStatus.harvested: None,
     PlantStatus.killed: None,
 }
@@ -223,7 +222,7 @@ def move_plants(plants: Iterable[Plant], space: Space, *, ref: date | None = Non
     target = STATUS_FOR_STAGE[space.stage]
     n = 0
     for p in plants:
-        if p.status in (PlantStatus.drying, PlantStatus.harvested, PlantStatus.killed):
+        if p.status in (PlantStatus.harvested, PlantStatus.killed):
             continue
         if target == PlantStatus.flowering and p.flower_start is None:
             lifecycle.set_flip([p], on, space=space, note=f"Moved into {space.name}.")

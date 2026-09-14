@@ -47,12 +47,11 @@ rendered client-side by `static/js/timeline.js` from JSON that the templates inl
   timeline or in events, but does appear in "Waiting for a slot" with a suggested opening.
 * An *opening* is a group's end date unless another group in the same space starts that
   same day (the "grp1 ends / grp7 starts" convention). See `scheduling.openings()`.
-* **`drying` is a plant status, not just a group one.** A cut plant goes
-  flowering → drying → harvested. Drying sets no `ended_on` (the run is not over until it
-  comes out of the dry), maps to no space in `STAGE_FOR_STATUS` (it is off the tent floor),
-  and `move_plants()` skips it. `lifecycle.settle_group()` is the single rule that moves a
-  group to drying once nothing in it is still flowering — used by both the harvest cascade
-  and a single plant's status change.
+* **Drying and harvested are the same state.** `drying` is the *group's* word for it and
+  `harvested` is the *plant's*; there is deliberately no `PlantStatus.drying`, because two
+  buttons for one state is a bug. `lifecycle.settle_group()` is the single rule that moves
+  a group to drying once nothing in it is still flowering — used by the harvest cascade and
+  by a single plant's status change alike.
 * Killed plants stay in the database with `status=killed`, `ended_on`, `end_reason`; they
   are excluded from `living_plants`, capacity counts and strain summaries, and shown
   struck-through in the Markdown export.
