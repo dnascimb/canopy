@@ -631,6 +631,57 @@ def test_recording_a_harvest_brings_the_group_down(client):
     assert all(p.events[-1].to_status == PlantStatus.harvested for p in flowering)
 
 
+def test_a_single_plant_can_be_set_to_drying(client):
+    """One plant in a group can be cut on its own — the action Dan asked for."""
+    g = db.session.query(Group).filter_by(number=6).one()
+    flowering = [p for p in g.living_plants if p.status == PlantStatus.flowering]
+    assert len(flowering) > 1
+    one = flowering[0]
+
+    r = client.post(f"/plants/{one.id}/status", data={"status": "drying"}, follow_redirects=True)
+    assert r.status_code == 200
+    db.session.refresh(one)
+    assert one.status == PlantStatus.drying
+    # Cut, but the run is not over: no end date until it comes out of the dry.
+    assert one.ended_on is None
+    assert one.events[-1].to_status == PlantStatus.drying
+    # The rest of the group is untouched and still flowering.
+    db.session.refresh(g)
+    assert g.status.value == "flowering"
+
+
+def test_drying_the_last_flowering_plant_settles_the_group(client):
+    g = db.session.query(Group).filter_by(number=6).one()
+    flowering = [p for p in g.living_plants if p.status == PlantStatus.flowering]
+    for one in flowering:
+        client.post(f"/plants/{one.id}/status", data={"status": "drying"}, follow_redirects=True)
+    db.session.refresh(g)
+    assert g.status.value == "drying"
+
+
+def test_a_drying_plant_is_off_the_tent_floor(client, app):
+    """Cut plants hang somewhere, but they stop occupying a slot."""
+    from canopy.models import Space
+    from canopy.services import spacing
+
+    g = db.session.query(Group).filter_by(number=6).one()
+    one = next(p for p in g.living_plants if p.status == PlantStatus.flowering)
+    spaces = db.session.query(Space).all()
+    before = spacing.plant_location(one, spaces)
+    assert before is not None
+
+    client.post(f"/plants/{one.id}/status", data={"status": "drying"}, follow_redirects=True)
+    db.session.refresh(one)
+    assert spacing.plant_location(one, spaces) is None
+
+
+def test_plant_page_offers_the_drying_action(client):
+    g = db.session.query(Group).filter_by(number=6).one()
+    one = next(p for p in g.living_plants if p.status == PlantStatus.flowering)
+    html = client.get(f"/plants/{one.id}").data.decode()
+    assert 'value="drying"' in html
+
+
 def test_harvesting_one_plant_leaves_the_group_flowering(client):
     g = db.session.query(Group).filter_by(number=6).one()
     flowering = [p for p in g.living_plants if p.status == PlantStatus.flowering]

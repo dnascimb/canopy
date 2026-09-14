@@ -261,11 +261,7 @@ def add_harvest(group_id: int):
                 p.ended_on = p.ended_on or on
                 picked += 1
 
-        moved = False
-        still_flowering = any(p.status == PlantStatus.flowering for p in g.living_plants)
-        if not still_flowering and g.status not in (GroupStatus.drying, GroupStatus.done):
-            g.status = GroupStatus.drying
-            moved = True
+        moved = lifecycle.settle_group(g)
         db.session.commit()
 
         note = f"Harvest recorded — {picked} plant{'s' if picked != 1 else ''} down"

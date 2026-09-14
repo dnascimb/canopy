@@ -57,7 +57,7 @@
     {% endif %}
     <div class="row mt">
       <span class="muted small">Set status:</span>
-      {% for s in ['clone','seedling','vegetative','flowering','harvested'] %}{% if s != plant.status.value %}
+      {% for s in ['clone','seedling','vegetative','flowering','drying','harvested'] %}{% if s != plant.status.value %}
       <form class="inline" method="post" action="{{ url_for('plants.set_status', plant_id=plant.id) }}">{{ csrf() }}<input type="hidden" name="status" value="{{ s }}"><button class="btn small ghost" type="submit">{{ s }}</button></form>
       {% endif %}{% endfor %}
     </div>

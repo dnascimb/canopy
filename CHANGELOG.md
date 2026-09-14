@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- **A single plant can be set to drying.** `drying` is now a plant status in its own right,
+  sitting between flowering and harvested, with a button on the plant page alongside the
+  other transitions. Cutting one plant out of a group no longer means harvesting the whole
+  group or editing the group's status by hand. A drying plant keeps `ended_on` empty — it
+  is cut, but the run is not finished until it comes out of the dry — and stops occupying a
+  slot in the tent. When the last flowering plant in a group is cut, the group moves to
+  drying on its own. No migration needed: the status column is a plain `VARCHAR(20)` with
+  no CHECK constraint, so existing databases accept the new value as-is.
+- The "group is drying once nothing is flowering" rule now lives in one place,
+  `lifecycle.settle_group()`, shared by the harvest cascade and single-plant transitions.
+
 - **The dashboard uses the monitor, and the phone shows less.** `.main` was capped at
   1280px, so everything right of that was dead space, and the 2fr/1fr split left the
   left column ending at "Waiting for a slot" while the rail ran on — about 700px of

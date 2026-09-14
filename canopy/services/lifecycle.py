@@ -153,3 +153,20 @@ def stage_spans(plant: Plant, *, ref: date | None = None) -> list[dict]:
             }
         )
     return spans
+
+
+def settle_group(group) -> bool:
+    """Move a group to *drying* once nothing in it is still in flower.
+
+    Cutting the last flowering plant is what ends a group's run, whether that happened
+    through a harvest record or by setting one plant's status by hand. Returns True if
+    the group's status actually changed.
+    """
+    from ..models import GroupStatus, PlantStatus
+
+    if group is None or group.status in (GroupStatus.drying, GroupStatus.done):
+        return False
+    if any(p.status == PlantStatus.flowering for p in group.living_plants):
+        return False
+    group.status = GroupStatus.drying
+    return True
