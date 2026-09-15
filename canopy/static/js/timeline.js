@@ -67,7 +67,7 @@ const Timeline = (() => {
       const row = el('div', 'tl-row');
       const label = el('div', 'tl-label');
       const a = el('a', null, r.label);
-      a.href = `/groups/${r.id}`;
+      a.href = r.href || `/groups/${r.id}`;
       a.title = r.label;
       label.appendChild(a);
       row.appendChild(label);
@@ -97,7 +97,7 @@ const Timeline = (() => {
       bar.appendChild(el('span', 'txt', text));
       bar.appendChild(el('span', 'days', `${r.days}d`));
 
-      bar.addEventListener('click', () => { window.location.href = `/groups/${r.id}`; });
+      bar.addEventListener('click', () => { window.location.href = r.href || `/groups/${r.id}`; });
       bar.addEventListener('mouseenter', (ev) => {
         const dof = r.day_of_flower ? ` · day ${r.day_of_flower}` : '';
         tip.innerHTML = `<strong>${escape(r.label)}</strong>` +

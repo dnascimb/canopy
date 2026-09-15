@@ -225,3 +225,24 @@ def test_ramp_down_covers_a_plant_standing_on_its_own(app):
     solo = next(r for r in rows if r.label == "solo")
     assert solo.days_left == 6
     assert solo.lone_plant is p
+
+
+def test_timeline_rows_link_a_lone_plant_to_its_own_page(app):
+    """A lone plant is not a group, so "/groups/<id>" was a 404 on every one of them."""
+    p = Plant(
+        label="solo",
+        strain=db.session.query(Strain).first(),
+        space=db.session.query(Space).filter_by(name="Flower Room").one(),
+    )
+    db.session.add(p)
+    from canopy.services import lifecycle
+
+    lifecycle.set_flip([p], date(2026, 8, 1), days=60)
+    db.session.commit()
+
+    rows = sched.timeline_rows(units(), ref=REF)
+    solo = next(r for r in rows if r["label"] == "solo")
+    assert solo["href"] == f"/plants/{p.id}"
+    assert all(r["href"] == f"/groups/{r['id']}" for r in rows if r["label"] != "solo")
+    # And it is not the same grey as every other lone plant.
+    assert solo["color"] != "#9e9e9e"

@@ -22,7 +22,16 @@ from datetime import date, timedelta
 
 from flask import current_app
 
-from ..models import Group, GroupStatus, Plant, PlantStatus, Space, SpaceStage, Strain
+from ..models import (
+    Group,
+    GroupStatus,
+    Plant,
+    PlantStatus,
+    Space,
+    SpaceStage,
+    Strain,
+    _spun_color,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -63,7 +72,17 @@ class LonePlant:
 
     @property
     def color(self) -> str:
-        return "#9e9e9e"
+        """Its own colour, deterministic from the plant id.
+
+        Every lone plant used to be the same grey, which is the same misread as two groups
+        sharing a colour: the timeline tells rows apart by colour. The offset keeps these
+        clear of the handful of generated colours groups draw from.
+        """
+        return _spun_color(1000 + (self.plant.id or 0))
+
+    @property
+    def href(self) -> str:
+        return f"/plants/{self.plant.id}"
 
     @property
     def status(self) -> GroupStatus:
@@ -158,6 +177,9 @@ def timeline_rows(groups: Iterable[Group], *, ref: date | None = None) -> list[d
         rows.append(
             {
                 "id": g.id,
+                # A lone plant is not a group, so it cannot be linked as one. Callers used
+                # to build "/groups/<id>" from the id above and 404 on every lone plant.
+                "href": getattr(g, "href", None) or f"/groups/{g.id}",
                 "number": g.number,
                 "label": g.label,
                 "start": g.flower_start.isoformat(),

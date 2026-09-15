@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **Timeline rows link to the right page.** A scheduled plant with no group appeared on the
+  timeline like a group of one, but the row carried only an id and the renderer built
+  `/groups/<id>` from it — so every lone plant 404'd. Rows now carry an explicit `href`.
+- **Lone plants get their own colour** instead of all sharing one grey, for the same reason
+  groups do: the timeline tells rows apart by colour.
+
 - **Group colours are unique again.** `next_group_color()` indexed the palette by how many
   groups existed, modulo its 16 entries — so group 17 got group 1's colour, and deleting a
   group made the next one collide too. The real garden had 27 groups sharing 16 colours:
