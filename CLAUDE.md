@@ -43,6 +43,9 @@ rendered client-side by `static/js/timeline.js` from JSON that the templates inl
 * A scheduled plant with no group is a `scheduling.LonePlant`, shown on the timeline and
   in events like a group of one. Build the list with `scheduling.scheduled_units()`.
 * `day_of_flower` is 1-based (flip day is day 1).
+* **A flip dated in the future is a plan, not a transition.** `lifecycle.set_flip()`
+  writes the event either way, so the timeline and `flower_start` are right, but it
+  only changes `status`/`space` when the date has arrived.
 * A group or plant with `flower_start is None` is *unscheduled*; it never appears on the
   timeline or in events, but does appear in "Waiting for a slot" with a suggested opening.
 * An *opening* is a group's end date unless another group in the same space starts that

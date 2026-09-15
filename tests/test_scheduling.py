@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 
 from canopy.extensions import db
 from canopy.models import Group, Plant, Space, Strain
@@ -246,3 +246,30 @@ def test_timeline_rows_link_a_lone_plant_to_its_own_page(app):
     assert all(r["href"] == f"/groups/{r['id']}" for r in rows if r["label"] != "solo")
     # And it is not the same grey as every other lone plant.
     assert solo["color"] != "#9e9e9e"
+
+
+def test_a_future_flip_does_not_move_plants_yet(app):
+    """Scheduling a tray of unrooted clones must not put them in the flower tent today."""
+    from canopy.models import PlantStatus, Space
+    from canopy.services import lifecycle
+
+    shelf = db.session.query(Space).filter_by(name="Clone Shelf").one()
+    flower = db.session.query(Space).filter_by(name="Flower Room").one()
+    p = Plant(
+        label="unrooted",
+        strain=db.session.query(Strain).first(),
+        status=PlantStatus.clone,
+        space=shelf,
+    )
+    db.session.add(p)
+    lifecycle.set_flip([p], REF + timedelta(days=11), space=flower)
+    db.session.commit()
+
+    assert p.status == PlantStatus.clone  # still a clone today
+    assert p.space_id == shelf.id  # still on the shelf
+    assert p.flower_start == REF + timedelta(days=11)  # but the plan is recorded
+
+    # A flip dated today or earlier still moves it.
+    lifecycle.set_flip([p], REF, space=flower)
+    db.session.commit()
+    assert p.status == PlantStatus.flowering and p.space_id == flower.id

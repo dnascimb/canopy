@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **A flip dated in the future no longer moves plants today.** `lifecycle.set_flip()` set
+  `status=flowering` and the destination space immediately, whatever the date — so
+  scheduling a group put its plants in the flower tent at once. Scheduling 38 unrooted EQ
+  Haze clones for Sep 26 pushed the flower room to 74 plants against a capacity of 36 while
+  the cuttings were still sitting in the tray. The event is still written, so the timeline
+  and `flower_start` are unchanged; only the status and location wait for the day.
+
 - **Timeline rows link to the right page.** A scheduled plant with no group appeared on the
   timeline like a group of one, but the row carried only an id and the renderer built
   `/groups/<id>` from it — so every lone plant 404'd. Rows now carry an explicit `href`.

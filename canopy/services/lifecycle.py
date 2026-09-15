@@ -69,6 +69,12 @@ def born(
     return event
 
 
+def _today() -> date:
+    from . import scheduling
+
+    return scheduling.today()
+
+
 def set_flip(
     plants: Iterable[Plant],
     on: date,
@@ -99,9 +105,14 @@ def set_flip(
                 note=note,
             )
         )
-        p.status = PlantStatus.flowering
-        if space is not None:
-            p.space = space
+        # A flip dated in the future is a plan, not a transition. The event is still
+        # written, so the timeline and flower_start are right, but the plant keeps its
+        # current status and location until the day arrives — otherwise scheduling a tray
+        # of unrooted clones drops them into the flower tent today.
+        if on <= _today():
+            p.status = PlantStatus.flowering
+            if space is not None:
+                p.space = space
         if days is not None:
             p.flower_days_override = days
         n += 1
