@@ -22,7 +22,7 @@ request ─▶ blueprint (canopy/blueprints/*.py)
                │  query models, validate forms
                ▼
            services/scheduling.py   pure functions: events, rows, openings, conflicts, exports
-           services/spacing.py      locations, footprints, occupancy, fit estimates, load series
+           services/spacing.py      locations, occupancy, moves, load series
            services/reports.py      per-strain / per-group aggregations
            services/transfer.py     JSON dump / load
                │
@@ -72,7 +72,7 @@ Space 1 ──< Group 1 ──< Plant >── 1 Strain
 
 | Table | Key columns | Notes |
 | --- | --- | --- |
-| `spaces` | `name` (unique), `stage` (clone/vegetative/flowering), `width_ft`, `length_ft`, `capacity ≥ 1` (user maximum), `notes` | `area_sqft` is derived. Deleting a space nulls `groups.space_id` and `plants.space_id`. |
+| `spaces` | `name` (unique), `stage` (clone/vegetative/flowering), `also_hosts` (extra stages, CSV), `capacity ≥ 1` (plants it holds), `notes` | No dimensions: a space is a location, not a floor plan. `hosts`/`can_host()` read stage + also_hosts. Deleting a space nulls `groups.space_id` and `plants.space_id`. |
 | `strains` | `name`, `breeder`, `lineage`, `seed_type` (regular/feminized/autoflower/clone), `flower_days ≥ 1`, `seeds_on_hand ≥ 0`, `size` (small/medium/large), `expression` (sativa/haze/indica/hybrid, nullable), `notes` | Unique on (`name`, `breeder`). Cannot be deleted while it has plants. |
 | `groups` | `number` (unique int), `name` (optional), `space_id`, `status`, `color` (#rrggbb), `notes` | **No date columns.** `flower_start` / `flower_end` / `flower_days` are properties spanning the group's plants. Deleting a group unassigns its plants; harvests and journal entries cascade. |
 | `plants` | `label`, `strain_id`, `group_id` (nullable), `space_id` (nullable explicit location), `status`, `started_on`, `ended_on`, `end_reason`, `flower_days_override` (nullable), `parent_id` (nullable self-reference, SET NULL), `notes` | Killed plants are retained. `parent` / `cuttings` walk the propagation line; `ancestry` climbs it, loop-safe. `flower_start` is derived from `plant_events`; `flower_days` falls back to the strain. |
@@ -137,11 +137,16 @@ decisions worth knowing:
 `RampDown.lone_plant` is the `Plant` when the unit is a `LonePlant`, else `None`, so a
 caller can link to the right page without knowing what a `LonePlant` is.
 
-Space capacity is deliberately absent: it is an estimate from footprints and dimensions,
-so it is reported by `spacing.capacity_warning()` against the space itself rather than in
-this list. Capacity is evaluated only at each distinct start/end date in that space (the
-occupancy step function can only change there), counting living plants of groups flowering
-on that day, and falls back to current occupancy where no schedule applies.
+Space capacity is deliberately absent from this list: it is a number the grower sets,
+reported by `spacing.capacity_warning()` against the space itself. It is evaluated only at
+each distinct start/end date in that space (the occupancy step function can only change
+there), counting living plants of groups flowering on that day, and falls back to current
+occupancy where no schedule applies.
+
+There is no floor-area model. Square footage per plant used to be derived from the strain's
+size class and the room's stage; it was wrong by 17x for 38 clones in 16oz cups and could
+not be fixed, since a plant graduates between 16oz, 32oz and 1–3 gallon pots at any stage.
+`Plant.container` records the pot as a fact about the plant and drives nothing.
 
 **`implied_status(group)`** — what the calendar says: planned/vegetative if unscheduled,
 vegetative before the flip, flowering inside the window, drying after. The group page

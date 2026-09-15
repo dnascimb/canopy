@@ -16,9 +16,9 @@ Screenshots use the demo season (`flask --app wsgi seed-demo`) with today pinned
 | **Group** | A batch of plants flipped to flower together. Has a number (Grp 1, Grp 2…) or a name (Goji 3x). |
 | **Flip** | The day a group goes to 12/12. Stored as *flower start*. |
 | **Flower days** | Days from flip to harvest. The harvest (end) date is always `flip + flower days`. |
-| **Space** | A shelf, tent or room with a **stage** (clone, vegetative, flowering), dimensions and a maximum plant count. |
+| **Space** | A shelf, tent or room with a **stage** (clone, vegetative, flowering), any extra stages it doubles up for, and the number of plants it holds. |
 | **Location** | Where a plant is right now. Set it explicitly, or Canopy infers it: clones and seedlings on the clone-stage space, veg plants in the veg-stage space, flowering plants in their group's space. |
-| **Size class** | Per strain: small, medium or large. With the space's stage it sets the plant's footprint in square feet, which is how Canopy estimates how many fit. |
+| **Container** | Per plant: 16oz, 32oz, 1gal, 2gal or 3gal. Recorded as a fact — Canopy does not compute floor area from it. |
 | **Opening** | A date a space frees up because a group finishes and nothing starts that day. |
 | **Status** | Group: planned → vegetative → flowering → drying → done. Plant: clone, seedling, vegetative, flowering, harvested, killed. |
 | **Task** | A checkbox in the quick log: watered, fed, pest/mold treatment, defoliated, trained, transplanted, flushed, took clones, cleaned. |
@@ -198,26 +198,25 @@ deleted (delete the plants first) so history is never lost by accident.
 
 ![Spaces planner, annotated](screenshots/spaces_annotated.png)
 
-1. **One card per space**, ordered clone → veg → flower. Each shows stage, dimensions,
-   maximum, a load bar (square feet in use, or plant count when there are no dimensions),
-   how many *more* plants of each size fit right now, how many would fit empty, and which
-   groups are in it. A space in breach — now or on a projected future date — gets a red
-   **over capacity** label with the reason, and its border and load bar turn red.
-2. **Load over the season** for each flowering space: square feet in use at every flip
-   and harvest, the tent's area as a dashed capacity line, today in red. Peaks above the
-   line are what drive the over-capacity label on the card.
-3. **Coming up.** Every group that hasn't flipped yet, the square feet it will need in
-   flower, whether that fits today, and the next opening. **Schedule** accepts the
-   suggested date for unscheduled groups.
-4. **Spacing rules** in effect (square feet per plant by stage and size class). Adjust
-   with `CANOPY_FOOTPRINT_*`; set each strain's size class in the inventory.
+1. **One card per space**, ordered clone → veg → flower. Each shows its stage and any
+   extra stages it doubles up for, how many plants it holds, a load bar, how many more
+   fit right now, and which groups are in it. A space over its count — now or on a
+   projected future date — gets a red **over capacity** label with the reason, and its
+   border and load bar turn red.
+2. **Load over the season** for each flowering space: plant count at every flip and
+   harvest, the space's capacity as a dashed line, today in red. Peaks above the line are
+   what drive the over-capacity label on the card.
+3. **Coming up.** Every group that hasn't flipped yet, how many plants it will bring,
+   whether that fits today, and the next opening. **Schedule** accepts the suggested date
+   for unscheduled groups.
 
 ### Setting up your spaces
 
-Add one space per physical area — for example a clone shelf (stage *clone*, 4 × 1.5 ft,
-max 40), a 2 × 4 veg tent (stage *vegetative*, max 12) and a 5 × 10 flower tent (stage
-*flowering*, max 36). The maximum is a hard cap; the area estimate is a guide. Edit either
-at any time from the space's **Edit** button.
+Add one space per physical area — for example a clone shelf (stage *clone*, holds 72), a
+veg tent (stage *vegetative*, holds 32) and a flower tent (stage *flowering*, holds 36).
+How many fit is your number, not a calculation. If a space doubles up — a clone shelf that
+is also where a male drops pollen and where veg overflows — tick those stages under **Also
+used for**, and plants moved there keep the stage they are already in.
 
 ### Moving plants through the tents
 

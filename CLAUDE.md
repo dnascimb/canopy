@@ -68,16 +68,24 @@ rendered client-side by `static/js/timeline.js` from JSON that the templates inl
 * **Spaces have a stage** (clone / vegetative / flowering). A plant's *location* is
   `spacing.plant_location()`: explicit `plant.space`, else its group's space when
   flowering, else the first space of its stage. Harvested/killed plants are nowhere.
-* **Footprints** (sq ft per plant) are `spacing.footprint_table()`: defaults in
-  `DEFAULT_FOOTPRINT_SQFT` overridden by `app.config["FOOTPRINT_SQFT"]` (from
-  `CANOPY_FOOTPRINT_*`). A space's effective capacity is `min(max plants, area ÷ footprint)`.
+* **No floor area.** A space is a loose location, not a modelled floor plan: a name, a
+  stage, what else it doubles up for, and a plant cap. There are no dimensions and no
+  per-plant square footage — that was a guess from the strain's size class and the room's
+  stage, wrong by 17x for a tray of clones in 16oz cups, and unfixable because a plant
+  graduates between pot sizes at any stage. Track counts, states and locations.
+* **A space can host several stages.** `Space.stage` is what it is mainly for,
+  `Space.also_hosts` lists the rest, and `Space.hosts` / `can_host()` read both.
+* `Plant.container` (16oz / 32oz / 1gal / 2gal / 3gal) records what a plant is potted in.
+  It is a fact about the plant, never an input to a calculation.
 * Capacity is **not** a conflict. `spacing.capacity_warning(space, groups, occ)` returns
-  the reason a space is in breach and the spaces page shows it as a red label on that
-  space; `conflicts()` reports only genuinely broken schedules. It reads the projected
-  peak from `load_series()` **on or after today** (history is not a warning) and falls
-  back to current occupancy for spaces with no schedule behind them.
-* `spacing.move_plants()` sets `plant.space` **and** aligns `plant.status` with the
-  destination stage; never move plants by setting `space_id` alone.
+  why a space is over the plant count it holds and the spaces page shows it as a red label;
+  `conflicts()` reports only genuinely broken schedules. It reads the projected peak from
+  `load_series()` **on or after today** (history is not a warning) and falls back to current
+  occupancy for spaces with no schedule behind them.
+* `spacing.move_plants()` sets `plant.space` and aligns `plant.status` with the destination
+  stage **unless the space can already host that stage**, in which case the move is a
+  relocation and the status is left alone — a flowering male parked on the clone shelf for
+  pollen stays flowering. Never move plants by setting `space_id` alone.
 * **A ramp-down is a reminder, not a conflict.** `scheduling.ramp_down(units, spaces)`
   lists runs in a flowering space within `RAMP_DOWN_DAYS` (14) of harvest, so watering
   can be halved. It fires on the *earliest* living plant to finish, not the latest, and

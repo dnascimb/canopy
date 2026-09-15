@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+- **Square footage is gone.** Spaces no longer have dimensions and plants no longer have a
+  computed floor area. The old model guessed square feet from the strain's size class and
+  the room's stage — wrong by 17x for 38 clones in 16oz cups, and unfixable, because a
+  plant graduates between 16oz, 32oz and 1–3 gallon pots at any stage, for space or for
+  health. A space is a location with a name, a stage and a plant cap; Canopy tracks counts,
+  states and locations. `Space.width_ft`/`length_ft`, `area_sqft`, the footprint tables and
+  `CANOPY_FOOTPRINT_*` are removed, along with the sq ft columns in the API and backups.
+- **A space can double up.** `Space.also_hosts` lets one space serve several stages, so a
+  clone shelf can also be pollen collection and veg overflow. Moving a plant somewhere that
+  already suits it keeps its status instead of resetting it.
+- **`Plant.container`** records the pot (16oz / 32oz / 1gal / 2gal / 3gal) as a plain fact,
+  shown on the plant page and editable on its form.
+
+  Existing databases need:
+  `ALTER TABLE spaces ADD COLUMN also_hosts VARCHAR(60)`,
+  `ALTER TABLE plants ADD COLUMN container VARCHAR(10)`,
+  `ALTER TABLE spaces DROP COLUMN width_ft`, `ALTER TABLE spaces DROP COLUMN length_ft`.
+
 - **A flip dated in the future no longer moves plants today.** `lifecycle.set_flip()` set
   `status=flowering` and the destination space immediately, whatever the date — so
   scheduling a group put its plants in the flower tent at once. Scheduling 38 unrooted EQ

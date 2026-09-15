@@ -44,7 +44,7 @@ curl -s -X PATCH localhost:5000/api/v1/groups/17 \
   -d '{"flower_start": "2026-10-25", "space_id": 1, "status": "vegetative"}'
 
 # How full is each tent right now?
-curl -s localhost:5000/api/v1/spaces | jq '.[] | {name, plants, used_sqft, area_sqft, room_for}'
+curl -s localhost:5000/api/v1/spaces | jq '.[] | {name, stage, also_hosts, count, capacity, room_for}'
 
 # Nightly backup
 curl -s localhost:5000/api/v1/export > "canopy-$(date +%F).json"
@@ -97,7 +97,7 @@ curl -s localhost:5000/api/v1/export > "canopy-$(date +%F).json"
 ```json
 {
   "id": 3, "name": "Flower Room", "stage": "flowering",
-  "width_ft": 5.0, "length_ft": 10.0, "area_sqft": 50.0, "capacity": 36,
+  "also_hosts": [], "capacity": 36,
   "plants": 10, "used_sqft": 25.5, "load": 0.51,
   "fits": {"small": 33, "medium": 22, "large": 16},
   "room_for": {"small": 16, "medium": 10, "large": 8}
