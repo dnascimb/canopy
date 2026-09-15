@@ -42,7 +42,7 @@ Screenshots use the demo season (`flask --app wsgi seed-demo`) with today pinned
 6. **Log today.** One section per space. Tick what you did in that tent, add an optional
    note, **Log**. The entry's title is built from the ticks. Nothing is required beyond
    saying something — a bare note is a valid entry.
-7. **Spaces.** Every space with its plant count and square feet in use. Red when over
+7. **Spaces.** Every space with how many of its plants it is holding. Red when over
    capacity. Links to the planner.
 8. **Next 30 days.** Upcoming milestones: green dot = flip, amber dot = harvest.
 9. **Alerts.** Groups scheduled without a space or without living plants, and status/date
@@ -120,7 +120,7 @@ database first, otherwise it appends. IDs are re‑mapped so relations survive.
 5. **Move all living plants to…** one action to walk a whole group from the clone shelf
    to the veg tent to the flower tent. Plant statuses follow the destination stage; moving
    into a flower space also sets the group's space and flip date if they were blank. The
-   line shows how many square feet the group needs in flower.
+   line shows how many plants the group will bring to flower.
 6. **Harvest.** Record a harvest for the whole group or a single plant, with a date and
    any notes. The plants it covers are marked harvested, and the group moves to *drying*
    once nothing is left in flower — no second step. A single plant can also be cut from
@@ -182,7 +182,7 @@ buttons for the normal lifecycle.
    expression, breeder and flower-length filters. They stack: each one narrows what the
    others left.
 2. **Add strain.**
-3. **Table.** Seed type badge, expression (sativa / haze / indica / hybrid), size class,
+3. **Table.** Seed type badge, expression (sativa / haze / indica / hybrid), size,
    default flower days (copied into groups you plan), seeds on hand and the number of
    plants ever grown from the strain. Click any column header to sort by it; the default
    is strain name A–Z.
@@ -247,7 +247,7 @@ the fast path.
 1. **Survival per strain** (harvested ÷ finished) and **why plants were lost**, from
    kill reasons.
 2. The flower tent's load chart over the season, then a full per-strain table
-   (size class, grown, harvested, killed, survival, groups).
+   (grown, harvested, killed, survival, groups).
 
 ## Print view
 
@@ -265,10 +265,10 @@ panel.
 
 ## Everyday workflows
 
-**Plan the next run.** Inventory → pick strains (check their size class) → Groups →
+**Plan the next run.** Inventory → pick strains → Groups →
 *New group* (leave the date blank) → *Add plant* for each seed you pop → the group appears
 under *Waiting for a slot* with a suggested date and in the planner's *Coming up* table
-with the square feet it needs → **Schedule**.
+with the plants it will bring → **Schedule**.
 
 **Daily.** Dashboard → *Log today* → pick the tent, tick watered / fed → **Log**. Ten seconds.
 

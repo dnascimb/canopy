@@ -16,7 +16,7 @@
 </svg>
 {% endmacro %}
 
-{% macro steps(series, cap=None, width=680, height=160, ref=None, unit=' sq ft') %}
+{% macro steps(series, cap=None, width=680, height=160, ref=None, unit=' plants') %}
 {#- series: list of dicts with date (ISO) and count. Step chart of load over time. -#}
 {% if series %}
 {% set pad_l = 40 %}{% set pad_r = 12 %}{% set pad_t = 10 %}{% set pad_b = 26 %}

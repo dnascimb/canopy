@@ -4,7 +4,7 @@
 {% block title %}Spaces{% endblock %}
 {% block content %}
 <div class="page-head">
-  <div><h1>Spaces & planner</h1><p class="sub">Where every plant is today, how much room is left, and what fits next. Capacity is estimated from each space's area and the size class of the plants in it, then capped by the maximum you set.</p></div>
+  <div><h1>Spaces & planner</h1><p class="sub">Where every plant is today and how much room is left. A space is a location: it holds the number of plants you say it does.</p></div>
   <div class="actions"><a class="btn primary" href="{{ url_for('spaces.create') }}">Add space</a></div>
 </div>
 
@@ -37,7 +37,7 @@
 
 {% for s in spaces if s.stage.value == 'flowering' %}
 <section>
-  <div class="section-head"><h2>{{ s.name }} load over the season</h2><span class="hint">projected from the schedule · square feet in use</span></div>
+  <div class="section-head"><h2>{{ s.name }} load over the season</h2><span class="hint">projected from the schedule · plants in the space</span></div>
   <div class="panel">{{ steps(series[s.id], cap=s.capacity, ref=ref) }}</div>
 </section>
 {% endfor %}

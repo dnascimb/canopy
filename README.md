@@ -16,7 +16,7 @@ comes down, which slots free up next, and where a waiting group could go.
 | **Groups** | Create batches, set flip date and flower days, assign a space, track status (planned → vegetative → flowering → drying → done), record harvests — which bring the plants down and start the group drying — and journal entries. |
 | **Plants** | Individual plants of a strain in a group, with status, start/end dates, kill reason, notes; filter by status, group or strain. |
 | **Inventory** | Strains with breeder, lineage, seed type, expression (sativa/haze/indica/hybrid), default flower days and seed count with +/− adjusters. Search plus stacking filters on type, expression, breeder and flower length; every column sorts. |
-| **Spaces & planner** | Clone shelf, veg tent, flower tent — each with a stage, dimensions and a maximum. Canopy shows where every plant is, how much room is left, how many more fit (by strain size class), a season load chart for the flower tent, what each waiting group needs, and a red **over capacity** label on any room in breach now or on a projected date. |
+| **Spaces & planner** | Clone shelf, veg tent, flower tent — each with a stage, any extra stages it doubles up for, and the number of plants it holds. Canopy shows where every plant is, how much room is left, a season load chart for the flower tent, what each waiting group will bring, and a red **over capacity** label on any space over its count now or on a projected date. There is no floor-area model: how many fit is your number. |
 | **Journal & quick log** | A log section per space on the dashboard — tick what you did in that tent, add a note and a photo, done. Plus longer dated notes, filterable by space and task. Free-form: nothing in the journal feeds the schedule or any report. |
 | **Reports** | Survival per strain, why plants were lost, tent load over the season. |
 | **Help** | Every lifecycle transition and the exact control for it, written against your own space names. |
@@ -53,7 +53,6 @@ All settings are environment variables (see `.env.example`):
 | `CANOPY_DATABASE_URL` | `sqlite:///instance/canopy.db` | Any SQLAlchemy URL (SQLite, PostgreSQL, MySQL). |
 | `CANOPY_TODAY` | real date | Pin "today" (`YYYY-MM-DD`) for demos, screenshots and deterministic tests. |
 | `CANOPY_DEFAULT_FLOWER_DAYS` | `70` | Default flower length for new groups and strains. |
-| `CANOPY_FOOTPRINT_CLONE` / `_VEG` / `_FLOWER` | `0.1,0.15,0.2` / `0.5,0.75,1` / `1.5,2.25,3` | Square feet per plant for small, medium, large strains at each stage — drives the planner's fit estimates. |
 
 ## Command line
 
@@ -86,7 +85,7 @@ canopy/                 application package (Flask app factory in __init__.py)
   cli.py                flask CLI commands
   services/
     scheduling.py       events, timeline rows, openings, suggestions, conflicts, exports
-    spacing.py          plant locations, footprints, occupancy, fit estimates, load series
+    spacing.py          plant locations, occupancy, moves, load series
     reports.py          per-strain and per-group aggregations
     transfer.py         JSON backup / restore
     seed.py             demo dataset

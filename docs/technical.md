@@ -160,22 +160,21 @@ table, ASCII timeline in a code fence.
 
 ## Space planning (services/spacing.py)
 
-**Footprints.** `DEFAULT_FOOTPRINT_SQFT[stage][size]` gives square feet per plant;
-`footprint_table()` overlays `app.config["FOOTPRINT_SQFT"]` (built in `config.py` from
-`CANOPY_FOOTPRINT_CLONE/_VEG/_FLOWER = "small,medium,large"`).
-
 **Location.** `plant_location(plant, spaces)`: `None` for harvested/killed; otherwise the
 explicit `plant.space`, else the group's space for flowering plants, else the first space
 whose stage matches the plant's status (`STAGE_FOR_STATUS`).
 
 **Occupancy.** `occupancy(spaces, plants)` buckets living plants by location into
-`Occupancy` objects with `count`, `used_sqft` (sum of footprints at the *space's* stage),
-`load` (area-based when dimensions exist, else count ÷ maximum), `over`, `fits(size)` =
-`min(maximum, ⌊area ÷ footprint⌋)` and `room_for(size)` = the same on the remaining area
-and remaining count.
+`Occupancy` objects with `count`, `load` (count ÷ the plants the space holds), `over` and
+`room_for()`. No square footage: see the note above.
+
+**Hosting.** `Space.stage` is what a space is mainly for and `Space.also_hosts` lists the
+rest; `hosts` / `can_host()` read both. `move_plants()` leaves a plant's status alone when
+the destination can already host that stage, so a flowering male parked on the clone shelf
+stays flowering; otherwise the space's own stage wins.
 
 **Load series.** `load_series(space, groups, ref)` evaluates the schedule at every flip
-and harvest date in that space (plus today) and returns `{date, count, sqft, groups}`
+and harvest date in that space (plus today) and returns `{date, count, groups}`
 points. `peak(series, since=today)` is what `capacity_warning()` uses; the chart shows the full
 series with the space's area as the capacity line.
 
@@ -264,9 +263,9 @@ tests/test_routes.py    every page renders, CRUD flows, duplicate numbers, sugge
                         kill + status, status cascade, harvest/journal, search, backup/restore
 tests/test_api.py       health, timeline, events/openings/conflicts, groups + PATCH, exports
 tests/test_cli.py       init-db, seed-demo, export-markdown, export-json
-tests/test_spacing.py   area/dimensions, footprint overrides, location rules, occupancy/fits,
-                        cap vs area, load series & peak, area-based conflicts, moves (service
-                        and routes), planner page, quick log, task filter, last-done, reports,
+tests/test_spacing.py   location rules, occupancy counts, spaces that host several
+                        stages, load series & peak, capacity labels, moves (service and
+                        routes), planner page, quick log, task filter, last-done, reports,
                         spaces API, backup round-trip of new fields
 ```
 
