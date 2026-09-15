@@ -6,7 +6,6 @@ from flask_wtf import FlaskForm
 from flask_wtf.file import FileAllowed, FileField
 from wtforms import (
     DateField,
-    FloatField,
     IntegerField,
     SelectField,
     SelectMultipleField,
@@ -16,7 +15,16 @@ from wtforms import (
 from wtforms.validators import DataRequired, Length, NumberRange, Optional, Regexp
 from wtforms.widgets import CheckboxInput, ListWidget
 
-from .models import TASKS, Expression, GroupStatus, PlantSize, PlantStatus, SeedType, SpaceStage
+from .models import (
+    TASKS,
+    Container,
+    Expression,
+    GroupStatus,
+    PlantSize,
+    PlantStatus,
+    SeedType,
+    SpaceStage,
+)
 
 
 def _choices(enum_cls, blank: str | None = None):
@@ -28,10 +36,8 @@ class SpaceForm(FlaskForm):
     name = StringField("Name", validators=[DataRequired(), Length(max=80)])
     stage = SelectField("Stage", choices=_choices(SpaceStage), default="flowering")
     also_hosts = SelectMultipleField("Also used for", choices=_choices(SpaceStage))
-    width_ft = FloatField("Width (ft)", validators=[Optional(), NumberRange(min=0.1, max=1000)])
-    length_ft = FloatField("Length (ft)", validators=[Optional(), NumberRange(min=0.1, max=1000)])
     capacity = IntegerField(
-        "Maximum plants", validators=[DataRequired(), NumberRange(min=1, max=10_000)], default=1
+        "Plants it holds", validators=[DataRequired(), NumberRange(min=1, max=10_000)], default=1
     )
     notes = TextAreaField("Notes", validators=[Optional()])
 
@@ -83,6 +89,11 @@ class PlantForm(FlaskForm):
     # Most plants are added the day they start: from seed, or as a cutting. "Take a
     # cutting" overrides this to clone.
     status = SelectField("Status", choices=_choices(PlantStatus), default="seedling")
+    container = SelectField(
+        "Container",
+        choices=[("", "— not recorded —"), *_choices(Container)],
+        validators=[Optional()],
+    )
     started_on = DateField("Started on", validators=[Optional()])
     ended_on = DateField("Ended on", validators=[Optional()])
     end_reason = StringField("End reason", validators=[Optional(), Length(max=255)])

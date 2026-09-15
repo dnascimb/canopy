@@ -85,7 +85,7 @@ def test_capacity_is_not_a_schedule_conflict(app):
     db.session.commit()
     assert sched.conflicts(groups(), [room], ref=REF) == []
     warn = spacing.capacity_warning(room, groups(), ref=REF)
-    assert warn is not None and "over the 5 maximum" in warn
+    assert warn is not None and "over the 5 it holds" in warn
 
 
 def test_conflict_scheduled_without_a_space(app):

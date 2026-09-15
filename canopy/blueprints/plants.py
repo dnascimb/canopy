@@ -16,7 +16,16 @@ from markupsafe import Markup, escape
 
 from ..extensions import db
 from ..forms import KillPlantForm, MoveForm, PlantForm, TakeCuttingsForm
-from ..models import Group, Plant, PlantStatus, SeedType, Space, SpaceStage, Strain
+from ..models import (
+    Container,
+    Group,
+    Plant,
+    PlantStatus,
+    SeedType,
+    Space,
+    SpaceStage,
+    Strain,
+)
 from ..services import lifecycle, spacing
 from ..services import scheduling as sched
 
@@ -141,6 +150,7 @@ def create():
             space_id=form.space_id.data or None,
             parent_id=form.parent_id.data or None,
             started_on=form.started_on.data,
+            container=Container(form.container.data) if form.container.data else None,
             notes=form.notes.data or None,
         )
         db.session.add(p)
@@ -205,6 +215,7 @@ def edit(plant_id: int):
         form.parent_id.data = p.parent_id or 0
         form.strain.data = p.strain.name
         form.lineage.data = p.strain.lineage
+        form.container.data = p.container.value if p.container else ""
     if form.validate_on_submit():
         status = PlantStatus(form.status.data)
         strain, created = _resolve_strain(form.strain.data, status, form.lineage.data)
@@ -215,6 +226,7 @@ def edit(plant_id: int):
         p.group_id = form.group_id.data or None
         p.space_id = form.space_id.data or None
         p.started_on = form.started_on.data
+        p.container = Container(form.container.data) if form.container.data else None
         p.ended_on = form.ended_on.data
         p.end_reason = form.end_reason.data or None
         p.notes = form.notes.data or None

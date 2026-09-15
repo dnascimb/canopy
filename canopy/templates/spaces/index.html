@@ -15,16 +15,15 @@
   {% set warn = breach[s.id] %}
   <div class="flower-card space-card {{ 'over' if warn }}" style="border-left-color: {{ 'var(--red)' if warn else ('var(--green)' if s.stage.value == 'flowering' else ('var(--blue)' if s.stage.value == 'vegetative' else 'var(--accent)')) }}">
     <div class="title"><span style="font-weight:600">{{ s.name }}</span>{{ badge(s.stage.value) }}{% for h in s.hosts if h != s.stage %}<span class="badge" title="Also used for {{ h.value }}">+{{ h.value }}</span>{% endfor %}{% if warn %}<span class="badge over">over capacity</span>{% endif %}</div>
-    <div class="muted small">{{ s.dimensions }} · max {{ s.capacity }} plants</div>
+    <div class="muted small">holds {{ s.capacity }} plants</div>
     {% if warn %}<div class="over-why small">{{ warn }}</div>{% endif %}
     <div class="progress mt"><i style="width: {{ [(o.load * 100)|round, 100]|min }}%; background: {{ 'var(--red)' if warn else 'var(--accent)' }}"></i></div>
     <div class="meta">
-      <span>{{ o.count }} plant{{ 's' if o.count != 1 }}{% if s.area_sqft %} · {{ o.used_sqft|round(1) }} of {{ s.area_sqft|round|int }} sq ft{% endif %}</span>
+      <span>{{ o.count }} of {{ s.capacity }} plant{{ 's' if s.capacity != 1 }}</span>
       <span>{{ (o.load * 100)|round|int }}% full</span>
     </div>
     <dl class="kv small mt">
-      <dt>Room for</dt><dd>{% for sz in sizes %}{{ o.room_for(sz) }} {{ sz.value }}{{ ' · ' if not loop.last }}{% endfor %}</dd>
-      <dt>Fits empty</dt><dd>{% for sz in sizes %}{{ o.fits(sz) }} {{ sz.value }}{{ ' · ' if not loop.last }}{% endfor %}</dd>
+      <dt>Room for</dt><dd>{{ o.room_for() }} more</dd>
       <dt>In here</dt><dd>{% if o.groups() %}{% for g in o.groups() %}<a href="{{ url_for('groups.detail', group_id=g.id) }}">{{ g.label }}</a>{{ ', ' if not loop.last }}{% endfor %}{% endif %}
         {% set loose = o.plants|rejectattr('group')|list %}{% if loose %}{{ ', ' if o.groups() }}{{ loose|length }} ungrouped{% endif %}{% if not o.plants %}<span class="muted">empty</span>{% endif %}</dd>
     </dl>
@@ -39,7 +38,7 @@
 {% for s in spaces if s.stage.value == 'flowering' %}
 <section>
   <div class="section-head"><h2>{{ s.name }} load over the season</h2><span class="hint">projected from the schedule · square feet in use</span></div>
-  <div class="panel">{{ steps(series[s.id], cap=s.area_sqft, ref=ref) }}</div>
+  <div class="panel">{{ steps(series[s.id], cap=s.capacity, ref=ref) }}</div>
 </section>
 {% endfor %}
 
@@ -54,7 +53,7 @@
           <tr>
             <td><span class="swatch" style="background: {{ row.group.color }}"></span><a href="{{ url_for('groups.detail', group_id=row.group.id) }}">{{ row.group.label }}</a> <span class="muted small">{{ row.group.strain_summary() }}</span></td>
             <td class="num">{{ row.plants }}</td>
-            <td class="num">{{ row.need_sqft|round(1) }} sq ft</td>
+            
             <td class="date">{{ row.group.flower_start|d }}</td>
             <td>{% if row.room_now is none %}<span class="muted">—</span>{% elif row.fits_now %}<span class="badge flowering">yes · {{ row.room_now|round(1) }} free</span>{% else %}<span class="badge killed">no · {{ row.room_now|round(1) }} free</span>{% endif %}</td>
             <td>{% if row.opening %}<span class="mono">{{ row.opening.on|d }}</span> <span class="muted small">{{ row.opening.freed_by.label }} out</span>{% else %}<span class="muted">—</span>{% endif %}
@@ -67,15 +66,6 @@
       </table>
     </div>
   </section>
-  <section>
-    <div class="section-head"><h2>Spacing rules</h2><span class="hint">sq ft per plant</span></div>
-    <div class="panel">
-      <table>
-        <thead><tr><th>Stage</th>{% for sz in sizes %}<th class="num">{{ sz.value }}</th>{% endfor %}</tr></thead>
-        <tbody>{% for st in stages %}<tr><td>{{ st.value }}</td>{% for sz in sizes %}<td class="num">{{ footprints[st][sz] }}</td>{% endfor %}</tr>{% endfor %}</tbody>
-      </table>
-      <p class="muted small mt">Size class is set per strain in the inventory. Change the rules with <code>CANOPY_FOOTPRINT_*</code> in your environment.</p>
-    </div>
-  </section>
+  
 </div>
 {% endblock %}

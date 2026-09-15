@@ -11,6 +11,7 @@
              help='Pick one from inventory, or type a new name and it will be added.') }}
     {{ field(form.group_id) }}
     {{ field(form.status) }}
+    {{ field(form.container, help='The pot it is in. Floor space comes from this.') }}
     {{ field(form.parent_id, help='If this is a cutting, the plant it came off.') }}
     {{ field(form.space_id, help='Leave automatic to place it by stage (clone shelf, veg tent, or its group\'s flower space).') }}
     {{ field(form.started_on) }}

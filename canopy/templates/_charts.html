@@ -17,12 +17,12 @@
 {% endmacro %}
 
 {% macro steps(series, cap=None, width=680, height=160, ref=None, unit=' sq ft') %}
-{#- series: list of dicts with date (ISO), sqft, count. Step chart of load over time. -#}
+{#- series: list of dicts with date (ISO) and count. Step chart of load over time. -#}
 {% if series %}
 {% set pad_l = 40 %}{% set pad_r = 12 %}{% set pad_t = 10 %}{% set pad_b = 26 %}
 {% set d0 = series[0].date %}{% set d1 = series[-1].date %}
 {% set span = ((d1|todate) - (d0|todate)).days or 1 %}
-{% set maxv = [series|map(attribute='sqft')|max, cap or 0]|max or 1 %}
+{% set maxv = [series|map(attribute='count')|max, cap or 0]|max or 1 %}
 {% set pw = width - pad_l - pad_r %}{% set ph = height - pad_t - pad_b %}
 <svg class="chart" viewBox="0 0 {{ width }} {{ height }}" width="100%" role="img" aria-label="Load over time">
   {% for frac in [0, 0.5, 1] %}
@@ -37,7 +37,7 @@
   {% set ns = namespace(path='', last_label=-999) %}
   {% for pt in series %}
     {% set x = pad_l + (((pt.date|todate) - (d0|todate)).days / span) * pw %}
-    {% set y = pad_t + ph - (pt.sqft / maxv) * ph %}
+    {% set y = pad_t + ph - (pt.count / maxv) * ph %}
     {% if loop.first %}{% set ns.path = 'M' ~ x|round(1) ~ ',' ~ (pad_t + ph) ~ ' L' ~ x|round(1) ~ ',' ~ y|round(1) %}
     {% else %}{% set ns.path = ns.path ~ ' H' ~ x|round(1) ~ ' V' ~ y|round(1) %}{% endif %}
     {% if loop.last %}{% set ns.path = ns.path ~ ' V' ~ (pad_t + ph) ~ ' Z' %}{% endif %}

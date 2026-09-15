@@ -30,18 +30,6 @@ class Config:
     ALLOWED_PHOTO_EXTENSIONS = frozenset({".jpg", ".jpeg", ".png", ".webp", ".gif", ".heic"})
     # Optional fixed "today" (ISO date) — handy for demos, screenshots and deterministic tests.
     TODAY_OVERRIDE: str | None = os.environ.get("CANOPY_TODAY")
-    # Per-plant footprints (sq ft) as "small,medium,large" per stage; unset = defaults in
-    # services/spacing.py. Example: CANOPY_FOOTPRINT_FLOWER="1.5,2,2.5"
-    FOOTPRINT_SQFT: dict[str, dict[str, float]] = {}
-    for _stage, _env in (
-        ("clone", "CANOPY_FOOTPRINT_CLONE"),
-        ("vegetative", "CANOPY_FOOTPRINT_VEG"),
-        ("flowering", "CANOPY_FOOTPRINT_FLOWER"),
-    ):
-        if _raw := os.environ.get(_env):
-            _vals = [float(v) for v in _raw.split(",")]
-            FOOTPRINT_SQFT[_stage] = dict(zip(("small", "medium", "large"), _vals, strict=True))
-
     @staticmethod
     def default_db_path(instance_path: str) -> str:
         Path(instance_path).mkdir(parents=True, exist_ok=True)
@@ -53,5 +41,3 @@ class TestConfig(Config):
     SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
     WTF_CSRF_ENABLED = False
     TODAY_OVERRIDE = date(2026, 9, 7).isoformat()
-    # Always the defaults in services/spacing.py, never whatever .env this machine has.
-    FOOTPRINT_SQFT: dict[str, dict[str, float]] = {}

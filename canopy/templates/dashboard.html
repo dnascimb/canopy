@@ -104,7 +104,7 @@
       <div class="panel">
         {% for o in occupancy %}
         <div class="space-row">
-          <div class="row spread"><span><strong>{{ o.space.name }}</strong> <span class="muted small">{{ o.space.stage.value }}</span></span><span class="mono small muted">{{ o.count }} plants{% if o.space.area_sqft %} · {{ o.used_sqft|round(1) }}/{{ o.space.area_sqft|round(1) }} sq ft{% endif %}</span></div>
+          <div class="row spread"><span><strong>{{ o.space.name }}</strong> <span class="muted small">{{ o.space.stage.value }}</span></span><span class="mono small muted">{{ o.count }} of {{ o.space.capacity }} plants</span></div>
           <div class="progress"><i style="width: {{ [(o.load * 100)|round, 100]|min }}%; background: {{ 'var(--red)' if o.over else 'var(--accent)' }}"></i></div>
         </div>
         {% else %}<div class="muted">No spaces defined. <a href="{{ url_for('spaces.create') }}">Add one</a>.</div>{% endfor %}

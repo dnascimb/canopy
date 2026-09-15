@@ -134,7 +134,6 @@ def detail(group_id: int):
         journal_form=journal_form,
         move_form=move_form,
         locations=locations,
-        need_sqft=spacing.group_footprint(g, SpaceStage.flowering),
         PlantStatus=PlantStatus,
         GroupStatus=GroupStatus,
     )

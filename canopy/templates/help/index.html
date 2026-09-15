@@ -102,7 +102,7 @@
     <div class="panel">
       <dl class="kv">
         {% for s in spaces %}
-        <dt>{{ s.name }}</dt><dd>{{ badge(s.stage.value) }} <span class="muted small">{{ s.dimensions }} · max {{ s.capacity }}</span></dd>
+        <dt>{{ s.name }}</dt><dd>{{ badge(s.stage.value) }}{% for h in s.hosts if h != s.stage %} <span class="badge">+{{ h.value }}</span>{% endfor %} <span class="muted small">holds {{ s.capacity }}</span></dd>
         {% endfor %}
         <dt>No location set</dt><dd class="muted">A plant with no explicit space sits in the first space matching its stage. Setting one pins it there.</dd>
       </dl>
@@ -117,7 +117,7 @@
         <dt>Lineage</dt><dd>Two kinds. A <em>strain's</em> lineage is its genetics, typed on the strain or on the add-plant form. A <em>plant's</em> parent is the actual plant it was cut from, which walks back up the line.</dd>
         <dt>Journal</dt><dd>Notes only. Log a whole tent from the dashboard, with a photo if you want one. Nothing in the app reads entries back or derives anything from them.</dd>
         <dt>Photos</dt><dd>Attach one to any journal entry — the <strong>Photo</strong> button on the daily log, or the full entry form. They live in <code>instance/uploads</code>, outside the database and outside git, so a JSON backup carries the filename but not the picture.</dd>
-        <dt>Capacity</dt><dd>An estimate from tent dimensions and per-plant footprints, shown as a label on <strong>Spaces</strong> — never as an alert. It does not know your pot sizes, so a tray of cuttings can read as needing far more room than it does.</dd>
+        <dt>Capacity</dt><dd>A plant count you set per space, shown as a label on <strong>Spaces</strong> — never as an alert. Canopy does not model floor area: a space is a location, and how many fit is your call, not a calculation.</dd>
         <dt>Empty groups</dt><dd>A group with no plants cannot be scheduled — there is nothing to give a date to. Add plants first.</dd>
       </dl>
     </div>

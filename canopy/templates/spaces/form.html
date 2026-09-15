@@ -2,7 +2,7 @@
 {% from "_macros.html" import field, csrf %}
 {% block title %}{{ 'Edit ' ~ space.name if space else 'Add space' }}{% endblock %}
 {% block content %}
-<div class="page-head"><div><h1>{{ 'Edit ' ~ space.name if space else 'Add space' }}</h1><p class="sub">Give it a stage and dimensions and Canopy will estimate how many plants fit; the maximum is a hard cap on top of that.</p></div></div>
+<div class="page-head"><div><h1>{{ 'Edit ' ~ space.name if space else 'Add space' }}</h1><p class="sub">A space is a location plants sit in. Say what it is mainly for, what else it doubles up for, and how many plants it holds.</p></div></div>
 <form method="post" class="form" novalidate>
   {{ csrf() }}
   <div class="form-grid">
@@ -20,8 +20,6 @@
       </div>
       <p class="help">A space that doubles up. A plant already in one of these stages keeps it when moved here — a male parked on the clone shelf to drop pollen stays flowering, veg overflow stays vegetative.</p>
     </div>
-    {{ field(form.width_ft) }}
-    {{ field(form.length_ft) }}
     {{ field(form.capacity, help='Never plan more than this many plants here, whatever the area says.') }}
   </div>
   {{ field(form.notes) }}

@@ -62,6 +62,21 @@ class GroupStatus(enum.StrEnum):
     done = "done"
 
 
+class Container(enum.StrEnum):
+    """What a plant is actually potted in.
+
+    Floor space is set by the pot, not by a guess from the strain's size class and the
+    stage of the room. A plant can graduate to any of these at any stage, for space or
+    for health, so this lives on the plant and changes as it is up potted.
+    """
+
+    cup16 = "16oz"
+    cup32 = "32oz"
+    gal1 = "1gal"
+    gal2 = "2gal"
+    gal3 = "3gal"
+
+
 class PlantStatus(enum.StrEnum):
     clone = "clone"
     seedling = "seedling"
@@ -113,8 +128,6 @@ class Space(TimestampMixin, db.Model):
         default=SpaceStage.flowering,
         nullable=False,
     )
-    width_ft: Mapped[float | None] = mapped_column(db.Float)
-    length_ft: Mapped[float | None] = mapped_column(db.Float)
     capacity: Mapped[int] = mapped_column(default=1, nullable=False)  # user-set maximum plants
     # Extra stages this space doubles up for, comma-separated (same shape as journal tasks).
     # A clone shelf is often also where a male sits to drop pollen and where veg overflows.
@@ -126,20 +139,6 @@ class Space(TimestampMixin, db.Model):
     journal_entries: Mapped[list[JournalEntry]] = relationship(back_populates="space")
 
     __table_args__ = (CheckConstraint("capacity >= 1", name="ck_space_capacity"),)
-
-    @property
-    def area_sqft(self) -> float | None:
-        if self.width_ft and self.length_ft:
-            return round(self.width_ft * self.length_ft, 2)
-        return None
-
-    @property
-    def dimensions(self) -> str:
-        if self.area_sqft is None:
-            return "—"
-        w, l_ = self.width_ft, self.length_ft
-        fmt = lambda v: f"{v:g}"  # noqa: E731
-        return f"{fmt(w)} × {fmt(l_)} ft ({fmt(self.area_sqft)} sq ft)"
 
     def active_groups(self, today: date) -> list[Group]:
         return [g for g in self.groups if g.is_flowering_on(today)]
@@ -319,6 +318,9 @@ class Plant(TimestampMixin, db.Model):
     end_reason: Mapped[str | None] = mapped_column(db.String(255))
     # Planned flower length for this plant's run. None falls back to the strain.
     flower_days_override: Mapped[int | None] = mapped_column(db.Integer)
+    container: Mapped[Container | None] = mapped_column(
+        db.Enum(Container, native_enum=False, length=10)
+    )
     notes: Mapped[str | None] = mapped_column(db.Text)
 
     events: Mapped[list[PlantEvent]] = relationship(

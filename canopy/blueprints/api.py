@@ -7,7 +7,7 @@ from datetime import date
 from flask import Blueprint, abort, jsonify, request
 
 from ..extensions import db
-from ..models import Group, GroupStatus, Plant, PlantSize, Space, Strain
+from ..models import Group, GroupStatus, Plant, Space, Strain
 from ..services import lifecycle, spacing, transfer
 from ..services import scheduling as sched
 
@@ -109,15 +109,11 @@ def list_spaces():
                 "id": s.id,
                 "name": s.name,
                 "stage": s.stage.value,
-                "width_ft": s.width_ft,
-                "length_ft": s.length_ft,
-                "area_sqft": s.area_sqft,
                 "capacity": s.capacity,
-                "plants": occ[s.id].count,
-                "used_sqft": occ[s.id].used_sqft,
+                "count": occ[s.id].count,
                 "load": round(occ[s.id].load, 3),
-                "fits": {sz.value: occ[s.id].fits(sz) for sz in PlantSize},
-                "room_for": {sz.value: occ[s.id].room_for(sz) for sz in PlantSize},
+                "room_for": occ[s.id].room_for(),
+                "also_hosts": sorted(h.value for h in s.hosts if h != s.stage),
             }
             for s in spaces
         ]

@@ -1,45 +1,27 @@
-"""Space planning: where plants are, how much room they take, and how many fit.
+"""Space planning: where plants are and how many a space holds.
 
-Footprints are square feet per plant and depend on the *stage* of the space and the
-*size class* of the strain. They are deliberately conservative "comfortable" numbers
-rather than maximum-cram values; tune ``FOOTPRINT_SQFT`` to taste.
+The plant is the first-class thing here; a space is a loose location one or more plants
+sit in. Its name says what it is mainly for, but any of them can be overloaded — a clone
+shelf doubles as pollen collection and veg overflow — so a space declares the stages it
+can host and caps how many plants it holds. Deliberately no square footage: floor area
+was a guess from the strain's size class and the room's stage, and it was wrong by 17x
+for a tray of clones in 16oz cups. Counts, states and locations are what get tracked.
 """
 
 from __future__ import annotations
 
-import math
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from datetime import date
 
-from flask import current_app
-
-from ..models import Group, Plant, PlantSize, PlantStatus, Space, SpaceStage
-
-# Default sq ft per plant, by space stage then plant size class (small, medium, large).
-# Override with CANOPY_FOOTPRINT_CLONE / _VEG / _FLOWER = "small,medium,large".
-DEFAULT_FOOTPRINT_SQFT: dict[SpaceStage, dict[PlantSize, float]] = {
-    SpaceStage.clone: {PlantSize.small: 0.1, PlantSize.medium: 0.15, PlantSize.large: 0.2},
-    SpaceStage.vegetative: {PlantSize.small: 0.5, PlantSize.medium: 0.75, PlantSize.large: 1.0},
-    SpaceStage.flowering: {PlantSize.small: 1.5, PlantSize.medium: 2.25, PlantSize.large: 3.0},
-}
-
-
-def footprint_table() -> dict[SpaceStage, dict[PlantSize, float]]:
-    """Footprints in effect: app config overrides (from env) on top of the defaults."""
-    table = {st: dict(v) for st, v in DEFAULT_FOOTPRINT_SQFT.items()}
-    cfg = current_app.config.get("FOOTPRINT_SQFT") if current_app else None
-    for stage, sizes in (cfg or {}).items():
-        table[SpaceStage(stage)].update({PlantSize(k): float(v) for k, v in sizes.items()})
-    return table
-
+from ..models import Group, Plant, PlantStatus, Space, SpaceStage
 
 STAGE_FOR_STATUS: dict[PlantStatus, SpaceStage | None] = {
     PlantStatus.clone: SpaceStage.clone,
     PlantStatus.seedling: SpaceStage.clone,
     PlantStatus.vegetative: SpaceStage.vegetative,
     PlantStatus.flowering: SpaceStage.flowering,
-    # Cut plants are off the floor: hanging somewhere, but not occupying a tent slot.
+    # Cut plants are nowhere: off the shelf and out of every count.
     PlantStatus.harvested: None,
     PlantStatus.killed: None,
 }
@@ -49,17 +31,6 @@ STATUS_FOR_STAGE: dict[SpaceStage, PlantStatus] = {
     SpaceStage.vegetative: PlantStatus.vegetative,
     SpaceStage.flowering: PlantStatus.flowering,
 }
-
-
-def footprint(size: PlantSize, stage: SpaceStage) -> float:
-    return footprint_table()[stage][size]
-
-
-def plant_footprint(plant: Plant, stage: SpaceStage | None = None) -> float:
-    stage = stage or STAGE_FOR_STATUS.get(plant.status)
-    if stage is None:
-        return 0.0
-    return footprint(plant.strain.size, stage)
 
 
 def default_space(stage: SpaceStage, spaces: Iterable[Space]) -> Space | None:
@@ -90,44 +61,17 @@ class Occupancy:
         return len(self.plants)
 
     @property
-    def used_sqft(self) -> float:
-        # Each plant is charged for the stage it is actually in. A space that doubles
-        # up holds a mix, and a flowering male is not a cutting's worth of shelf.
-        return round(sum(plant_footprint(p) for p in self.plants), 2)
-
-    @property
-    def area(self) -> float | None:
-        return self.space.area_sqft
-
-    @property
-    def free_sqft(self) -> float | None:
-        return None if self.area is None else round(self.area - self.used_sqft, 2)
-
-    @property
     def load(self) -> float:
-        """0–1+ fraction of capacity used (area if known, else plant count vs max)."""
-        if self.area:
-            return self.used_sqft / self.area
+        """0-1+ fraction of the space's plant cap in use."""
         return self.count / self.space.capacity if self.space.capacity else 0.0
 
     @property
     def over(self) -> bool:
-        return self.load > 1.0 or self.count > self.space.capacity
+        return self.count > self.space.capacity
 
-    def fits(self, size: PlantSize = PlantSize.medium) -> int:
-        """How many plants of *size* the space could hold in total, empty."""
-        by_area = math.floor(self.area / footprint(size, self.space.stage)) if self.area else None
-        return min(self.space.capacity, by_area) if by_area is not None else self.space.capacity
-
-    def room_for(self, size: PlantSize = PlantSize.medium) -> int:
-        """How many more plants of *size* fit right now."""
-        by_count = max(self.space.capacity - self.count, 0)
-        if not self.area:
-            return by_count
-        by_area = max(
-            math.floor((self.area - self.used_sqft) / footprint(size, self.space.stage)), 0
-        )
-        return min(by_count, by_area)
+    def room_for(self) -> int:
+        """How many more plants fit right now."""
+        return max(self.space.capacity - self.count, 0)
 
     def groups(self) -> list[Group]:
         seen: list[Group] = []
@@ -147,15 +91,11 @@ def occupancy(spaces: Iterable[Space], plants: Iterable[Plant]) -> dict[int, Occ
     return occ
 
 
-def group_footprint(group: Group, stage: SpaceStage) -> float:
-    return round(sum(footprint(p.strain.size, stage) for p in group.living_plants), 2)
-
-
 def load_series(space: Space, groups: Iterable[Group], *, ref: date | None = None) -> list[dict]:
     """Projected occupancy of a flowering space over the season, from the schedule.
 
     Returns points at every start/end checkpoint (plus *ref* if given): date, plant
-    count, used sq ft, active group labels.
+    count, active group labels.
     """
     # "groups" here is whatever the caller schedules — real groups and lone plants alike.
     sg = [g for g in groups if g.space_id == space.id and g.flower_start]
@@ -172,7 +112,6 @@ def load_series(space: Space, groups: Iterable[Group], *, ref: date | None = Non
             {
                 "date": d.isoformat(),
                 "count": sum(len(g.living_plants) for g in active),
-                "sqft": round(sum(group_footprint(g, space.stage) for g in active), 2),
                 "groups": [g.label for g in active],
             }
         )
@@ -181,7 +120,7 @@ def load_series(space: Space, groups: Iterable[Group], *, ref: date | None = Non
 
 def peak(series: list[dict], *, since: date | None = None) -> dict | None:
     pts = [p for p in series if since is None or date.fromisoformat(p["date"]) >= since]
-    return max(pts, key=lambda p: (p["sqft"], p["count"]), default=None)
+    return max(pts, key=lambda p: p["count"], default=None)
 
 
 def capacity_warning(
@@ -191,23 +130,17 @@ def capacity_warning(
     *,
     ref: date | None = None,
 ) -> str | None:
-    """Why *space* is in breach, or None. Lives on the spaces page, not in the alert list.
+    """Why *space* is over its plant cap, or None. A spaces-page label, not an alert.
 
     Checks the schedule's projected peak first, since that is the more useful warning,
     and falls back to what is physically in the space today.
     """
     worst = peak(load_series(space, groups, ref=ref), since=ref)
-    if worst:
+    if worst and worst["count"] > space.capacity:
         day = date.fromisoformat(worst["date"])
-        if space.area_sqft and worst["sqft"] > space.area_sqft:
-            return f"needs {worst['sqft']:g} sq ft on {day:%b %d} but has {space.area_sqft:g}"
-        if worst["count"] > space.capacity:
-            return f"{worst['count']} plants on {day:%b %d}, over the {space.capacity} maximum"
+        return f"{worst['count']} plants on {day:%b %d}, over the {space.capacity} it holds"
     if occupancy_now is not None and occupancy_now.over:
-        return (
-            f"over capacity today: {occupancy_now.count} plants, "
-            f"{occupancy_now.used_sqft:g} sq ft used"
-        )
+        return f"{occupancy_now.count} plants today, over the {space.capacity} it holds"
     return None
 
 

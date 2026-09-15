@@ -4,7 +4,7 @@ from flask import Blueprint, abort, flash, redirect, render_template, request, u
 
 from ..extensions import db
 from ..forms import SpaceForm
-from ..models import Group, Plant, PlantSize, Space, SpaceStage
+from ..models import Group, Plant, Space, SpaceStage
 from ..services import scheduling as sched
 from ..services import spacing
 
@@ -36,8 +36,8 @@ def index():
     plan = []
     for g in sorted(waiting, key=lambda g: (g.flower_start or ref, g.number)):
         target = g.space or spacing.default_space(SpaceStage.flowering, spaces)
-        need = spacing.group_footprint(g, SpaceStage.flowering)
-        room_now = occ[target.id].free_sqft if target and target.area_sqft else None
+        need = len(g.living_plants)
+        room_now = occ[target.id].room_for() if target else None
         opening = next(
             (o for o in openings if o.space is None or (target and o.space.id == target.id)), None
         )
@@ -45,8 +45,7 @@ def index():
             {
                 "group": g,
                 "target": target,
-                "need_sqft": need,
-                "plants": len(g.living_plants),
+                "plants": need,
                 "fits_now": (room_now is not None and need <= room_now),
                 "room_now": room_now,
                 "opening": opening,
@@ -69,8 +68,6 @@ def index():
             )
             for s in spaces
         },
-        footprints=spacing.footprint_table(),
-        sizes=list(PlantSize),
         stages=list(SpaceStage),
         ref=ref,
     )

@@ -18,7 +18,7 @@
 {% for space, series in load.items() %}
 <section>
   <div class="section-head"><h2>{{ space.name }} load over the season</h2><span class="hint">projected from the schedule</span></div>
-  <div class="panel">{{ steps(series, cap=space.area_sqft, ref=ref) }}</div>
+  <div class="panel">{{ steps(series, cap=space.capacity, ref=ref) }}</div>
 </section>
 {% endfor %}
 

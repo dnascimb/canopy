@@ -16,6 +16,7 @@
       <dt>Strain</dt><dd>{{ plant.strain.display_name }}</dd>
       <dt>Lineage</dt><dd class="soft">{{ plant.strain.lineage or '—' }}</dd>
       <dt>Group</dt><dd>{{ plant.group.label if plant.group else '—' }}</dd>
+      {% if plant.container %}<dt>Container</dt><dd>{{ plant.container.value }}</dd>{% endif %}
       {% if plant.parent %}<dt>Taken from</dt><dd><a href="{{ url_for('plants.detail', plant_id=plant.parent.id) }}">{{ plant.parent.label }}</a>{% if plant.ancestry|length > 1 %} <span class="muted small">← {% for a in plant.ancestry[1:] %}{{ a.label }}{{ ' ← ' if not loop.last }}{% endfor %}</span>{% endif %}</dd>{% endif %}
       {% if plant.cuttings %}<dt>Cuttings</dt><dd>{% for c in plant.cuttings|sort(attribute='label') %}<a href="{{ url_for('plants.detail', plant_id=c.id) }}">{{ c.label }}</a>{{ ', ' if not loop.last }}{% endfor %}</dd>{% endif %}
       <dt>Location</dt><dd>{{ location.name if location else '—' }}{% if plant.space %} <span class="muted small">(set)</span>{% elif location %} <span class="muted small">(by stage)</span>{% endif %}</dd>

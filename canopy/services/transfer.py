@@ -40,8 +40,6 @@ def dump() -> dict:
                 "id": s.id,
                 "name": s.name,
                 "stage": s.stage.value,
-                "width_ft": s.width_ft,
-                "length_ft": s.length_ft,
                 "capacity": s.capacity,
                 "notes": s.notes,
             }
@@ -145,8 +143,7 @@ def load(payload: dict, *, replace: bool = True) -> dict[str, int]:
         obj = Space(
             name=s["name"],
             stage=SpaceStage(s.get("stage", "flowering")),
-            width_ft=s.get("width_ft"),
-            length_ft=s.get("length_ft"),
+            # Older backups carry width_ft/length_ft; Canopy no longer models area.
             capacity=s.get("capacity", 1),
             notes=s.get("notes"),
         )
