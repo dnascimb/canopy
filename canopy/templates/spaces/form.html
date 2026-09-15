@@ -7,7 +7,19 @@
   {{ csrf() }}
   <div class="form-grid">
     {{ field(form.name, help='e.g. "Clone Shelf", "Veg Tent", "5×10 Flower"') }}
-    {{ field(form.stage, help='Plants moved here take this stage.') }}
+    {{ field(form.stage, help='Plants moved here take this stage, unless the space already suits them.') }}
+    <div class="form-row">
+      <label>{{ form.also_hosts.label.text }}</label>
+      <div class="ql-tasks">
+        {% for value, label in form.also_hosts.choices %}
+          {% if value != form.stage.data %}
+          <label class="chip-check"><input type="checkbox" name="also_hosts" value="{{ value }}"
+            {% if form.also_hosts.data and value in form.also_hosts.data %}checked{% endif %}> {{ label }}</label>
+          {% endif %}
+        {% endfor %}
+      </div>
+      <p class="help">A space that doubles up. A plant already in one of these stages keeps it when moved here — a male parked on the clone shelf to drop pollen stays flowering, veg overflow stays vegetative.</p>
+    </div>
     {{ field(form.width_ft) }}
     {{ field(form.length_ft) }}
     {{ field(form.capacity, help='Never plan more than this many plants here, whatever the area says.') }}

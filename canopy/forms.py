@@ -27,6 +27,7 @@ def _choices(enum_cls, blank: str | None = None):
 class SpaceForm(FlaskForm):
     name = StringField("Name", validators=[DataRequired(), Length(max=80)])
     stage = SelectField("Stage", choices=_choices(SpaceStage), default="flowering")
+    also_hosts = SelectMultipleField("Also used for", choices=_choices(SpaceStage))
     width_ft = FloatField("Width (ft)", validators=[Optional(), NumberRange(min=0.1, max=1000)])
     length_ft = FloatField("Length (ft)", validators=[Optional(), NumberRange(min=0.1, max=1000)])
     capacity = IntegerField(

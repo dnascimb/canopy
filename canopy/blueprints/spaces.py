@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from flask import Blueprint, abort, flash, redirect, render_template, url_for
+from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
 
 from ..extensions import db
 from ..forms import SpaceForm
@@ -77,8 +77,10 @@ def index():
 
 
 def _apply(form: SpaceForm, s: Space) -> None:
+    extra = [x for x in (form.also_hosts.data or []) if x and x != form.stage.data]
     form.populate_obj(s)
     s.stage = SpaceStage(form.stage.data)
+    s.also_hosts = ",".join(extra) or None
 
 
 @bp.route("/new", methods=["GET", "POST"])
@@ -101,6 +103,8 @@ def create():
 def edit(space_id: int):
     s = db.session.get(Space, space_id) or abort(404)
     form = SpaceForm(obj=s)
+    if request.method == "GET":
+        form.also_hosts.data = [x.value for x in s.hosts if x != s.stage]
     if form.validate_on_submit():
         _apply(form, s)
         db.session.commit()

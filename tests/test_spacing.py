@@ -2,7 +2,7 @@ from datetime import date, timedelta
 
 from canopy.extensions import db
 from canopy.models import Group, Plant, PlantSize, PlantStatus, Space, SpaceStage, Strain
-from canopy.services import reports, spacing
+from canopy.services import lifecycle, reports, spacing
 from canopy.services import scheduling as sched
 
 REF = date(2026, 9, 7)
@@ -418,3 +418,60 @@ def test_a_cull_does_not_report_a_flower_length(app):
 def test_reports_page_shows_time_in_stage(client):
     html = client.get("/reports/").data.decode()
     assert "Time in each stage" in html and "On the strain" in html
+
+
+# ---------------------------------------------------------------------------
+# Spaces that double up: a clone shelf is also pollen collection and veg overflow
+# ---------------------------------------------------------------------------
+def test_a_space_hosts_its_own_stage_by_default(app):
+    shelf = db.session.query(Space).filter_by(name="Clone Shelf").one()
+    assert shelf.hosts == frozenset({SpaceStage.clone})
+    assert not shelf.can_host(SpaceStage.flowering)
+
+
+def test_moving_into_a_doubling_space_keeps_the_stage(app):
+    """A flowering male parked on the clone shelf for pollen stays flowering."""
+    shelf = db.session.query(Space).filter_by(name="Clone Shelf").one()
+    shelf.also_hosts = "vegetative,flowering"
+    strain = db.session.query(Strain).first()
+    male = Plant(label="male", strain=strain, status=PlantStatus.flowering)
+    vegger = Plant(label="overflow", strain=strain, status=PlantStatus.vegetative)
+    cutting = Plant(label="cut", strain=strain, status=PlantStatus.clone)
+    db.session.add_all([male, vegger, cutting])
+    lifecycle.set_flip([male], REF)
+    db.session.commit()
+
+    spacing.move_plants([male, vegger, cutting], shelf, ref=REF)
+    db.session.commit()
+
+    assert male.status == PlantStatus.flowering  # not demoted to a clone
+    assert vegger.status == PlantStatus.vegetative
+    assert cutting.status == PlantStatus.clone
+    assert {p.space_id for p in (male, vegger, cutting)} == {shelf.id}
+    # The relocation is still in each plant's log.
+    assert male.events[-1].space_id == shelf.id
+
+
+def test_moving_somewhere_that_cannot_host_still_transitions(app):
+    """The veg tent only does veg, so a cutting moved there becomes vegetative."""
+    veg = db.session.query(Space).filter_by(name="Veg Tent").one()
+    cutting = Plant(label="cut2", strain=db.session.query(Strain).first(), status=PlantStatus.clone)
+    db.session.add(cutting)
+    db.session.commit()
+    spacing.move_plants([cutting], veg, ref=REF)
+    db.session.commit()
+    assert cutting.status == PlantStatus.vegetative
+
+
+def test_a_doubling_space_charges_each_plant_for_its_own_stage(app):
+    """A flowering male is not a cutting's worth of shelf."""
+    shelf = db.session.query(Space).filter_by(name="Clone Shelf").one()
+    shelf.also_hosts = "flowering"
+    strain = db.session.query(Strain).first()
+    male = Plant(label="male2", strain=strain, status=PlantStatus.flowering, space=shelf)
+    db.session.add(male)
+    db.session.commit()
+
+    occ = spacing.occupancy([shelf], [male])[shelf.id]
+    assert occ.used_sqft == spacing.footprint(strain.size, SpaceStage.flowering)
+    assert occ.used_sqft > spacing.footprint(strain.size, SpaceStage.clone)

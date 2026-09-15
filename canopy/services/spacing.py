@@ -91,7 +91,9 @@ class Occupancy:
 
     @property
     def used_sqft(self) -> float:
-        return round(sum(plant_footprint(p, self.space.stage) for p in self.plants), 2)
+        # Each plant is charged for the stage it is actually in. A space that doubles
+        # up holds a mix, and a flowering male is not a cutting's worth of shelf.
+        return round(sum(plant_footprint(p) for p in self.plants), 2)
 
     @property
     def area(self) -> float | None:
@@ -219,11 +221,17 @@ def move_plants(plants: Iterable[Plant], space: Space, *, ref: date | None = Non
     from . import lifecycle  # local: lifecycle reads models, spacing is imported by it
 
     on = ref or date.today()
-    target = STATUS_FOR_STAGE[space.stage]
     n = 0
     for p in plants:
         if p.status in (PlantStatus.harvested, PlantStatus.killed):
             continue
+        # A space that already hosts this plant's stage is a relocation, not a transition:
+        # a flowering male parked on the clone shelf for pollen stays flowering, and veg
+        # overflow onto that shelf stays vegetative. Otherwise the space's own stage wins.
+        if space.can_host(STAGE_FOR_STATUS.get(p.status)):
+            target = p.status
+        else:
+            target = STATUS_FOR_STAGE[space.stage]
         if target == PlantStatus.flowering and p.flower_start is None:
             lifecycle.set_flip([p], on, space=space, note=f"Moved into {space.name}.")
         else:

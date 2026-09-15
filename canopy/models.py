@@ -116,6 +116,9 @@ class Space(TimestampMixin, db.Model):
     width_ft: Mapped[float | None] = mapped_column(db.Float)
     length_ft: Mapped[float | None] = mapped_column(db.Float)
     capacity: Mapped[int] = mapped_column(default=1, nullable=False)  # user-set maximum plants
+    # Extra stages this space doubles up for, comma-separated (same shape as journal tasks).
+    # A clone shelf is often also where a male sits to drop pollen and where veg overflows.
+    also_hosts: Mapped[str | None] = mapped_column(db.String(60))
     notes: Mapped[str | None] = mapped_column(db.Text)
 
     groups: Mapped[list[Group]] = relationship(back_populates="space")
@@ -146,6 +149,20 @@ class Space(TimestampMixin, db.Model):
 
     def __repr__(self) -> str:  # pragma: no cover
         return f"<Space {self.name}>"
+
+    @property
+    def hosts(self) -> frozenset[SpaceStage]:
+        """Every stage this space can hold: its own, plus any it doubles up for.
+
+        Moving a plant into a space it is already suited to is a relocation, not a
+        transition — a flowering male parked on the clone shelf to drop pollen stays
+        flowering.
+        """
+        extra = {SpaceStage(x) for x in (self.also_hosts or "").split(",") if x}
+        return frozenset({self.stage} | extra)
+
+    def can_host(self, stage: SpaceStage | None) -> bool:
+        return stage is not None and stage in self.hosts
 
 
 class Strain(TimestampMixin, db.Model):
