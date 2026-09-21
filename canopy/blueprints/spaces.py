@@ -112,11 +112,14 @@ def edit(space_id: int):
 
 @bp.route("/<int:space_id>/check", methods=["GET", "POST"])
 def check(space_id: int):
-    """Walk a space against what Canopy thinks is in it.
+    """Audit a space against what Canopy thinks is in it.
 
-    Deliberately non-destructive. Confirming is one tick per plant; anything left unticked
-    is *flagged*, not killed or moved, because "I did not see it" and "it is gone" are
-    different claims and only the grower can tell them apart.
+    Non-destructive. Confirming is one tick per plant; anything left unticked is *flagged*,
+    not killed or moved, because "I did not see it" and "it is gone" are different claims
+    and only the grower can tell them apart.
+
+    Rows are grouped and sorted for a stable, scannable list. That is not a claim about the
+    order anyone walks a tent in.
     """
     s = db.session.get(Space, space_id) or abort(404)
     ref = sched.today()
