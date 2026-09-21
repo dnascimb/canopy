@@ -30,6 +30,7 @@ class Config:
     ALLOWED_PHOTO_EXTENSIONS = frozenset({".jpg", ".jpeg", ".png", ".webp", ".gif", ".heic"})
     # Optional fixed "today" (ISO date) — handy for demos, screenshots and deterministic tests.
     TODAY_OVERRIDE: str | None = os.environ.get("CANOPY_TODAY")
+
     @staticmethod
     def default_db_path(instance_path: str) -> str:
         Path(instance_path).mkdir(parents=True, exist_ok=True)

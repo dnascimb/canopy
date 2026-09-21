@@ -101,8 +101,10 @@ def test_space_form_sets_stage_and_what_it_doubles_up_for(client):
     client.post(
         "/spaces/new",
         data={
-            "name": "Tent B", "stage": "vegetative",
-            "also_hosts": ["clone", "flowering"], "capacity": 9,
+            "name": "Tent B",
+            "stage": "vegetative",
+            "also_hosts": ["clone", "flowering"],
+            "capacity": 9,
         },
         follow_redirects=True,
     )
@@ -432,5 +434,3 @@ def test_moving_somewhere_that_cannot_host_still_transitions(app):
     spacing.move_plants([cutting], veg, ref=REF)
     db.session.commit()
     assert cutting.status == PlantStatus.vegetative
-
-

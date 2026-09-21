@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **No half-water reminder for plants already cut.** `living_plants` counts harvested ones,
+  so a run that was in a paper bag still asked to be watered. The reminder now looks only at
+  plants still in flower.
+
 - **Square footage is gone.** Spaces no longer have dimensions and plants no longer have a
   computed floor area. The old model guessed square feet from the strain's size class and
   the room's stage — wrong by 17x for 38 clones in 16oz cups, and unfixable, because a

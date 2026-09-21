@@ -273,3 +273,21 @@ def test_a_future_flip_does_not_move_plants_yet(app):
     lifecycle.set_flip([p], REF, space=flower)
     db.session.commit()
     assert p.status == PlantStatus.flowering and p.space_id == flower.id
+
+
+def test_ramp_down_ignores_plants_already_cut(app):
+    """A run in the dryer must not be told to water at half — living includes harvested."""
+    from canopy.models import PlantStatus
+    from canopy.services import lifecycle
+
+    g6 = next(g for g in groups() if g.number == 6)
+    for pl in g6.living_plants:
+        pl.flower_days_override = (REF + timedelta(days=3) - pl.flower_start).days
+    db.session.commit()
+    assert [r.label for r in sched.ramp_down(units(), spaces(), ref=REF)] == ["Grp 6"]
+
+    for pl in list(g6.living_plants):
+        lifecycle.record(pl, PlantStatus.harvested, on=REF)
+        pl.ended_on = REF
+    db.session.commit()
+    assert sched.ramp_down(units(), spaces(), ref=REF) == []

@@ -355,7 +355,13 @@ def ramp_down(
     for u in units:
         if u.space_id not in flowering:
             continue
-        ends = [p.flower_end for p in u.living_plants if p.flower_end]
+        # Only plants still in flower. "Living" includes harvested ones, and a plant in
+        # a paper bag does not want watering at any strength.
+        ends = [
+            p.flower_end
+            for p in u.living_plants
+            if p.flower_end and p.status == PlantStatus.flowering
+        ]
         if not ends:
             continue
         first, last = min(ends), max(ends)
