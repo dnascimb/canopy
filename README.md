@@ -107,6 +107,9 @@ docs/                   user guide, technical guide, API reference, design notes
   clunky, and what would fix it.
 * [Design notes](docs/design.md) — visual system and UX principles.
 * [Backlog](docs/backlog.md) — candidate features, roughly prioritised.
+* Feature design notes — the problem, the options rejected, the result and the limits:
+  * [Veg on the timeline](docs/poc-veg-on-the-timeline.html)
+  * [Checking a tent](docs/poc-tent-check.html)
 * [Changelog](CHANGELOG.md)
 * [CLAUDE.md](CLAUDE.md) — conventions for working on this codebase with Claude Code.
 
