@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge, csrf %}
+{% block title %}Check {{ space.name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Check {{ space.name }}</h1>
+    <p class="sub">What Canopy thinks is in here, in the order you would walk it. Tick what you
+      can see. Anything left unticked is flagged for you to look at — nothing is killed or moved.</p>
+  </div>
+  <div class="actions"><a class="btn" href="{{ url_for('spaces.index') }}">Back to spaces</a></div>
+</div>
+
+{% if last %}
+<div class="alert note"><span class="dot"></span><span>Last checked {{ last.entry_date|dlong }} — {{ last.body.splitlines()[0] }}</span></div>
+{% endif %}
+
+<form method="post" class="check">
+  {{ csrf() }}
+  {% if plants %}
+  <div class="panel tight">
+    <div class="check-head row spread">
+      <span class="muted small">{{ plants|length }} plant{{ 's' if plants|length != 1 }} expected</span>
+      <span><button class="btn small ghost" type="button" data-all>Tick all</button>
+            <button class="btn small ghost" type="button" data-none>Clear</button></span>
+    </div>
+    {% for label, members in grouped.items() %}
+    <div class="check-group">
+      <div class="check-group-head">{{ label }}<span class="muted small">{{ members|length }}</span></div>
+      {% for p in members %}
+      <label class="check-row">
+        <input type="checkbox" name="present" value="{{ p.id }}">
+        <span class="check-label">{{ p.label }}</span>
+        <span class="muted small">{{ p.strain.name }}</span>
+        {{ badge(p.status.value) }}
+        <span class="mono small muted">{{ p.container.value if p.container else '—' }}</span>
+      </label>
+      {% endfor %}
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="form-row mt">
+    <label for="extra">Here but not in Canopy</label>
+    <textarea id="extra" name="extra" rows="2" placeholder="Anything you can see that is not listed above"></textarea>
+  </div>
+  <div class="mt"><button class="btn primary" type="submit">Record this check</button></div>
+  {% else %}
+  <div class="panel empty">Canopy has nothing in {{ space.name }}.</div>
+  {% endif %}
+</form>
+
+<script>
+  document.querySelector('[data-all]')?.addEventListener('click', () =>
+    document.querySelectorAll('.check-row input').forEach((b) => { b.checked = true; }));
+  document.querySelector('[data-none]')?.addEventListener('click', () =>
+    document.querySelectorAll('.check-row input').forEach((b) => { b.checked = false; }));
+</script>
+{% endblock %}

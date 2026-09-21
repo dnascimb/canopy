@@ -3,6 +3,13 @@
  * Usage:  Timeline.render(containerEl, { today, start, end, rows })
  * The payload shape is produced by GET /api/v1/timeline and also inlined by the
  * dashboard/schedule templates so the first paint needs no extra request.
+ *
+ * Three views, chosen by the control above the chart:
+ *   flower  every flower span. The default, and byte-for-byte what this drew before
+ *           pre-flower bars existed.
+ *   veg     every pre-flower span — alive, not yet flowering.
+ *   all     both, pre-flower dimmer and behind.
+ * A view is only offered when the data can actually fill it.
  */
 const Timeline = (() => {
   const DAY = 86400000;
@@ -17,28 +24,70 @@ const Timeline = (() => {
     return e;
   };
 
+  const VIEWS = [
+    { key: 'flower', label: 'Flower', has: (r) => r.start },
+    { key: 'veg', label: 'Veg', has: (r) => r.pre_start },
+    { key: 'all', label: 'All', has: (r) => r.start || r.pre_start },
+  ];
+
   function render(container, data) {
+    const offered = VIEWS.filter((v) => (data.rows || []).some(v.has));
+    // "All" adds nothing unless both kinds of span are present.
+    const choices = offered.length > 2 ? offered : offered.filter((v) => v.key !== 'all');
+    const start = choices.some((v) => v.key === 'flower') ? 'flower' : (choices[0] || {}).key;
+    draw(container, data, start, choices);
+  }
+
+  function draw(container, data, view, choices) {
     container.innerHTML = '';
     container.classList.add('timeline');
     if (!data.rows || !data.rows.length) {
-      container.appendChild(el('div', 'tl-empty', 'No groups have a flower start date yet.'));
+      container.appendChild(el('div', 'tl-empty', 'Nothing to show yet.'));
       return;
     }
+    const spec = VIEWS.find((v) => v.key === view) || VIEWS[0];
+    const rowsIn = data.rows.filter(spec.has);
+    const showPre = view !== 'flower';
+    const showFlower = view !== 'veg';
 
     const today = parse(data.today);
     let t0, t1;
-    if (data.start && data.end) {
+    const lo = [], hi = [];
+    rowsIn.forEach((r) => {
+      if (showFlower && r.start) { lo.push(parse(r.start)); hi.push(parse(r.end)); }
+      if (showPre && r.pre_start) { lo.push(parse(r.pre_start)); hi.push(r.start ? parse(r.start) : today); }
+    });
+    if (view === 'flower' && data.start && data.end) {
+      // The default view keeps the server's bounds, so it is unchanged by all of this.
       t0 = parse(data.start); t1 = parse(data.end);
+    } else if (lo.length) {
+      t0 = new Date(Math.min(...lo) - 7 * DAY);
+      t1 = new Date(Math.max(...hi) + 7 * DAY);
     } else {
-      const starts = data.rows.map((r) => parse(r.start)), ends = data.rows.map((r) => parse(r.end));
-      t0 = new Date(Math.min(...starts) - 7 * DAY);
-      t1 = new Date(Math.max(...ends) + 7 * DAY);
+      t0 = parse(data.start || data.today); t1 = parse(data.end || data.today);
     }
     const total = (t1 - t0) / DAY;
     const pct = (d) => ((d - t0) / DAY / total * 100);
 
     const inner = el('div', 'tl-inner');
     container.appendChild(inner);
+
+    if (choices && choices.length > 1) {
+      const sw = el('div', 'tl-views');
+      choices.forEach((v) => {
+        const b = el('button', 'tl-view' + (v.key === view ? ' on' : ''), v.label);
+        b.type = 'button';
+        b.setAttribute('aria-pressed', v.key === view ? 'true' : 'false');
+        b.addEventListener('click', () => draw(container, data, v.key, choices));
+        sw.appendChild(b);
+      });
+      const n = el('span', 'tl-view-note',
+        view === 'flower' ? 'flower windows'
+        : view === 'veg' ? 'alive, not yet flowering'
+        : 'pre-flower behind, flower in front');
+      sw.appendChild(n);
+      inner.appendChild(sw);
+    }
 
     // Month header: one cell per calendar month intersecting the range.
     const months = el('div', 'tl-months');
@@ -63,7 +112,7 @@ const Timeline = (() => {
     const tip = el('div', 'tl-tip');
     inner.appendChild(tip);
 
-    data.rows.forEach((r) => {
+    rowsIn.forEach((r) => {
       const row = el('div', 'tl-row');
       const label = el('div', 'tl-label');
       const a = el('a', null, r.label);
@@ -79,37 +128,68 @@ const Timeline = (() => {
         track.appendChild(g);
       });
 
-      const s = parse(r.start), e = parse(r.end);
-      const bar = el('div', 'tl-bar');
-      bar.style.left = pct(s) + '%';
-      bar.style.width = Math.max(pct(e) - pct(s), 0.6) + '%';
-      bar.style.background = r.color;
-      if (today < s) bar.classList.add('future');
-      if (today >= e) bar.classList.add('done');
-
-      if (today > s && today < e) {
-        const elapsed = el('div', 'elapsed');
-        elapsed.style.width = (r.progress * 100) + '%';
-        bar.appendChild(elapsed);
-      }
-      const text = r.strains.length && r.strains.length <= 2 ? r.strains.join(', ')
-                 : r.strains.length ? `${r.strains.length} plants` : '—';
-      bar.appendChild(el('span', 'txt', text));
-      bar.appendChild(el('span', 'days', `${r.days}d`));
-
-      bar.addEventListener('click', () => { window.location.href = r.href || `/groups/${r.id}`; });
-      bar.addEventListener('mouseenter', (ev) => {
-        const dof = r.day_of_flower ? ` · day ${r.day_of_flower}` : '';
-        tip.innerHTML = `<strong>${escape(r.label)}</strong>` +
-          `${fmt(s)} → ${fmt(e)} (${r.days} days)${dof}<br>` +
-          (r.space ? `${escape(r.space)}<br>` : '') +
-          `<span class="tip-strains">${escape(r.strains.join(', ') || 'no living plants')}</span>`;
+      const label_of = (r) => r.strains.length && r.strains.length <= 2 ? r.strains.join(', ')
+                            : r.strains.length ? `${r.strains.length} plants` : '—';
+      const open = (ev, html) => {
+        tip.innerHTML = html;
         tip.style.display = 'block';
         position(ev);
-      });
-      bar.addEventListener('mousemove', position);
-      bar.addEventListener('mouseleave', () => { tip.style.display = 'none'; });
-      track.appendChild(bar);
+      };
+      const wire = (node) => {
+        node.addEventListener('click', () => { window.location.href = r.href || `/groups/${r.id}`; });
+        node.addEventListener('mousemove', position);
+        node.addEventListener('mouseleave', () => { tip.style.display = 'none'; });
+      };
+
+      // Pre-flower: alive but not yet flowering. Drawn first so it sits behind.
+      if (showPre && r.pre_start) {
+        const ps = parse(r.pre_start);
+        const pe = r.start ? parse(r.start) : today;   // still going if it has not flipped
+        const pre = el('div', 'tl-bar pre');
+        if (!r.start) pre.classList.add('open');
+        pre.style.left = pct(ps) + '%';
+        pre.style.width = Math.max(pct(pe) - pct(ps), 0.6) + '%';
+        pre.style.background = r.color;
+        const days = Math.round((pe - ps) / DAY);
+        if (view === 'veg') {
+          pre.appendChild(el('span', 'txt', label_of(r)));
+          pre.appendChild(el('span', 'days', `${days}d`));
+        }
+        pre.addEventListener('mouseenter', (ev) => open(ev,
+          `<strong>${escape(r.label)}</strong>` +
+          `${fmt(ps)} → ${r.start ? fmt(pe) : 'still'} (${days} days before flower)<br>` +
+          (r.space ? `${escape(r.space)}<br>` : '') +
+          `<span class="tip-strains">${escape(r.strains.join(', ') || 'no living plants')}</span>`));
+        wire(pre);
+        track.appendChild(pre);
+      }
+
+      if (showFlower && r.start) {
+        const s = parse(r.start), e = parse(r.end);
+        const bar = el('div', 'tl-bar');
+        bar.style.left = pct(s) + '%';
+        bar.style.width = Math.max(pct(e) - pct(s), 0.6) + '%';
+        bar.style.background = r.color;
+        if (today < s) bar.classList.add('future');
+        if (today >= e) bar.classList.add('done');
+
+        if (today > s && today < e) {
+          const elapsed = el('div', 'elapsed');
+          elapsed.style.width = (r.progress * 100) + '%';
+          bar.appendChild(elapsed);
+        }
+        bar.appendChild(el('span', 'txt', label_of(r)));
+        bar.appendChild(el('span', 'days', `${r.days}d`));
+        bar.addEventListener('mouseenter', (ev) => {
+          const dof = r.day_of_flower ? ` · day ${r.day_of_flower}` : '';
+          open(ev, `<strong>${escape(r.label)}</strong>` +
+            `${fmt(s)} → ${fmt(e)} (${r.days} days)${dof}<br>` +
+            (r.space ? `${escape(r.space)}<br>` : '') +
+            `<span class="tip-strains">${escape(r.strains.join(', ') || 'no living plants')}</span>`);
+        });
+        wire(bar);
+        track.appendChild(bar);
+      }
       row.appendChild(track);
       rows.appendChild(row);
     });

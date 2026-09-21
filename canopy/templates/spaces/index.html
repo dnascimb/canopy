@@ -15,7 +15,7 @@
   {% set warn = breach[s.id] %}
   <div class="flower-card space-card {{ 'over' if warn }}" style="border-left-color: {{ 'var(--red)' if warn else ('var(--green)' if s.stage.value == 'flowering' else ('var(--blue)' if s.stage.value == 'vegetative' else 'var(--accent)')) }}">
     <div class="title"><span style="font-weight:600">{{ s.name }}</span>{{ badge(s.stage.value) }}{% for h in s.hosts if h != s.stage %}<span class="badge" title="Also used for {{ h.value }}">+{{ h.value }}</span>{% endfor %}{% if warn %}<span class="badge over">over capacity</span>{% endif %}</div>
-    <div class="muted small">holds {{ s.capacity }} plants</div>
+    <div class="muted small">holds {{ s.capacity }} plants · <a href="{{ url_for('spaces.check', space_id=s.id) }}">check contents</a></div>
     {% if warn %}<div class="over-why small">{{ warn }}</div>{% endif %}
     <div class="progress mt"><i style="width: {{ [(o.load * 100)|round, 100]|min }}%; background: {{ 'var(--red)' if warn else 'var(--accent)' }}"></i></div>
     <div class="meta">

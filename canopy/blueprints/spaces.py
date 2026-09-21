@@ -4,7 +4,7 @@ from flask import Blueprint, abort, flash, redirect, render_template, request, u
 
 from ..extensions import db
 from ..forms import SpaceForm
-from ..models import Group, Plant, Space, SpaceStage
+from ..models import Group, JournalEntry, Plant, Space, SpaceStage
 from ..services import scheduling as sched
 from ..services import spacing
 
@@ -108,6 +108,70 @@ def edit(space_id: int):
         flash("Saved changes.", "success")
         return redirect(url_for("spaces.index"))
     return render_template("spaces/form.html", form=form, space=s)
+
+
+@bp.route("/<int:space_id>/check", methods=["GET", "POST"])
+def check(space_id: int):
+    """Walk a space against what Canopy thinks is in it.
+
+    Deliberately non-destructive. Confirming is one tick per plant; anything left unticked
+    is *flagged*, not killed or moved, because "I did not see it" and "it is gone" are
+    different claims and only the grower can tell them apart.
+    """
+    s = db.session.get(Space, space_id) or abort(404)
+    ref = sched.today()
+    spaces = db.session.query(Space).all()
+    here = [
+        p
+        for p in db.session.query(Plant).all()
+        if (loc := spacing.plant_location(p, spaces)) is not None and loc.id == s.id
+    ]
+    here.sort(key=lambda p: ((p.group.label if p.group else "~"), p.label))
+
+    if request.method == "POST":
+        seen = {int(x) for x in request.form.getlist("present")}
+        found = [p for p in here if p.id in seen]
+        missing = [p for p in here if p.id not in seen]
+        extra = (request.form.get("extra") or "").strip()
+        for p in missing:
+            note = f"Not found in the {ref.isoformat()} check of {s.name}."
+            p.notes = f"{p.notes} {note}".strip() if p.notes else note
+        body = [f"Checked {s.name}: {len(found)} of {len(here)} confirmed."]
+        if missing:
+            body.append("Not found: " + ", ".join(p.label for p in missing) + ".")
+        if extra:
+            body.append("Here but not in Canopy: " + extra)
+        db.session.add(
+            JournalEntry(
+                entry_date=ref,
+                space_id=s.id,
+                title=f"Checked {s.name}",
+                body="\n\n".join(body),
+            )
+        )
+        db.session.commit()
+        flash(
+            f"{len(found)} confirmed, {len(missing)} flagged as not found."
+            if missing
+            else f"All {len(found)} confirmed.",
+            "success",
+        )
+        return redirect(url_for("spaces.check", space_id=s.id))
+
+    groups: dict[str, list[Plant]] = {}
+    for p in here:
+        groups.setdefault(p.group.label if p.group else "No group", []).append(p)
+    return render_template(
+        "spaces/check.html",
+        space=s,
+        plants=here,
+        grouped=groups,
+        ref=ref,
+        last=db.session.query(JournalEntry)
+        .filter(JournalEntry.space_id == s.id, JournalEntry.title.like("Checked %"))
+        .order_by(JournalEntry.entry_date.desc(), JournalEntry.id.desc())
+        .first(),
+    )
 
 
 @bp.post("/<int:space_id>/delete")

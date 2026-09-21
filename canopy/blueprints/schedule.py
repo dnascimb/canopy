@@ -19,7 +19,7 @@ def index():
     groups = db.session.query(Group).all()
     spaces = db.session.query(Space).all()
     units = sched.scheduled_units(groups, db.session.query(Plant).all())
-    rows = sched.timeline_rows(units, ref=ref)
+    rows = sched.timeline_rows(units, ref=ref, include_unflipped=True)
     return render_template(
         "schedule/index.html",
         rows=rows,

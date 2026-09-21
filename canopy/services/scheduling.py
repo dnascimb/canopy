@@ -168,12 +168,44 @@ def upcoming(groups: Iterable[Group], *, days: int = 30, ref: date | None = None
 # ---------------------------------------------------------------------------
 # Timeline rows (consumed by the JS Gantt and the ASCII renderer)
 # ---------------------------------------------------------------------------
-def timeline_rows(groups: Iterable[Group], *, ref: date | None = None) -> list[dict]:
+def pre_flower_start(unit: Group) -> date | None:
+    """The earliest date we know a unit existed, before it flipped.
+
+    Deliberately "before flower" rather than strictly vegetative. A strict veg-start would
+    read the first `vegetative` event, and almost nothing has one: when this was written,
+    2 of 34 scheduled units did, against 25 that have a usable start date. So this takes
+    the first lifecycle event that is not the flip, and falls back to the plant's own
+    `started_on`. The bar it draws is "alive but not yet flowering", which is the thing
+    worth seeing on a calendar, and it sharpens on its own as more events get logged.
+    """
+    out: list[date] = []
+    for p in unit.living_plants:
+        before = [e.on for e in p.events if e.to_status != PlantStatus.flowering]
+        if before:
+            out.append(min(before))
+        elif p.started_on:
+            out.append(p.started_on)
+    if not out:
+        return None
+    first = min(out)
+    # A start date recorded after the fact can land on or after the flip — Jack Herer was
+    # entered as starting Sep 7 and flipped Sep 4. There is no pre-flower span to draw
+    # there, and drawing one gives a 1px sliver that reads as real data.
+    if unit.flower_start is not None and first >= unit.flower_start:
+        return None
+    return first
+
+
+def timeline_rows(
+    groups: Iterable[Group], *, ref: date | None = None, include_unflipped: bool = False
+) -> list[dict]:
     ref = ref or today()
     rows = []
     for g in sorted(groups, key=lambda g: (g.flower_start or date.max, g.number)):
-        if g.flower_start is None:
+        pre = pre_flower_start(g)
+        if g.flower_start is None and not (include_unflipped and pre):
             continue
+        flipped = g.flower_start is not None
         rows.append(
             {
                 "id": g.id,
@@ -182,16 +214,19 @@ def timeline_rows(groups: Iterable[Group], *, ref: date | None = None) -> list[d
                 "href": getattr(g, "href", None) or f"/groups/{g.id}",
                 "number": g.number,
                 "label": g.label,
-                "start": g.flower_start.isoformat(),
-                "end": g.flower_end.isoformat(),
-                "days": g.flower_days,
+                "start": g.flower_start.isoformat() if flipped else None,
+                "end": g.flower_end.isoformat() if flipped else None,
+                # Where the bar for "alive but not yet flowering" begins. None when we have
+                # no date at all for the unit before its flip.
+                "pre_start": pre.isoformat() if pre else None,
+                "days": g.flower_days if flipped else None,
                 "color": g.color,
                 "status": g.status.value,
                 "space": g.space.name if g.space else None,
                 "strains": g.strain_labels(),
                 "plant_count": len(g.living_plants),
-                "progress": round(g.progress(ref), 3),
-                "day_of_flower": g.day_of_flower(ref),
+                "progress": round(g.progress(ref), 3) if flipped else 0,
+                "day_of_flower": g.day_of_flower(ref) if flipped else None,
             }
         )
     return rows
@@ -201,9 +236,16 @@ def timeline_bounds(rows: list[dict], *, pad_days: int = 7) -> tuple[date, date]
     if not rows:
         t = today()
         return t.replace(day=1), t + timedelta(days=90)
-    start = min(date.fromisoformat(r["start"]) for r in rows) - timedelta(days=pad_days)
-    end = max(date.fromisoformat(r["end"]) for r in rows) + timedelta(days=pad_days)
-    return start, end
+    # Flower spans only. The pre-flower span is deliberately excluded: including it would
+    # stretch the axis back months and squash the flower bars in the default view, which is
+    # the one view that must not change. The renderer widens the axis itself when a view
+    # actually draws pre-flower bars.
+    starts = [date.fromisoformat(r["start"]) for r in rows if r.get("start")]
+    ends = [date.fromisoformat(r["end"]) for r in rows if r.get("end")]
+    if not starts or not ends:
+        t = today()
+        return t.replace(day=1), t + timedelta(days=90)
+    return min(starts) - timedelta(days=pad_days), max(ends) + timedelta(days=pad_days)
 
 
 # ---------------------------------------------------------------------------

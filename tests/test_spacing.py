@@ -434,3 +434,49 @@ def test_moving_somewhere_that_cannot_host_still_transitions(app):
     spacing.move_plants([cutting], veg, ref=REF)
     db.session.commit()
     assert cutting.status == PlantStatus.vegetative
+
+
+# ---------------------------------------------------------------------------
+# Checking a space against what is actually in it
+# ---------------------------------------------------------------------------
+def test_check_page_lists_what_the_app_thinks_is_there(client):
+    veg = db.session.query(Space).filter_by(name="Veg Tent").one()
+    html = client.get(f"/spaces/{veg.id}/check").data.decode()
+    expected = [
+        p
+        for p in db.session.query(Plant).all()
+        if (loc := spacing.plant_location(p, spaces())) and loc.id == veg.id
+    ]
+    assert expected
+    for p in expected:
+        assert f'value="{p.id}"' in html
+
+
+def test_check_flags_what_was_not_seen_without_touching_it(client):
+    """ "I did not see it" is not "it is gone" — the check records, it never culls."""
+    from canopy.models import JournalEntry, PlantStatus
+
+    veg = db.session.query(Space).filter_by(name="Veg Tent").one()
+    here = [
+        p
+        for p in db.session.query(Plant).all()
+        if (loc := spacing.plant_location(p, spaces())) and loc.id == veg.id
+    ]
+    seen, unseen = here[:-1], here[-1]
+    before = unseen.status
+
+    client.post(
+        f"/spaces/{veg.id}/check",
+        data={"present": [str(p.id) for p in seen], "extra": "a volunteer in the corner"},
+        follow_redirects=True,
+    )
+    db.session.refresh(unseen)
+    assert unseen.status == before and unseen.status != PlantStatus.killed
+    assert unseen.ended_on is None
+    assert "Not found in the 2026-09-07 check of Veg Tent." in unseen.notes
+    assert all("Not found" not in (p.notes or "") for p in seen)
+
+    entry = db.session.query(JournalEntry).filter(JournalEntry.title == "Checked Veg Tent").one()
+    assert f"{len(seen)} of {len(here)} confirmed" in entry.body
+    assert unseen.label in entry.body
+    assert "a volunteer in the corner" in entry.body

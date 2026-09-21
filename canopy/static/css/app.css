@@ -274,6 +274,23 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); outline
 .tl-today { position: absolute; top: 0; bottom: 18px; width: 2px; background: var(--red); opacity: .8; z-index: 4; pointer-events: none; }
 .tl-today-label { position: absolute; bottom: -18px; left: -18px; color: var(--red); font-size: 0.72rem; font-weight: 600; }
 .tl-gridline { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--line); opacity: .6; pointer-events: none; }
+/* Pre-flower bar: same hue, drawn quieter so it reads as background to the flower bar. */
+.tl-bar.pre { opacity: .30; border: 1px dashed rgba(255,255,255,.35); box-shadow: none; }
+.tl-bar.pre .txt, .tl-bar.pre .days { opacity: .9; }
+.tl-bar.pre.open {
+  -webkit-mask-image: linear-gradient(to right, #000 78%, transparent 100%);
+  mask-image: linear-gradient(to right, #000 78%, transparent 100%);
+}
+.tl-views { display: flex; align-items: center; gap: 4px; margin-bottom: 8px; }
+.tl-view {
+  font: inherit; font-size: .82rem; padding: 3px 10px; cursor: pointer;
+  color: var(--text-soft); background: var(--surface-2);
+  border: 1px solid var(--line); border-radius: 999px;
+}
+.tl-view:hover { color: var(--text); }
+.tl-view.on { background: var(--amber-soft); color: var(--accent); border-color: var(--accent); }
+.tl-view-note { color: var(--muted); font-size: .8rem; margin-left: 6px; }
+
 .tl-tip {
   position: absolute; z-index: 20; background: var(--surface-2); border: 1px solid var(--line-strong);
   border-radius: var(--radius); padding: 9px 11px; font-size: 0.8rem; color: var(--text); pointer-events: none;
@@ -396,3 +413,23 @@ pre.ascii { background: var(--bg); border: 1px solid var(--line); border-radius:
 .chart .c-cap-label { fill: var(--red); font-size: 10px; }
 .chart .c-area { fill: rgba(240,168,58,.35); stroke: var(--accent); stroke-width: 1.5; }
 .chart .c-today { stroke: var(--red); stroke-width: 1.5; }
+
+/* ---------- tent check ---------- */
+.check-head { padding: 10px 14px; border-bottom: 1px solid var(--line); }
+.check-group + .check-group { border-top: 1px solid var(--line); }
+.check-group-head {
+  display: flex; gap: 8px; align-items: baseline; padding: 9px 14px 4px;
+  font-weight: 600; font-size: .9rem; color: var(--text-soft);
+}
+.check-row {
+  display: grid; grid-template-columns: 20px minmax(0,1fr) minmax(0,1fr) auto auto;
+  gap: 10px; align-items: center; padding: 7px 14px; cursor: pointer;
+}
+.check-row:hover { background: var(--surface-2); }
+.check-row input { width: 16px; height: 16px; }
+.check-row:has(input:checked) .check-label { color: var(--muted); text-decoration: line-through; }
+.check-label { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 640px) {
+  .check-row { grid-template-columns: 20px 1fr auto; }
+  .check-row .muted.small:not(.mono) { display: none; }
+}
