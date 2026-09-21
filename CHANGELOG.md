@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- **Full cycle toggle on the timeline.** One button. Off is the chart as it was; on adds
+  the pre-flower span to each bar and brings in groups that have not flipped yet. The
+  span runs from the first lifecycle event that is not the flip, falling back to
+  `started_on`, so it means "alive, not yet flowering" rather than strictly vegetative —
+  only 2 of 34 scheduled units have a `vegetative` event to read. Server-side bounds still
+  come from flower spans only, so the default is unchanged.
+- **Check a space against what is in it.** `/spaces/<id>/check` lists what Canopy thinks is
+  in a space, in walking order, with a tick per plant. Unticked plants get a dated note and
+  a journal entry; nothing is killed, moved or re-dated.
+
 - **No half-water reminder for plants already cut.** `living_plants` counts harvested ones,
   so a run that was in a paper bag still asked to be watered. The reminder now looks only at
   plants still in flower.

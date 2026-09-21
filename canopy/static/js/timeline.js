@@ -4,12 +4,11 @@
  * The payload shape is produced by GET /api/v1/timeline and also inlined by the
  * dashboard/schedule templates so the first paint needs no extra request.
  *
- * Three views, chosen by the control above the chart:
- *   flower  every flower span. The default, and byte-for-byte what this drew before
- *           pre-flower bars existed.
- *   veg     every pre-flower span — alive, not yet flowering.
- *   all     both, pre-flower dimmer and behind.
- * A view is only offered when the data can actually fill it.
+ * One toggle above the chart: "Full cycle".
+ *   off  flower spans only. The default, and byte-for-byte what this drew before.
+ *   on   adds the pre-flower span in front of each bar, and brings in units that have
+ *        not flipped yet.
+ * The toggle only appears when there is pre-flower data to show.
  */
 const Timeline = (() => {
   const DAY = 86400000;
@@ -24,31 +23,21 @@ const Timeline = (() => {
     return e;
   };
 
-  const VIEWS = [
-    { key: 'flower', label: 'Flower', has: (r) => r.start },
-    { key: 'veg', label: 'Veg', has: (r) => r.pre_start },
-    { key: 'all', label: 'All', has: (r) => r.start || r.pre_start },
-  ];
-
   function render(container, data) {
-    const offered = VIEWS.filter((v) => (data.rows || []).some(v.has));
-    // "All" adds nothing unless both kinds of span are present.
-    const choices = offered.length > 2 ? offered : offered.filter((v) => v.key !== 'all');
-    const start = choices.some((v) => v.key === 'flower') ? 'flower' : (choices[0] || {}).key;
-    draw(container, data, start, choices);
+    const any = (data.rows || []).some((r) => r.pre_start);
+    draw(container, data, false, any);
   }
 
-  function draw(container, data, view, choices) {
+  function draw(container, data, full, offer) {
     container.innerHTML = '';
     container.classList.add('timeline');
     if (!data.rows || !data.rows.length) {
       container.appendChild(el('div', 'tl-empty', 'Nothing to show yet.'));
       return;
     }
-    const spec = VIEWS.find((v) => v.key === view) || VIEWS[0];
-    const rowsIn = data.rows.filter(spec.has);
-    const showPre = view !== 'flower';
-    const showFlower = view !== 'veg';
+    const showPre = full;
+    const showFlower = true;
+    const rowsIn = data.rows.filter((r) => (full ? (r.start || r.pre_start) : r.start));
 
     const today = parse(data.today);
     let t0, t1;
@@ -57,8 +46,8 @@ const Timeline = (() => {
       if (showFlower && r.start) { lo.push(parse(r.start)); hi.push(parse(r.end)); }
       if (showPre && r.pre_start) { lo.push(parse(r.pre_start)); hi.push(r.start ? parse(r.start) : today); }
     });
-    if (view === 'flower' && data.start && data.end) {
-      // The default view keeps the server's bounds, so it is unchanged by all of this.
+    if (!full && data.start && data.end) {
+      // The default keeps the server's bounds, so it is unchanged by all of this.
       t0 = parse(data.start); t1 = parse(data.end);
     } else if (lo.length) {
       t0 = new Date(Math.min(...lo) - 7 * DAY);
@@ -72,20 +61,13 @@ const Timeline = (() => {
     const inner = el('div', 'tl-inner');
     container.appendChild(inner);
 
-    if (choices && choices.length > 1) {
+    if (offer) {
       const sw = el('div', 'tl-views');
-      choices.forEach((v) => {
-        const b = el('button', 'tl-view' + (v.key === view ? ' on' : ''), v.label);
-        b.type = 'button';
-        b.setAttribute('aria-pressed', v.key === view ? 'true' : 'false');
-        b.addEventListener('click', () => draw(container, data, v.key, choices));
-        sw.appendChild(b);
-      });
-      const n = el('span', 'tl-view-note',
-        view === 'flower' ? 'flower windows'
-        : view === 'veg' ? 'alive, not yet flowering'
-        : 'pre-flower behind, flower in front');
-      sw.appendChild(n);
+      const b = el('button', 'tl-view' + (full ? ' on' : ''), 'Full cycle');
+      b.type = 'button';
+      b.setAttribute('aria-pressed', full ? 'true' : 'false');
+      b.addEventListener('click', () => draw(container, data, !full, offer));
+      sw.appendChild(b);
       inner.appendChild(sw);
     }
 
@@ -151,10 +133,6 @@ const Timeline = (() => {
         pre.style.width = Math.max(pct(pe) - pct(ps), 0.6) + '%';
         pre.style.background = r.color;
         const days = Math.round((pe - ps) / DAY);
-        if (view === 'veg') {
-          pre.appendChild(el('span', 'txt', label_of(r)));
-          pre.appendChild(el('span', 'days', `${days}d`));
-        }
         pre.addEventListener('mouseenter', (ev) => open(ev,
           `<strong>${escape(r.label)}</strong>` +
           `${fmt(ps)} → ${r.start ? fmt(pe) : 'still'} (${days} days before flower)<br>` +
