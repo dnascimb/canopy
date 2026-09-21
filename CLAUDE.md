@@ -94,6 +94,10 @@ rendered client-side by `static/js/timeline.js` from JSON that the templates inl
   is the actual plant a cutting came off — `parent` / `cuttings` read both ways and
   `ancestry` climbs the line loop-safely. Deleting a mother nulls the link (SET NULL),
   never the cutting.
+* **Duplicate plant labels are intentional.** A cutting is labelled after its mother, so
+  two living plants sharing a label is the truth of the tent, not a bug — it shows the line
+  carrying on. Identify plants by `id`; never look one up by label, and never "fix" this by
+  forcing labels unique.
 * Journal `tasks` is a comma-separated string of keys from `models.TASKS`; use
   `JournalForm.tasks_csv` / `derived_title` when saving.
 
