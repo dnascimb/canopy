@@ -216,7 +216,7 @@ flipped yet appear as well.
 
 ### Checking a space against what is in it
 
-**Spaces → check contents** lists every plant Canopy believes is in that space. Tick what
+**Spaces → Check** lists every plant Canopy believes is in that space. Tick what
 you can see and submit. Unticked plants get a dated note saying they were not found, and
 the whole check is written up as one journal entry on the space — nothing is killed, moved
 or re-dated. A free-text box records anything in the space that Canopy does not know about.

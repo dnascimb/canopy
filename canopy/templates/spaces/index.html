@@ -15,7 +15,7 @@
   {% set warn = breach[s.id] %}
   <div class="flower-card space-card {{ 'over' if warn }}" style="border-left-color: {{ 'var(--red)' if warn else ('var(--green)' if s.stage.value == 'flowering' else ('var(--blue)' if s.stage.value == 'vegetative' else 'var(--accent)')) }}">
     <div class="title"><span style="font-weight:600">{{ s.name }}</span>{{ badge(s.stage.value) }}{% for h in s.hosts if h != s.stage %}<span class="badge" title="Also used for {{ h.value }}">+{{ h.value }}</span>{% endfor %}{% if warn %}<span class="badge over">over capacity</span>{% endif %}</div>
-    <div class="muted small">holds {{ s.capacity }} plants · <a href="{{ url_for('spaces.check', space_id=s.id) }}">check contents</a></div>
+    <div class="muted small">holds {{ s.capacity }} plants</div>
     {% if warn %}<div class="over-why small">{{ warn }}</div>{% endif %}
     <div class="progress mt"><i style="width: {{ [(o.load * 100)|round, 100]|min }}%; background: {{ 'var(--red)' if warn else 'var(--accent)' }}"></i></div>
     <div class="meta">
@@ -27,7 +27,7 @@
       <dt>In here</dt><dd>{% if o.groups() %}{% for g in o.groups() %}<a href="{{ url_for('groups.detail', group_id=g.id) }}">{{ g.label }}</a>{{ ', ' if not loop.last }}{% endfor %}{% endif %}
         {% set loose = o.plants|rejectattr('group')|list %}{% if loose %}{{ ', ' if o.groups() }}{{ loose|length }} ungrouped{% endif %}{% if not o.plants %}<span class="muted">empty</span>{% endif %}</dd>
     </dl>
-    <div class="row mt"><a class="btn small" href="{{ url_for('plants.index', space=s.id) }}">Plants</a><a class="btn small" href="{{ url_for('spaces.edit', space_id=s.id) }}">Edit</a>{{ confirm_button(url_for('spaces.delete', space_id=s.id), 'Delete', 'Delete ' ~ s.name ~ '? Groups and plants in it will be unassigned.') }}</div>
+    <div class="row mt"><a class="btn small" href="{{ url_for('spaces.check', space_id=s.id) }}">Check</a><a class="btn small" href="{{ url_for('plants.index', space=s.id) }}">Plants</a><a class="btn small" href="{{ url_for('spaces.edit', space_id=s.id) }}">Edit</a>{{ confirm_button(url_for('spaces.delete', space_id=s.id), 'Delete', 'Delete ' ~ s.name ~ '? Groups and plants in it will be unassigned.') }}</div>
   </div>
 {% else %}
   <div class="panel empty">No spaces yet. <a href="{{ url_for('spaces.create') }}">Add your clone shelf, veg tent and flower tent</a> to start planning.</div>
