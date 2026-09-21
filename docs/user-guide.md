@@ -203,12 +203,23 @@ deleted (delete the plants first) so history is never lost by accident.
    fit right now, and which groups are in it. A space over its count — now or on a
    projected future date — gets a red **over capacity** label with the reason, and its
    border and load bar turn red.
+The timeline has a **Full cycle** button. Off, it draws flower windows only. On, each bar
+gains the stretch before the flip — alive but not yet flowering — and groups that have not
+flipped yet appear as well.
+
 2. **Load over the season** for each flowering space: plant count at every flip and
    harvest, the space's capacity as a dashed line, today in red. Peaks above the line are
    what drive the over-capacity label on the card.
 3. **Coming up.** Every group that hasn't flipped yet, how many plants it will bring,
    whether that fits today, and the next opening. **Schedule** accepts the suggested date
    for unscheduled groups.
+
+### Checking a space against what is in it
+
+**Spaces → check contents** lists every plant Canopy believes is in that space. Tick what
+you can see and submit. Unticked plants get a dated note saying they were not found, and
+the whole check is written up as one journal entry on the space — nothing is killed, moved
+or re-dated. A free-text box records anything in the space that Canopy does not know about.
 
 ### Setting up your spaces
 

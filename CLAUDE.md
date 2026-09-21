@@ -61,6 +61,12 @@ rendered client-side by `static/js/timeline.js` from JSON that the templates inl
 * "Today" comes from `scheduling.today()`, which honours `CANOPY_TODAY`. Never call
   `date.today()` directly in app code.
 * Events on the same day sort **end before start**, then by group number.
+* **`timeline_bounds()` reads flower spans only.** Pre-flower spans reach months further
+  back; folding them in would shrink every flower bar with the Full cycle toggle off. The
+  renderer widens the axis itself when the toggle is on.
+* **The space check never mutates.** `spaces.check()` flags unticked plants with a note and
+  writes a journal entry. It must not set status, `ended_on` or `space_id` — "I did not see
+  it" is not "it is gone".
 * **Group colours must be unique.** The timeline tells bars apart by colour, so
   `next_group_color(used)` takes the colours already in use and returns one nobody has —
   palette first, then the hue circle at golden-angle steps. Never index `GROUP_PALETTE`
