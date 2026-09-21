@@ -63,9 +63,9 @@
     .files div{grid-template-columns:1fr;gap:2px}
   }
 </style>
-<div class='wrap'><header class='doc'><p class='eyebrow'>Canopy · proof of concept</p><h1>Checking a Tent</h1><p class='standfirst'>Three plants drifted out of sync with the database in a fortnight, each found by accident. This page asks the question the app never asked, and does not act on the answer.</p><div class='meta'><div><b>Status</b>Proof of concept, merged</div><div><b>Date</b>21 September 2026</div><div><b>Commit</b>a98c4d8</div><div><b>Screens</b>Spaces → check contents</div></div></header><section><h2><span class="n">01</span>The problem</h2>
+<div class='wrap'><header class='doc'><p class='eyebrow'>Canopy · proof of concept</p><h1>Checking a Tent</h1><p class='standfirst'>Three plants were out of sync with the database in two weeks, each found by accident. This page asks the question the app never asked, and does not act on the answer.</p><div class='meta'><div><b>Status</b>Proof of concept, merged</div><div><b>Date</b>21 September 2026</div><div><b>Commit</b>a98c4d8</div><div><b>Screens</b>Spaces → check contents</div></div></header><section><h2><span class="n">01</span>The problem</h2>
 <div class="prose">
-<p>Nothing in Canopy checks whether the database still matches the tents. In one fortnight
+<p>Nothing in Canopy checks whether the database still matches the tents. In two weeks
 three plants were in a different state on the shelf than in the app. Each was found by
 accident, days or weeks late.</p>
 </div>
@@ -99,7 +99,7 @@ and not modelled, capacity is a label and not an alert.</p>
 <thead><tr><th>Option</th><th>What it does</th><th>Why not</th><th class="num">Verdict</th></tr></thead>
 <tbody>
 <tr><td>Do nothing</td><td>Rely on moves being recorded as they happen</td>
-<td>This is what was already happening. Three drifts in a fortnight, none caught.</td>
+<td>This is what was already happening. Three drifts in two weeks, none caught.</td>
 <td class="verdict">rejected</td></tr>
 <tr><td>Staleness warnings</td><td>Flag plants not edited in N days</td>
 <td>Measures record-keeping, not reality. A plant edited last week can still be in the
