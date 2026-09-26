@@ -54,6 +54,29 @@ def test_group_label_falls_back_to_number(app):
     assert Group(number=3, name="Goji 3x").label == "Goji 3x"
 
 
+def test_finished_group_is_not_waiting_for_a_slot(app):
+    """Culling the last plant ends a group's run; it must not then ask for a slot.
+
+    Grp 35's two PNG clones both hermed and were cut on 2026-09-25. With nothing left to
+    flip the group has no flower_start, which is the same shape as a group that has never
+    run — so the dashboard listed a dead group under "Waiting for a slot".
+    """
+    g = Group(number=902)
+    strain = db.session.query(Strain).first()
+    alive = Plant(label="alive", strain=strain, group=g, status=PlantStatus.vegetative)
+    db.session.add_all([g, alive])
+    db.session.commit()
+    assert g.waiting_for_a_slot
+
+    alive.status = PlantStatus.killed
+    db.session.commit()
+    assert not g.waiting_for_a_slot
+
+    alive.status = PlantStatus.harvested
+    db.session.commit()
+    assert not g.waiting_for_a_slot, "cut and hanging is not waiting for a slot either"
+
+
 def test_living_and_killed_plants(app):
     g = db.session.query(Group).filter_by(number=1).one()
     assert {p.label for p in g.killed_plants} == {"Lemon Lime Haze 1"}

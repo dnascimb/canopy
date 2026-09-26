@@ -26,7 +26,7 @@ def index():
         events=sched.events(units),
         openings=sched.openings(units, ref=ref),
         conflicts=sched.conflicts(groups, spaces, db.session.query(Plant).all(), ref=ref),
-        unscheduled=[g for g in groups if g.flower_start is None],
+        unscheduled=[g for g in groups if g.waiting_for_a_slot],
         ref=ref,
     )
 

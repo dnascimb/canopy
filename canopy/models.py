@@ -283,6 +283,19 @@ class Group(TimestampMixin, db.Model):
     def killed_plants(self) -> list[Plant]:
         return [p for p in self.plants if p.status == PlantStatus.killed]
 
+    @property
+    def waiting_for_a_slot(self) -> bool:
+        """No flower date yet, and something still alive to give the slot to.
+
+        A group whose plants are all killed or harvested is finished, not waiting. It has
+        no `flower_start` because there is nothing left to flip, so testing that alone
+        asks the planner to find room for an empty tray. `living_plants` is not the right
+        guard either: it counts harvested plants, which are cut and hanging.
+        """
+        if self.flower_start is not None:
+            return False
+        return any(p.status not in (PlantStatus.killed, PlantStatus.harvested) for p in self.plants)
+
     def strain_labels(self) -> list[str]:
         """Unique strain names of living plants, suffixed with ×N when repeated."""
         counts: dict[str, int] = {}

@@ -24,7 +24,7 @@ def index():
     rows = sched.timeline_rows(units, ref=ref)
     active = [g for g in groups if g.is_flowering_on(ref)]
     active.sort(key=lambda g: g.flower_end)
-    unscheduled = [g for g in groups if g.flower_start is None]
+    unscheduled = [g for g in groups if g.waiting_for_a_slot]
     suggestions = {g.id: sched.suggest_start(g, groups, ref=ref) for g in unscheduled}
 
     quick = JournalForm(entry_date=ref)

@@ -12,6 +12,12 @@
   in a space, in walking order, with a tick per plant. Unticked plants get a dated note and
   a journal entry; nothing is killed, moved or re-dated.
 
+- **A finished group no longer asks for a slot.** Culling the last plant in a group leaves
+  it with no `flower_start`, which is the same shape as a group that has never run, so the
+  dashboard and the schedule page both listed it under "Waiting for a slot" — Grp 35 turned
+  up there with nothing in it. `Group.waiting_for_a_slot` now says what was meant: no flower
+  date yet, and at least one plant that is neither killed nor harvested.
+
 - **No half-water reminder for plants already cut.** `living_plants` counts harvested ones,
   so a run that was in a paper bag still asked to be watered. The reminder now looks only at
   plants still in flower.
