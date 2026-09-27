@@ -17,6 +17,11 @@
   his estimated run — still read as in flower the next day. A group never had this problem
   because its span is read off `living_plants`; `LonePlant` now makes the same check.
 
+- **A culled plant leaves the timeline.** The fix above took the card away but left the
+  bar: `scheduled_units()` wrapped any groupless plant with a flip date, killed or not, so
+  Goji OG #8 stayed on the timeline as flowering. Killed plants are now left out, as
+  `Group.scheduled_plants` leaves them out of a group's span.
+
 - **A plant on its own gets a flower card.** "In flower now" was built from groups alone,
   so seven plants flowering in the tent — Sour Diesel, Jack Herer, Green Crack Sr., London
   Pound Cake 2, SSDD 2B, GSC and Goji OG #8 — appeared on the timeline but had no card,
