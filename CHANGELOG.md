@@ -12,6 +12,15 @@
   in a space, in walking order, with a tick per plant. Unticked plants get a dated note and
   a journal entry; nothing is killed, moved or re-dated.
 
+- **A plant on its own gets a flower card.** "In flower now" was built from groups alone,
+  so seven plants flowering in the tent — Sour Diesel, Jack Herer, Green Crack Sr., London
+  Pound Cake 2, SSDD 2B, GSC and Goji OG #8 — appeared on the timeline but had no card,
+  which is the one part of the dashboard anyone reads. The cards now come from
+  `scheduled_units()` like everything else, link through a new `href` that a group and a
+  LonePlant both answer, and the ramp-down lookup is keyed by `number` rather than `id`,
+  because a group id and a plant id can collide and `LonePlant.number` is offset past the
+  real group numbers precisely so it cannot. The strip now counts runs, not groups.
+
 - **A finished group no longer asks for a slot.** Culling the last plant in a group leaves
   it with no `flower_start`, which is the same shape as a group that has never run, so the
   dashboard and the schedule page both listed it under "Waiting for a slot" — Grp 35 turned

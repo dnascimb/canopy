@@ -40,6 +40,26 @@ def test_dashboard_shows_active_groups_and_suggestion(client):
     assert "Oct 25" in html
 
 
+def test_flower_cards_include_a_plant_standing_on_its_own(client):
+    """A lone plant is a run, and the cards are the only part of this page Dan reads.
+
+    Everywhere else — timeline, events, ramp-down — a scheduled plant with no group is a
+    LonePlant and shows like a group of one. "In flower now" was built from groups alone,
+    so seven plants in the flower tent, Sour Diesel and GSC among them, had no card.
+    """
+    from canopy.services import lifecycle
+
+    strain = db.session.query(Strain).first()
+    lone = Plant(label="Lone Ranger", strain=strain)
+    db.session.add(lone)
+    lifecycle.set_flip([lone], date(2026, 8, 20), days=60)
+    db.session.commit()
+
+    cards = client.get("/").data.decode().split("<h2>In flower now</h2>")[1].split("</section>")[0]
+    assert "Lone Ranger" in cards
+    assert f'href="/plants/{lone.id}"' in cards, "the card must link to the plant, not a group"
+
+
 def test_ramp_down_reminder_is_above_the_fold_and_on_the_card(client, app):
     """The reminder has to sit where it is read: the top strip and the flower card.
 

@@ -115,6 +115,9 @@ class LonePlant:
     def strain_labels(self) -> list[str]:
         return [self.plant.strain.name]
 
+    def strain_summary(self) -> str:
+        return ", ".join(self.strain_labels())
+
     def is_flowering_on(self, day: date) -> bool:
         return self.plant.is_flowering_on(day)
 

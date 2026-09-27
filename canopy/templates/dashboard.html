@@ -6,7 +6,7 @@
 <div class="page-head">
   <div>
     <h1>Season at a glance</h1>
-    <p class="sub">{{ active|length }} group{{ 's' if active|length != 1 }} in flower · {{ counts.flowering }} plants flowering · next event {{ upcoming[0].on|d if upcoming else 'none in 30 days' }}</p>
+    <p class="sub">{{ active|length }} run{{ 's' if active|length != 1 }} in flower · {{ counts.flowering }} plants flowering · next event {{ upcoming[0].on|d if upcoming else 'none in 30 days' }}</p>
   </div>
   <div class="actions">
     <a class="btn" href="{{ url_for('schedule.export_markdown') }}">Export Markdown</a>
@@ -27,7 +27,7 @@
 {% endif %}
 
 <div class="stat-strip">
-  <div class="stat"><div class="n">{{ active|length }}</div><div class="l">groups in flower</div></div>
+  <div class="stat"><div class="n">{{ active|length }}</div><div class="l">runs in flower</div></div>
   <div class="stat"><div class="n">{{ counts.flowering }}</div><div class="l">plants in flower</div></div>
   <div class="stat"><div class="n">{{ counts.vegetative + counts.seedling }}</div><div class="l">plants in veg</div></div>
   <div class="stat"><div class="n">{{ inventory.strains }}</div><div class="l">strains · {{ inventory.seeds_on_hand }} seeds</div></div>
@@ -52,9 +52,9 @@
       {% if active %}
       <div class="flower-list">
         {% for g in active %}
-        {% set r = ramp_by_group.get(g.id) %}
+        {% set r = ramp_by_group.get(g.number) %}
         <div class="flower-card {{ 'ramping' if r }}" style="border-left-color: {{ g.color }}">
-          <div class="title"><a href="{{ url_for('groups.detail', group_id=g.id) }}">{{ g.label }}</a><span class="mono small muted">day {{ g.day_of_flower(ref) }}/{{ g.flower_days }}</span></div>
+          <div class="title"><a href="{{ g.href }}">{{ g.label }}</a><span class="mono small muted">day {{ g.day_of_flower(ref) }}/{{ g.flower_days }}</span></div>
           <div class="strains" title="{{ g.strain_summary() }}">{{ g.strain_summary() or 'no living plants' }}</div>
           <div class="progress"><i style="width: {{ (g.progress(ref) * 100)|round }}%; background: {{ g.color }}"></i></div>
           <div class="meta"><span>{{ g.flower_start|d }}</span><span>harvest {{ g.flower_end|d }}</span></div>

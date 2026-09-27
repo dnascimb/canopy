@@ -284,6 +284,12 @@ class Group(TimestampMixin, db.Model):
         return [p for p in self.plants if p.status == PlantStatus.killed]
 
     @property
+    def href(self) -> str:
+        """Where a card or a timeline row links to. LonePlant answers this too, so a
+        template can show a group and a lone plant side by side without asking which."""
+        return f"/groups/{self.id}"
+
+    @property
     def waiting_for_a_slot(self) -> bool:
         """No flower date yet, and something still alive to give the slot to.
 

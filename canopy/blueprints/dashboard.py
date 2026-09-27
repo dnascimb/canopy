@@ -22,8 +22,11 @@ def index():
     units = sched.scheduled_units(groups, plants)
     ramp = sched.ramp_down(units, spaces, ref=ref)
     rows = sched.timeline_rows(units, ref=ref)
-    active = [g for g in groups if g.is_flowering_on(ref)]
-    active.sort(key=lambda g: g.flower_end)
+    # Every run in flower, not just the ones in a group: a plant standing on its own
+    # is still a thing with a flip date and a harvest, and the cards are the only part
+    # of this page anyone reads.
+    active = [u for u in units if u.is_flowering_on(ref)]
+    active.sort(key=lambda u: u.flower_end)
     unscheduled = [g for g in groups if g.waiting_for_a_slot]
     suggestions = {g.id: sched.suggest_start(g, groups, ref=ref) for g in unscheduled}
 
@@ -40,7 +43,9 @@ def index():
         conflicts=sched.conflicts(groups, spaces, plants, ref=ref),
         ramp=ramp,
         # Keyed so a flower card can show its own reminder without scanning the list.
-        ramp_by_group={r.unit.id: r for r in ramp if r.lone_plant is None},
+        # Keyed by number, not id: a group id and a plant id can collide, and
+        # LonePlant.number is offset past the real group numbers precisely so it cannot.
+        ramp_by_group={r.unit.number: r for r in ramp},
         occupancy=sorted(spacing.occupancy(spaces, plants).values(), key=lambda o: o.space.id),
         quick=quick,
         spaces=spaces,
