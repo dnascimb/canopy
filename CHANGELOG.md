@@ -12,6 +12,11 @@
   in a space, in walking order, with a tick per plant. Unticked plants get a dated note and
   a journal entry; nothing is killed, moved or re-dated.
 
+- **A culled plant loses its flower card.** `Plant.is_flowering_on` is pure date
+  arithmetic, so the Goji OG #8 pollen male — cut on the clone shelf with 17 days left on
+  his estimated run — still read as in flower the next day. A group never had this problem
+  because its span is read off `living_plants`; `LonePlant` now makes the same check.
+
 - **A plant on its own gets a flower card.** "In flower now" was built from groups alone,
   so seven plants flowering in the tent — Sour Diesel, Jack Herer, Green Crack Sr., London
   Pound Cake 2, SSDD 2B, GSC and Goji OG #8 — appeared on the timeline but had no card,

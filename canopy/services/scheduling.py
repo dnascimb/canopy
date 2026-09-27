@@ -119,7 +119,10 @@ class LonePlant:
         return ", ".join(self.strain_labels())
 
     def is_flowering_on(self, day: date) -> bool:
-        return self.plant.is_flowering_on(day)
+        # A culled plant is not flowering, whatever its dates still say. Group answers
+        # this the same way — its span is read off living_plants — but Plant.is_flowering_on
+        # is pure date arithmetic, so the check has to happen here.
+        return self.plant.is_alive and self.plant.is_flowering_on(day)
 
     def day_of_flower(self, day: date) -> int | None:
         return self.plant.day_of_flower(day)

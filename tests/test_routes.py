@@ -60,6 +60,29 @@ def test_flower_cards_include_a_plant_standing_on_its_own(client):
     assert f'href="/plants/{lone.id}"' in cards, "the card must link to the plant, not a group"
 
 
+def test_a_culled_plant_loses_its_flower_card(client):
+    """Goji OG #8, the pollen male, was culled on the clone shelf with 17 days left to run.
+
+    Plant.is_flowering_on is pure date arithmetic, so he kept reading as in flower and
+    held a card on the dashboard the day after he was cut.
+    """
+    from canopy.services import lifecycle
+
+    strain = db.session.query(Strain).first()
+    male = Plant(label="Pollen Donor", strain=strain)
+    db.session.add(male)
+    lifecycle.set_flip([male], date(2026, 8, 20), days=60)
+    db.session.commit()
+    cards = client.get("/").data.decode().split("<h2>In flower now</h2>")[1].split("</section>")[0]
+    assert "Pollen Donor" in cards
+
+    lifecycle.record(male, PlantStatus.killed, on=date(2026, 9, 5), note="Male — culled")
+    male.ended_on = date(2026, 9, 5)
+    db.session.commit()
+    cards = client.get("/").data.decode().split("<h2>In flower now</h2>")[1].split("</section>")[0]
+    assert "Pollen Donor" not in cards, "a culled plant is not in flower, whatever its dates say"
+
+
 def test_ramp_down_reminder_is_above_the_fold_and_on_the_card(client, app):
     """The reminder has to sit where it is read: the top strip and the flower card.
 
