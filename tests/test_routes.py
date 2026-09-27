@@ -83,6 +83,30 @@ def test_a_culled_plant_loses_its_flower_card(client):
     assert "Pollen Donor" not in cards, "a culled plant is not in flower, whatever its dates say"
 
 
+def test_a_culled_plant_leaves_the_timeline(client):
+    """The card fix above left Goji OG #8 on the timeline as a flowering bar.
+
+    A group drops its killed plants before reading its span, so a group of culled plants
+    is unscheduled. A lone plant has to be read the same way.
+    """
+    from canopy.services import lifecycle
+
+    strain = db.session.query(Strain).first()
+    male = Plant(label="Pollen Donor", strain=strain)
+    db.session.add(male)
+    lifecycle.set_flip([male], date(2026, 8, 20), days=60)
+    db.session.commit()
+    labels = [r["label"] for r in client.get("/api/v1/timeline").get_json()["rows"]]
+    assert "Pollen Donor" in labels
+
+    lifecycle.record(male, PlantStatus.killed, on=date(2026, 9, 5), note="Male — culled")
+    male.ended_on = date(2026, 9, 5)
+    db.session.commit()
+    labels = [r["label"] for r in client.get("/api/v1/timeline").get_json()["rows"]]
+    assert "Pollen Donor" not in labels
+    assert "Pollen Donor" not in client.get("/").data.decode()
+
+
 def test_ramp_down_reminder_is_above_the_fold_and_on_the_card(client, app):
     """The reminder has to sit where it is read: the top strip and the flower card.
 

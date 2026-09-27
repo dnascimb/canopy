@@ -132,9 +132,16 @@ class LonePlant:
 
 
 def scheduled_units(groups: Iterable[Group], plants: Iterable[Plant] = ()) -> list:
-    """Everything the calendar should show: groups, plus scheduled plants without one."""
+    """Everything the calendar should show: groups, plus scheduled plants without one.
+
+    A culled plant is left out, as Group.scheduled_plants leaves it out of a group's span.
+    """
     units = list(groups)
-    units += [LonePlant(p) for p in plants if p.group_id is None and p.flower_start is not None]
+    units += [
+        LonePlant(p)
+        for p in plants
+        if p.group_id is None and p.is_alive and p.flower_start is not None
+    ]
     return units
 
 
