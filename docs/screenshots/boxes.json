@@ -10,15 +10,6 @@
    }
   },
   {
-   "selector": ".stat-strip",
-   "box": {
-    "x": 256,
-    "y": 118.34375,
-    "width": 1072,
-    "height": 90.640625
-   }
-  },
-  {
    "selector": "[data-timeline]",
    "box": {
     "x": 275,

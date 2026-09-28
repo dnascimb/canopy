@@ -3,7 +3,7 @@ from __future__ import annotations
 from flask import Blueprint, render_template
 
 from ..extensions import db
-from ..models import Group, Plant, Space, Strain
+from ..models import Group, Plant, Space
 from ..services import scheduling as sched
 from ..services import spacing
 
@@ -15,7 +15,6 @@ def index():
     groups = db.session.query(Group).all()
     spaces = db.session.query(Space).all()
     plants = db.session.query(Plant).all()
-    strains = db.session.query(Strain).all()
     ref = sched.today()
 
     units = sched.scheduled_units(groups, plants)
@@ -33,7 +32,5 @@ def index():
         upcoming=sched.upcoming(units, days=30, ref=ref),
         occupancy=sorted(spacing.occupancy(spaces, plants).values(), key=lambda o: o.space.id),
         spaces=spaces,
-        counts=sched.plant_counts(plants),
-        inventory=sched.inventory_summary(strains),
         ref=ref,
     )

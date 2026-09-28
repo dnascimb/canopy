@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- **No dashboard metrics.** The stat tiles (runs and plants in flower, plants in veg,
+  strains and seeds) and the header's summary line are gone, with
+  `scheduling.inventory_summary()`.
 - **No reminders either.** The ramp-down watering reminders ("plain water only, half the
   usual amount") are gone from the dashboard strip and the flower cards, with
   `scheduling.ramp_down()` and the "ramping down" tile. The dashboard carries no alerts.

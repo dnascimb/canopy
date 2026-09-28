@@ -117,11 +117,6 @@ section { margin-bottom: 30px; }
 /* ---------- panels & stats ---------- */
 .panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 16px 18px; }
 .panel.tight { padding: 0; overflow: hidden; }
-.stat-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 26px; }
-.stat { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 12px 14px; }
-.stat .n { font-size: 1.6rem; font-weight: 600; line-height: 1.1; }
-.stat .l { color: var(--muted); font-size: 0.85rem; }
-.stat.warn .n { color: var(--red); }
 
 /* ---------- buttons ---------- */
 .btn {
@@ -348,9 +343,6 @@ pre.ascii { background: var(--bg); border: 1px solid var(--line); border-radius:
   :root { --gutter: 16px; }
   .m-hide { display: none !important; }
   .m-links { display: flex; }
-  .stat-strip { grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 18px; }
-  .stat { padding: 9px 11px; }
-  .stat .n { font-size: 1.25rem; }
 }
 
 /* ---------- print ---------- */

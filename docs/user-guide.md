@@ -27,18 +27,16 @@ Screenshots use the demo season (`flask --app wsgi seed-demo`) with today pinned
 ![Dashboard, annotated](screenshots/dashboard_annotated.png)
 
 1. **Navigation.** Every screen is one click away. The current page is highlighted.
-2. **Season stats.** Groups in flower, plants in flower, plants in veg, and
-   inventory size (strains and seeds on hand).
-3. **Flowering timeline.** One bar per scheduled group, coloured to match the group,
+2. **Flowering timeline.** One bar per scheduled group, coloured to match the group,
    labelled with its strains and flower length. The darker left part of a bar is the
    elapsed portion; the red line is today. Hover a bar for dates, day count and plant
    list; click it to open the group. Scrolls sideways on narrow screens.
-4. **In flower now.** A card per active group, sorted by harvest date, with day-of-flower,
+3. **In flower now.** A card per active group, sorted by harvest date, with day-of-flower,
    a progress bar and the harvest date.
-5. **Spaces.** Every space with how many of its plants it is holding. Links to the Spaces
+4. **Spaces.** Every space with how many of its plants it is holding. Links to the Spaces
    page.
-6. **Next 30 days.** Milestones from today on: green dot = a flip recorded today, amber dot = harvest.
-7. **Actions.** Export the schedule as Markdown or start a new group.
+5. **Next 30 days.** Milestones from today on: green dot = a flip recorded today, amber dot = harvest.
+6. **Actions.** Export the schedule as Markdown or start a new group.
 
 ![Timeline tooltip](screenshots/timeline_tooltip.png)
 

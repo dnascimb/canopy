@@ -179,7 +179,7 @@ tokens, so they print and need no JavaScript.
   used rather than letterboxed. Note the `grid-area` names are declared *inside* the media
   query — hoisting them out drops both children into one cell and overlaps them at phone
   width.
-* **What the phone shows** — the stat tiles and what is in flower. Everything else
+* **What the phone shows** — what is in flower. Everything else
   (`.m-hide`: timeline, the rail with Spaces and Next 30 days) is replaced by
   a `.m-links` row pointing at the full pages.
 * **`static/css/app.css`** — tokens in `:root`, then layout (sidebar + main grid),

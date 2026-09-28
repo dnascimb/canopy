@@ -26,7 +26,6 @@ from ..models import (
     Plant,
     PlantStatus,
     Space,
-    Strain,
     _spun_color,
 )
 
@@ -330,17 +329,8 @@ def markdown_export(groups: Iterable[Group], *, ref: date | None = None) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Inventory helpers
+# Plant counts
 # ---------------------------------------------------------------------------
-def inventory_summary(strains: Iterable[Strain]) -> dict:
-    strains = list(strains)
-    return {
-        "strains": len(strains),
-        "seeds_on_hand": sum(s.seeds_on_hand for s in strains),
-        "breeders": len({s.breeder for s in strains if s.breeder}),
-    }
-
-
 def plant_counts(plants: Iterable[Plant]) -> dict[str, int]:
     counts = {s.value: 0 for s in PlantStatus}
     for p in plants:

@@ -5,7 +5,6 @@
 <div class="page-head">
   <div>
     <h1>Season at a glance</h1>
-    <p class="sub">{{ active|length }} run{{ 's' if active|length != 1 }} in flower · {{ counts.flowering }} plants flowering · next event {{ upcoming[0].on|d if upcoming else 'none in 30 days' }}</p>
   </div>
   <div class="actions">
     <a class="btn" href="{{ url_for('schedule.export_markdown') }}">Export Markdown</a>
@@ -13,13 +12,6 @@
   </div>
 </div>
 
-
-<div class="stat-strip">
-  <div class="stat"><div class="n">{{ active|length }}</div><div class="l">runs in flower</div></div>
-  <div class="stat"><div class="n">{{ counts.flowering }}</div><div class="l">plants in flower</div></div>
-  <div class="stat"><div class="n">{{ counts.vegetative + counts.seedling }}</div><div class="l">plants in veg</div></div>
-  <div class="stat"><div class="n">{{ inventory.strains }}</div><div class="l">strains · {{ inventory.seeds_on_hand }} seeds</div></div>
-</div>
 
 <div class="m-links">
   <a href="{{ url_for('schedule.index') }}">Timeline</a>

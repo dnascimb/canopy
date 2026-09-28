@@ -67,7 +67,6 @@ def main() -> None:
     boxes_for = {
         "dashboard": [
             ".nav",
-            ".stat-strip",
             "[data-timeline]",
             ".flower-list",
             ".main .grid-main-side > div:last-child section:nth-child(1) .panel",

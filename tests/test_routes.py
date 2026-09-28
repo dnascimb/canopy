@@ -814,3 +814,9 @@ def test_dashboard_has_no_reminders_or_alerts(client):
     html = client.get("/").data.decode()
     for gone in ("alert-strip", "plain water only", "ramping", "schedule alerts"):
         assert gone not in html
+
+
+def test_dashboard_has_no_metrics_strip(client):
+    html = client.get("/").data.decode()
+    assert "stat-strip" not in html and "runs in flower" not in html
+    assert "plants flowering" not in html and "next event" not in html

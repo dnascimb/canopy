@@ -146,10 +146,7 @@ def test_markdown_export_contains_groups_table_and_timeline(app):
     assert "```" in md
 
 
-def test_inventory_and_plant_counts(app):
-    inv = sched.inventory_summary(db.session.query(Strain).all())
-    assert inv["strains"] == 30
-    assert inv["breeders"] == 1
+def test_plant_counts(app):
     counts = sched.plant_counts(db.session.query(Plant).all())
     assert counts["killed"] == 6
     assert counts["flowering"] == 10
