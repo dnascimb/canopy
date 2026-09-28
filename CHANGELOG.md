@@ -2,6 +2,50 @@
 
 ## Unreleased
 
+- **No reminders either.** The ramp-down watering reminders ("plain water only, half the
+  usual amount") are gone from the dashboard strip and the flower cards, with
+  `scheduling.ramp_down()` and the "ramping down" tile. The dashboard carries no alerts.
+- **No capacity label, no "planned" status, no dashboard log.** The Spaces page's red
+  "over capacity" label and reason line, and the red bars on the Spaces page and dashboard,
+  are gone with `spacing.capacity_warning()`; spaces still show "N of M plants". Groups are
+  vegetative, flowering, drying or done — `planned` is retired, existing planned groups were
+  moved to vegetative, and older backups restore that way. The dashboard's "Log today"
+  section is removed; entries are made from the Journal page and the group page.
+- **No alerts, no planned flips.** The conflict checks ("Grp X is scheduled but not
+  assigned to a space", "marked flowering but has no start date") are gone with
+  `scheduling.conflicts()`, `GET /api/v1/conflicts`, the schedule page's Alerts panel and
+  the dashboard's alert chips; the dashboard strip keeps only the ramp-down watering
+  reminders. A flip date can no longer be after today — the group form refuses it, the
+  API answers 400, and `lifecycle.set_flip()` raises — because a flip is recorded when it
+  happens.
+- **The scheduler is gone.** Canopy records what the grower did, when they did it; it no
+  longer recommends a schedule. Removed: openings (`scheduling.openings()`), flip
+  suggestions (`suggest_start()`), the "Schedule" / "Schedule for …" buttons and their
+  `POST /groups/<id>/schedule` route, `GET /api/v1/openings`, the dashboard's "Waiting for
+  a slot" and "Upcoming openings" panels, the schedule page's Openings and Unscheduled
+  lists, the group page's "Earliest opening" banner, and the Spaces page's "Coming up"
+  planner (the page is now just "Spaces").
+- **What happens to the plant rules the calendar.** A plant's run used to end at flip +
+  flower days no matter what: the Super Blue Haze, harvested on day 48 of 77, kept its
+  timeline bar to Oct 27, stayed counted in the tent, and its group warned "the calendar
+  says this group should be flowering, but it is marked drying". A run now ends the day the
+  plant is recorded leaving flower (harvest, cull, back to veg), and a plant still flowering
+  past its projection reads as flowering today rather than dropping off the dashboard. The
+  group page's "should be X, but it is marked Y" warning is gone: the app follows what
+  was done rather than asking the grower to correct it, and so is the "Earliest opening"
+  banner on an unscheduled group's page (the dashboard and Spaces page still list it
+  under Waiting for a slot). Two related fixes: moving a flowering
+  plant (flowering -> flowering) no longer counts as a new flip, and a same-day veg-then-flip
+  no longer reads as the run ending the day it started.
+- **Inventory filters as you type.** Search and every filter apply on each change, with no
+  Filter button and no page reload. The page ships the whole inventory and
+  `static/js/inventory.js` hides rows in place — about 1–24 ms per keystroke across 700
+  strains — while `services/inventory.py` applies the same rules to the first render, so
+  a reload, a shared link or a browser without JavaScript shows the same rows. The URL
+  follows the controls. Search now matches every word rather than the whole phrase, and a
+  typed `%` or `_` is literal. The plant counts came from loading each strain's plants
+  one query at a time (705 queries); one grouped count now does it, taking the page from
+  ~120 ms to ~50 ms.
 - **Full cycle toggle on the timeline.** One button. Off is the chart as it was; on adds
   the pre-flower span to each bar and brings in groups that have not flipped yet. The
   span runs from the first lifecycle event that is not the flip, falling back to

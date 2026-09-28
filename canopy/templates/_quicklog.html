@@ -22,15 +22,3 @@
   </div>
 </form>
 {% endmacro %}
-
-{# One section per space, so a tent can be logged in a single pass. #}
-{% macro quicklog_spaces(form, action, spaces) %}
-{% for s in spaces %}
-  <div class="ql-space">
-    <div class="ql-space-head">{{ s.name }}<span class="muted small">{{ s.stage.value }}</span></div>
-    {{ quicklog(form, action, space=s) }}
-  </div>
-{% else %}
-  <div class="muted">No spaces yet. <a href="{{ url_for('spaces.create') }}">Add one</a> to log against it.</div>
-{% endfor %}
-{% endmacro %}

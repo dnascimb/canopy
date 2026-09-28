@@ -5,70 +5,46 @@ from sqlalchemy import func
 
 from ..extensions import db
 from ..forms import StrainForm
-from ..models import Expression, PlantSize, PlantStatus, SeedType, Strain
+from ..models import Expression, Plant, PlantSize, PlantStatus, SeedType, Strain
+from ..services import inventory
 
 bp = Blueprint("strains", __name__)
-
-NO_BREEDER = "__none__"
-
-# Flower-length buckets, week-aligned because that is how flower time is quoted.
-DAY_RANGES: dict[str, tuple[str, int | None, int | None]] = {
-    "-56": ("8 weeks or less", None, 56),
-    "57-63": ("9 weeks (57-63)", 57, 63),
-    "64-70": ("10 weeks (64-70)", 64, 70),
-    "71-77": ("11 weeks (71-77)", 71, 77),
-    "78-84": ("12 weeks (78-84)", 78, 84),
-    "85-": ("13 weeks or more", 85, None),
-}
 
 
 @bp.get("/")
 def index():
-    q = request.args.get("q", "").strip()
-    seed_type = request.args.get("type", "")
-    breeder = request.args.get("breeder", "")
-    days = request.args.get("days", "")
-    expression = request.args.get("expression", "")
-    query = db.session.query(Strain)
-    if q:
-        like = f"%{q}%"
-        query = query.filter(
-            (Strain.name.ilike(like)) | (Strain.breeder.ilike(like)) | (Strain.lineage.ilike(like))
-        )
-    if seed_type:
-        query = query.filter(Strain.seed_type == SeedType(seed_type))
-    if expression:
-        query = query.filter(Strain.expression == Expression(expression))
-    if breeder == NO_BREEDER:
-        query = query.filter((Strain.breeder.is_(None)) | (Strain.breeder == ""))
-    elif breeder:
-        query = query.filter(Strain.breeder == breeder)
-    if days in DAY_RANGES:
-        _, low, high = DAY_RANGES[days]
-        if low is not None:
-            query = query.filter(Strain.flower_days >= low)
-        if high is not None:
-            query = query.filter(Strain.flower_days <= high)
+    """Every strain, with the ones outside the filter rendered hidden.
+
+    The page ships the whole inventory so static/js/inventory.js can narrow it in place as
+    the controls change, with no round trip per keystroke. See services/inventory.py.
+    """
+    f = inventory.StrainFilter.from_args(request.args)
     # Ascending by default. Case-insensitive so this matches the locale-aware order
     # sortable.js re-applies client-side; SQLite's default collation is not.
-    strains = query.order_by(func.lower(Strain.name)).all()
+    strains = db.session.query(Strain).order_by(func.lower(Strain.name)).all()
+    # One grouped count rather than loading every strain's plants to take a length.
+    plant_counts = dict(
+        db.session.query(Plant.strain_id, func.count(Plant.id)).group_by(Plant.strain_id)
+    )
     breeders = [
         b for (b,) in db.session.query(Strain.breeder).distinct().order_by(Strain.breeder) if b
     ]
     return render_template(
         "strains/index.html",
         strains=strains,
-        q=q,
-        seed_type=seed_type,
-        breeder=breeder,
-        days=days,
-        expression=expression,
+        matching=inventory.matching_ids(f),
+        plant_counts=plant_counts,
+        q=f.q,
+        seed_type=f.seed_type,
+        breeder=f.breeder,
+        days=f.days,
+        expression=f.expression,
         seed_types=list(SeedType),
         expressions=list(Expression),
         breeders=breeders,
-        day_ranges=DAY_RANGES,
-        no_breeder=NO_BREEDER,
-        filtered=bool(q or seed_type or breeder or days or expression),
+        day_ranges=inventory.DAY_RANGES,
+        no_breeder=inventory.NO_BREEDER,
+        filtered=f.active,
     )
 
 

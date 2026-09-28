@@ -13,7 +13,7 @@ def test_timeline(client):
     assert len(d["rows"]) == 16
 
 
-def test_events_openings_conflicts(client):
+def test_events_and_no_recommendations(client):
     ev = client.get("/api/v1/events").get_json()
     assert ev[0] == {
         "date": "2026-05-12",
@@ -21,9 +21,9 @@ def test_events_openings_conflicts(client):
         "group_id": ev[0]["group_id"],
         "label": "Goji 3x start flower",
     }
-    op = client.get("/api/v1/openings").get_json()
-    assert op[0]["date"] == "2026-10-25" and op[0]["freed_by"] == "Grp 10"
-    assert client.get("/api/v1/conflicts").get_json() == []
+    # The app records what was done; it does not propose slots or raise alerts.
+    assert client.get("/api/v1/openings").status_code == 404
+    assert client.get("/api/v1/conflicts").status_code == 404
 
 
 def test_groups_and_patch(client):
@@ -55,3 +55,22 @@ def test_strains_plants_export(client):
         "journal_entries",
     }
     assert client.get("/api/v1/export.md").data.startswith(b"# Cultivation schedule")
+
+
+def test_patch_rejects_a_future_flip(client):
+    from canopy.models import Group
+
+    g = db.session.query(Group).filter_by(number=17).one()
+    r = client.patch(f"/api/v1/groups/{g.id}", json={"flower_start": "2026-12-01"})
+    assert r.status_code == 400 and "future" in r.get_json()["error"]
+    assert g.flower_start is None
+
+
+def test_restoring_an_old_backup_maps_planned_to_vegetative(client):
+    from canopy.services import transfer
+
+    payload = transfer.dump()
+    for g in payload["groups"]:
+        g["status"] = "planned"
+    transfer.load(payload, replace=True)
+    assert {g.status.value for g in db.session.query(Group)} == {"vegetative"}

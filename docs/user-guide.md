@@ -14,13 +14,12 @@ Screenshots use the demo season (`flask --app wsgi seed-demo`) with today pinned
 | **Strain** | An entry in your inventory: name, breeder, lineage, seed type, default flower days, seeds on hand. |
 | **Plant** | One physical plant. Always of one strain, usually in one group. |
 | **Group** | A batch of plants flipped to flower together. Has a number (Grp 1, Grp 2…) or a name (Goji 3x). |
-| **Flip** | The day a group goes to 12/12. Stored as *flower start*. |
+| **Flip** | The day a group goes to 12/12. Stored as *flower start*, recorded on the day it happens — a date after today is rejected. |
 | **Flower days** | Days from flip to harvest. The harvest (end) date is always `flip + flower days`. |
 | **Space** | A shelf, tent or room with a **stage** (clone, vegetative, flowering), any extra stages it doubles up for, and the number of plants it holds. |
 | **Location** | Where a plant is right now. Set it explicitly, or Canopy infers it: clones and seedlings on the clone-stage space, veg plants in the veg-stage space, flowering plants in their group's space. |
 | **Container** | Per plant: 16oz, 32oz, 1gal, 2gal or 3gal. Recorded as a fact — Canopy does not compute floor area from it. |
-| **Opening** | A date a space frees up because a group finishes and nothing starts that day. |
-| **Status** | Group: planned → vegetative → flowering → drying → done. Plant: clone, seedling, vegetative, flowering, harvested, killed. |
+| **Status** | Group: vegetative → flowering → drying → done (a new group starts as vegetative). Plant: clone, seedling, vegetative, flowering, harvested, killed. |
 | **Task** | A checkbox in the quick log: watered, fed, pest/mold treatment, defoliated, trained, transplanted, flushed, took clones, cleaned. |
 
 ## Dashboard
@@ -28,29 +27,18 @@ Screenshots use the demo season (`flask --app wsgi seed-demo`) with today pinned
 ![Dashboard, annotated](screenshots/dashboard_annotated.png)
 
 1. **Navigation.** Every screen is one click away. The current page is highlighted.
-2. **Season stats.** Groups in flower, plants in flower, plants in veg, inventory size
-   and the number of schedule alerts (turns red when there are any).
+2. **Season stats.** Groups in flower, plants in flower, plants in veg, and
+   inventory size (strains and seeds on hand).
 3. **Flowering timeline.** One bar per scheduled group, coloured to match the group,
    labelled with its strains and flower length. The darker left part of a bar is the
    elapsed portion; the red line is today. Hover a bar for dates, day count and plant
    list; click it to open the group. Scrolls sideways on narrow screens.
 4. **In flower now.** A card per active group, sorted by harvest date, with day-of-flower,
    a progress bar and the harvest date.
-5. **Waiting for a slot.** Groups without a flip date, each with the earliest suggested
-   opening ("Oct 25 when Grp 10 finishes in Flower Room"). **Schedule** sets the flip
-   date and space in one click.
-6. **Log today.** One section per space. Tick what you did in that tent, add an optional
-   note, **Log**. The entry's title is built from the ticks. Nothing is required beyond
-   saying something — a bare note is a valid entry.
-7. **Spaces.** Every space with how many of its plants it is holding. Red when over
-   capacity. Links to the planner.
-8. **Next 30 days.** Upcoming milestones: green dot = flip, amber dot = harvest.
-9. **Alerts.** Groups scheduled without a space or without living plants, and status/date
-   mismatches. Space capacity is *not* here — it is a label on the spaces page, because it
-   is an estimate rather than something broken.
-10. **Upcoming openings.** When each slot frees up; **plan a group** opens the new‑group
-    form pre‑filled with that date and space.
-11. **Actions.** Export the schedule as Markdown or start a new group.
+5. **Spaces.** Every space with how many of its plants it is holding. Links to the Spaces
+   page.
+6. **Next 30 days.** Milestones from today on: green dot = a flip recorded today, amber dot = harvest.
+7. **Actions.** Export the schedule as Markdown or start a new group.
 
 ![Timeline tooltip](screenshots/timeline_tooltip.png)
 
@@ -66,9 +54,6 @@ Screenshots use the demo season (`flask --app wsgi seed-demo`) with today pinned
    newest date first by default. Past rows are dimmed, today's row is highlighted, and
    future rows are tinted and tagged *upcoming*. On a day where one group ends and
    another starts, the end is listed first.
-4. **Openings.** Dates a space becomes free, with a shortcut to plan a group on that date.
-5. **Unscheduled.** Groups that still need a flip date.
-6. **Alerts.** The same conflict checks as the dashboard.
 
 ### Markdown export
 
@@ -96,7 +81,8 @@ Obsidian, GitHub, email and terminals without alignment problems.
 
 *Backup JSON* downloads everything (spaces, strains, groups, plants, harvests, journal).
 *Restore…* accepts that file; with **Replace all existing data** ticked it wipes the
-database first, otherwise it appends. IDs are re‑mapped so relations survive.
+database first, otherwise it appends. IDs are re‑mapped so relations survive. A group saved as *planned* in an older backup
+restores as *vegetative*.
 
 ## Groups
 
@@ -130,20 +116,17 @@ database first, otherwise it appends. IDs are re‑mapped so relations survive.
 7. **Details and status.** Key dates and a row of status buttons. Marking a group
    *flowering* moves its living plants to flowering (and sets today as the flip date if
    none was set); marking it *drying* or *done* moves flowering plants to harvested.
-8. **Quick log** for this group — same checkboxes as the dashboard, attached to this
-   group rather than to a space.
+8. **Quick log** for this group — tick what you did, add an optional note, **Log**. The
+   entry's title is built from the ticks, and it is attached to this group.
 9. **Journal.** Entries newest first with task chips; a longer titled entry can be added
    below.
 
-When the calendar disagrees with the stored status (for example a group whose harvest
-date has passed but is still marked flowering), a banner offers to correct it.
+### Groups with no flip date
 
-### Scheduling a waiting group
-
-![Unscheduled group suggestion](screenshots/group_unscheduled_annotated.png)
-
-1. A group without a flip date shows the earliest opening. **Schedule for Oct 25** sets
-   the flip date, assigns the space that frees up, and moves the group to vegetative.
+A group without a flip date is not on the timeline. When it goes into flower, set the flip
+date on the group form that day (or mark the group *flowering*, which sets today if none
+was set). The form rejects a date after today: "Can't be in the future — record it on the
+day it happens."
 
 ### Killed plants
 
@@ -157,8 +140,7 @@ counts, and are struck through in the Markdown export.
 ![New group form](screenshots/group_form.png)
 
 The next free group number and a timeline colour are pre‑filled. Leave *Flower start*
-blank for a group that is waiting on a slot. When you arrive here from an opening link the
-date and space are already set.
+blank for a group that has not gone into flower yet.
 
 ## Plants
 
@@ -180,7 +162,10 @@ buttons for the normal lifecycle.
 
 1. **Search and filter.** Free text over name, breeder and lineage, plus seed type,
    expression, breeder and flower-length filters. They stack: each one narrows what the
-   others left.
+   others left. Results update as you type or change a filter — there is no button to
+   press. Every word you type must match, each in any of the three fields, so
+   "bodhi haze" finds Bodhi's hazes. Escape empties the search; Clear resets everything.
+   The address bar follows the filter, so a reload or a copied link shows the same rows.
 2. **Add strain.**
 3. **Table.** Seed type badge, expression (sativa / haze / indica / hybrid), size,
    default flower days (copied into groups you plan), seeds on hand and the number of
@@ -194,25 +179,19 @@ A strain page lists every plant grown from it with group, status, flip and harve
 a quick way to see how a cultivar has performed across runs. A strain with plants can't be
 deleted (delete the plants first) so history is never lost by accident.
 
-## Spaces & planner
+## Spaces
 
-![Spaces planner, annotated](screenshots/spaces_annotated.png)
+![Spaces, annotated](screenshots/spaces_annotated.png)
 
 1. **One card per space**, ordered clone → veg → flower. Each shows its stage and any
    extra stages it doubles up for, how many plants it holds, a load bar, how many more
-   fit right now, and which groups are in it. A space over its count — now or on a
-   projected future date — gets a red **over capacity** label with the reason, and its
-   border and load bar turn red.
+   fit right now, and which groups are in it.
 The timeline has a **Full cycle** button. Off, it draws flower windows only. On, each bar
 gains the stretch before the flip — alive but not yet flowering — and groups that have not
 flipped yet appear as well.
 
 2. **Load over the season** for each flowering space: plant count at every flip and
-   harvest, the space's capacity as a dashed line, today in red. Peaks above the line are
-   what drive the over-capacity label on the card.
-3. **Coming up.** Every group that hasn't flipped yet, how many plants it will bring,
-   whether that fits today, and the next opening. **Schedule** accepts the suggested date
-   for unscheduled groups.
+   harvest, the space's capacity as a dashed line, today in red.
 
 ### Checking a space against what is in it
 
@@ -248,8 +227,7 @@ the timeline updates. Single plants can be moved from their own page.
 The journal is deliberately inert: entries are yours to read, and nothing in the app
 derives numbers or warnings from them.
 
-Most days you won't open this page: the quick log on the dashboard and group pages is
-the fast path.
+For a quick entry, the quick log on a group's page is the fast path.
 
 ## Reports
 
@@ -276,12 +254,11 @@ panel.
 
 ## Everyday workflows
 
-**Plan the next run.** Inventory → pick strains → Groups →
-*New group* (leave the date blank) → *Add plant* for each seed you pop → the group appears
-under *Waiting for a slot* with a suggested date and in the planner's *Coming up* table
-with the plants it will bring → **Schedule**.
+**Start the next run.** Inventory → pick strains → Groups →
+*New group* (leave the date blank) → *Add plant* for each seed you pop. On the day the
+group goes into flower, set its flip date on the group form and it appears on the timeline.
 
-**Daily.** Dashboard → *Log today* → pick the tent, tick watered / fed → **Log**. Ten seconds.
+**Daily.** Journal → *New entry* → pick the tent, tick watered / fed → save. Or, for one group, its page → *Quick log*.
 
 **Move a group up a stage.** Group page → *Move all living plants to* → the next tent.
 

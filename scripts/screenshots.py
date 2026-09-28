@@ -59,7 +59,6 @@ def main() -> None:
         from canopy.models import Group, Plant, Strain
 
         g6 = db.session.query(Group).filter_by(number=6).one().id
-        g17 = db.session.query(Group).filter_by(number=17).one().id
         g4 = db.session.query(Group).filter_by(number=4).one().id
         p_zap = db.session.query(Plant).filter_by(label="Zap 3").one().id
         s_leb = db.session.query(Strain).filter_by(name="Lebanese Honey").one().id
@@ -71,7 +70,6 @@ def main() -> None:
             ".stat-strip",
             "[data-timeline]",
             ".flower-list",
-            "section:has(.flower-list) + section .panel",
             ".main .grid-main-side > div:last-child section:nth-child(1) .panel",
             ".main .grid-main-side > div:last-child section:nth-child(2) .panel",
             ".main .grid-main-side > div:last-child section:nth-child(3) .panel",
@@ -83,9 +81,7 @@ def main() -> None:
             ".page-head .actions",
             "[data-timeline]",
             ".grid-main-side > section .panel",
-            ".grid-main-side > div section:nth-child(1) .panel",
-            ".grid-main-side > div section:nth-child(2) .panel",
-            ".grid-main-side > div section:nth-child(3)",
+            ".grid-main-side > div section:nth-child(1)",
         ],
         "group_detail": [
             ".page-head > div",
@@ -98,7 +94,6 @@ def main() -> None:
             "#journal .quicklog",
             "#journal .journal",
         ],
-        "group_unscheduled": [".alert.warning"],
         "inventory": [
             ".filters",
             ".page-head .actions",
@@ -109,8 +104,6 @@ def main() -> None:
         "spaces": [
             ".spaces",
             "section:nth-of-type(2) .panel",
-            ".grid-main-side > section:first-child .panel",
-            ".grid-main-side > section:last-child .panel",
         ],
         "reports": [
             ".main > .grid-2:nth-child(2)",
@@ -127,7 +120,6 @@ def main() -> None:
         ("schedule", "/schedule/", True),
         ("groups", "/groups/?view=all", True),
         ("group_detail", f"/groups/{g6}", True),
-        ("group_unscheduled", f"/groups/{g17}", False),
         ("group_with_kills", f"/groups/{g4}", True),
         ("group_form", "/groups/new", False),
         ("plants", "/plants/", True),

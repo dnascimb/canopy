@@ -30,39 +30,16 @@ def test_occupancy_counts_plants(app):
     flower = next(o for o in occ.values() if o.space.name == "Flower Room")
     assert flower.count == 10
     assert flower.room_for() == flower.space.capacity - flower.count
-    assert not flower.over
     assert {g.number for g in flower.groups()} == {6, 7, 8, 9, 10, 11}
     assert not hasattr(flower, "used_sqft")
 
 
-def test_load_series_and_peak(app):
+def test_load_series(app):
     flower = db.session.query(Space).filter_by(name="Flower Room").one()
     series = spacing.load_series(flower, db.session.query(Group).all(), ref=REF)
     assert series[0]["date"] == "2026-05-12" and series[-1]["count"] == 0
     today = next(p for p in series if p["date"] == REF.isoformat())
     assert today["count"] == 10 and "sqft" not in today
-    assert spacing.peak(series)["date"] == "2026-08-02"
-    assert spacing.peak(series, since=REF)["date"] == REF.isoformat()
-
-
-def test_capacity_warning_is_not_a_schedule_conflict(app):
-    """Capacity lives on the spaces page, not in the schedule's conflict list."""
-    groups = db.session.query(Group).all()
-    plants = db.session.query(Plant).all()
-    flower = db.session.query(Space).filter_by(name="Flower Room").one()
-    occ = spacing.occupancy(spaces(), plants)
-    assert spacing.capacity_warning(flower, groups, occ[flower.id], ref=REF) is None
-    assert sched.conflicts(groups, spaces(), plants, ref=REF) == []
-
-
-def test_capacity_warning_falls_back_to_today(app):
-    """A space with no schedule behind it still reports what is physically in it."""
-    veg = db.session.query(Space).filter_by(name="Veg Tent").one()
-    veg.capacity = 1
-    db.session.commit()
-    occ = spacing.occupancy(spaces(), db.session.query(Plant).all())
-    warn = spacing.capacity_warning(veg, db.session.query(Group).all(), occ[veg.id], ref=REF)
-    assert warn is not None and "over the 1 it holds" in warn
 
 
 def test_move_plants_aligns_status(app):
@@ -91,10 +68,10 @@ def test_plant_move_route(client):
     assert p.status.value == "clone" and p.space == clone
 
 
-def test_spaces_planner_page(client):
+def test_spaces_page(client):
     html = client.get("/spaces/").data.decode()
-    assert "Coming up" in html and "Last Call" in html
     assert "Flower Room load over the season" in html
+    assert "Coming up" not in html and "Next opening" not in html and "planner" not in html
 
 
 def test_space_form_sets_stage_and_what_it_doubles_up_for(client):

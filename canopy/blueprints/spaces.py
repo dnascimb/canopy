@@ -15,13 +15,12 @@ STAGE_ORDER = {SpaceStage.clone: 0, SpaceStage.vegetative: 1, SpaceStage.floweri
 
 @bp.get("/")
 def index():
-    """Space planner: what is where, how full each space is, and what fits next."""
+    """What is where, and how full each space is."""
     ref = sched.today()
     spaces = sorted(db.session.query(Space).all(), key=lambda s: (STAGE_ORDER[s.stage], s.id))
     groups = db.session.query(Group).all()
     plants = db.session.query(Plant).all()
     occ = spacing.occupancy(spaces, plants)
-    openings = sched.openings(sched.scheduled_units(groups, plants), ref=ref)
 
     flower_spaces = [s for s in spaces if s.stage == SpaceStage.flowering]
     series = {
@@ -29,45 +28,11 @@ def index():
         for s in flower_spaces
     }
 
-    # Planning table: groups that have not flipped yet, and what they need in flower.
-    waiting = [
-        g for g in groups if g.living_plants and (g.flower_start is None or g.flower_start > ref)
-    ]
-    plan = []
-    for g in sorted(waiting, key=lambda g: (g.flower_start or ref, g.number)):
-        target = g.space or spacing.default_space(SpaceStage.flowering, spaces)
-        need = len(g.living_plants)
-        room_now = occ[target.id].room_for() if target else None
-        opening = next(
-            (o for o in openings if o.space is None or (target and o.space.id == target.id)), None
-        )
-        plan.append(
-            {
-                "group": g,
-                "target": target,
-                "plants": need,
-                "fits_now": (room_now is not None and need <= room_now),
-                "room_now": room_now,
-                "opening": opening,
-                "suggestion": sched.suggest_start(g, groups, ref=ref)
-                if g.flower_start is None
-                else None,
-            }
-        )
-
     return render_template(
         "spaces/index.html",
         spaces=spaces,
         occ=occ,
         series=series,
-        plan=plan,
-        openings=openings,
-        breach={
-            s.id: spacing.capacity_warning(
-                s, sched.scheduled_units(groups, plants), occ[s.id], ref=ref
-            )
-            for s in spaces
-        },
         stages=list(SpaceStage),
         ref=ref,
     )

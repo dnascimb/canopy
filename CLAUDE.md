@@ -11,7 +11,7 @@ pip install -r requirements-dev.txt          # deps incl. pytest, ruff, playwrig
 flask --app wsgi init-db && flask --app wsgi seed-demo
 CANOPY_TODAY=2026-09-07 flask --app wsgi run --debug   # pinned "today" matches the demo season
 pytest -q                                    # full suite (in-memory SQLite, CSRF off, today=2026-09-07)
-pytest -q tests/test_scheduling.py -k openings
+pytest -q tests/test_scheduling.py -k harvested
 ruff check canopy tests && ruff format canopy tests
 python scripts/screenshots.py && python scripts/annotate.py   # regenerate docs/screenshots
 ```
@@ -23,7 +23,7 @@ Always run `ruff` and `pytest` before finishing a change. Both must pass.
 `canopy/__init__.py:create_app()` builds the app, registers blueprints and creates tables.
 Models live in `canopy/models.py`. **All schedule maths lives in
 `canopy/services/scheduling.py`** and is pure functions over model objects (events,
-timeline rows, openings, suggestions, conflicts, ASCII/Markdown export). Blueprints under
+timeline rows, ASCII/Markdown export). Blueprints under
 `canopy/blueprints/` are thin: query → call service → render template or JSON. Templates
 extend `templates/base.html` and use macros from `templates/_macros.html`. The Gantt is
 rendered client-side by `static/js/timeline.js` from JSON that the templates inline
@@ -31,9 +31,30 @@ rendered client-side by `static/js/timeline.js` from JSON that the templates inl
 
 ## Domain rules to preserve
 
+* **What happens to a plant rules; everything else adjusts around it.** A recorded
+  action — flip, harvest, cull, move — is the truth. Dates computed from flower days are
+  a *projection* for runs still in progress, never a verdict: no screen, warning or rule
+  may tell a plant what state it is in because the calendar says so. A run ends the day
+  the plant is recorded leaving flower (`Plant.left_flower_on`); a plant still flowering
+  past its projection is still flowering. When something disagrees with a plant's
+  recorded state, the something is wrong.
+* **The app does what the grower wants; it does not tell the grower what it wants.** No
+  "the calendar says…" or "this should be…" nags asking the grower to correct a status.
+  When a plant's action implies a change elsewhere, make the change (as
+  `lifecycle.settle_group()` moves a group to drying when its last plant comes down).
+* **Canopy records; it does not schedule.** It keeps track of what the grower did, when
+  they did it. It never proposes flip dates, finds openings or slots, or recommends a
+  schedule — that engine (`openings()`, `suggest_start()`, "Waiting for a slot", the
+  Spaces "Coming up" planner) was removed on 2026-09-28 at the grower's request, along
+  with the conflict alerts (`conflicts()`, `/api/v1/conflicts`, the Alerts panels),
+  future-dated flips, the capacity red label, the `planned` status and the ramp-down
+  watering reminders. The dashboard has no alerts or reminders. Do not add any of it back
+  in any form.
 * **The plant owns the schedule; a group is a container.** `Plant.flower_start` is read
   off `plant_events` — the last time it entered `flowering` — and `flower_end` is that
-  plus `flower_days` (`flower_days_override`, else the strain's). A group has no date
+  plus `flower_days` (`flower_days_override`, else the strain's) — unless the plant has
+  already left flower, in which case it is that day. A flowering -> flowering event is a
+  relocation, not a flip, and never restarts the run. A group has no date
   columns at all: `Group.flower_start` is the earliest of its plants, `flower_end` the
   latest. The end date is exclusive: flowering on `start <= day < end`.
 * **Everything that changes a plant's status goes through `services/lifecycle.py`** —
@@ -43,13 +64,11 @@ rendered client-side by `static/js/timeline.js` from JSON that the templates inl
 * A scheduled plant with no group is a `scheduling.LonePlant`, shown on the timeline and
   in events like a group of one. Build the list with `scheduling.scheduled_units()`.
 * `day_of_flower` is 1-based (flip day is day 1).
-* **A flip dated in the future is a plan, not a transition.** `lifecycle.set_flip()`
-  writes the event either way, so the timeline and `flower_start` are right, but it
-  only changes `status`/`space` when the date has arrived.
-* A group or plant with `flower_start is None` is *unscheduled*; it never appears on the
-  timeline or in events, but does appear in "Waiting for a slot" with a suggested opening.
-* An *opening* is a group's end date unless another group in the same space starts that
-  same day (the "grp1 ends / grp7 starts" convention). See `scheduling.openings()`.
+* **A flip is recorded on the day it happens — never ahead of time.** `lifecycle.set_flip()`
+  raises `ValueError` for a date after today, the group form's `not_in_future` validator
+  refuses one, and the API answers 400. There are no planned flips.
+* A group or plant with `flower_start is None` has not flipped; it never appears on the
+  timeline or in events.
 * **Drying and harvested are the same state.** `drying` is the *group's* word for it and
   `harvested` is the *plant's*; there is deliberately no `PlantStatus.drying`, because two
   buttons for one state is a bug. `lifecycle.settle_group()` is the single rule that moves
@@ -83,19 +102,14 @@ rendered client-side by `static/js/timeline.js` from JSON that the templates inl
   `Space.also_hosts` lists the rest, and `Space.hosts` / `can_host()` read both.
 * `Plant.container` (16oz / 32oz / 1gal / 2gal / 3gal) records what a plant is potted in.
   It is a fact about the plant, never an input to a calculation.
-* Capacity is **not** a conflict. `spacing.capacity_warning(space, groups, occ)` returns
-  why a space is over the plant count it holds and the spaces page shows it as a red label;
-  `conflicts()` reports only genuinely broken schedules. It reads the projected peak from
-  `load_series()` **on or after today** (history is not a warning) and falls back to current
-  occupancy for spaces with no schedule behind them.
+* A space's capacity is a number shown next to its count ("12 of 36 plants"), nothing more:
+  no over-capacity label, colour or warning (removed 2026-09-28).
+* Group statuses are vegetative / flowering / drying / done. There is no `planned`: a group
+  that has not flowered yet is vegetative, and a backup carrying "planned" restores as that.
 * `spacing.move_plants()` sets `plant.space` and aligns `plant.status` with the destination
   stage **unless the space can already host that stage**, in which case the move is a
   relocation and the status is left alone — a flowering male parked on the clone shelf for
   pollen stays flowering. Never move plants by setting `space_id` alone.
-* **A ramp-down is a reminder, not a conflict.** `scheduling.ramp_down(units, spaces)`
-  lists runs in a flowering space within `RAMP_DOWN_DAYS` (14) of harvest, so watering
-  can be halved. It fires on the *earliest* living plant to finish, not the latest, and
-  ignores anything outside a flowering space.
 * **Lineage is two things.** `Strain.lineage` is genetics as text. `Plant.parent_id`
   is the actual plant a cutting came off — `parent` / `cuttings` read both ways and
   `ancestry` climbs the line loop-safely. Deleting a mother nulls the link (SET NULL),

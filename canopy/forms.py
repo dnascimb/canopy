@@ -12,7 +12,7 @@ from wtforms import (
     StringField,
     TextAreaField,
 )
-from wtforms.validators import DataRequired, Length, NumberRange, Optional, Regexp
+from wtforms.validators import DataRequired, Length, NumberRange, Optional, Regexp, ValidationError
 from wtforms.widgets import CheckboxInput, ListWidget
 
 from .models import (
@@ -60,15 +60,23 @@ class StrainForm(FlaskForm):
     notes = TextAreaField("Notes", validators=[Optional()])
 
 
+def not_in_future(form, field):
+    """A date records something that happened, so it can be today at the latest."""
+    from .services.scheduling import today
+
+    if field.data and field.data > today():
+        raise ValidationError("Can't be in the future — record it on the day it happens.")
+
+
 class GroupForm(FlaskForm):
     number = IntegerField("Group number", validators=[DataRequired(), NumberRange(min=0, max=9999)])
     name = StringField("Name (optional)", validators=[Optional(), Length(max=120)])
     space_id = SelectField("Flowering space", coerce=int, validators=[Optional()])
-    flower_start = DateField("Flower start", validators=[Optional()])
+    flower_start = DateField("Flower start", validators=[Optional(), not_in_future])
     flower_days = IntegerField(
         "Flower days", validators=[DataRequired(), NumberRange(min=1, max=365)], default=70
     )
-    status = SelectField("Status", choices=_choices(GroupStatus), default="planned")
+    status = SelectField("Status", choices=_choices(GroupStatus), default="vegetative")
     color = StringField(
         "Colour",
         validators=[

@@ -33,17 +33,18 @@ def test_404_page(client):
     assert b"doesn't exist" in r.data
 
 
-def test_dashboard_shows_active_groups_and_suggestion(client):
+def test_dashboard_shows_active_groups_and_no_suggestions(client):
     html = client.get("/").data.decode()
     assert "Grp 7" in html and "day 42/112" in html
-    assert "Waiting for a slot" in html
-    assert "Oct 25" in html
+    # Canopy records what the grower did; it does not recommend a schedule.
+    for gone in ("Waiting for a slot", "Upcoming openings", "Suggested flip", "plan a group"):
+        assert gone not in html
 
 
 def test_flower_cards_include_a_plant_standing_on_its_own(client):
     """A lone plant is a run, and the cards are the only part of this page Dan reads.
 
-    Everywhere else — timeline, events, ramp-down — a scheduled plant with no group is a
+    Everywhere else — timeline, events — a scheduled plant with no group is a
     LonePlant and shows like a group of one. "In flower now" was built from groups alone,
     so seven plants in the flower tent, Sour Diesel and GSC among them, had no card.
     """
@@ -107,43 +108,11 @@ def test_a_culled_plant_leaves_the_timeline(client):
     assert "Pollen Donor" not in client.get("/").data.decode()
 
 
-def test_ramp_down_reminder_is_above_the_fold_and_on_the_card(client, app):
-    """The reminder has to sit where it is read: the top strip and the flower card.
-
-    Dan ignores everything below "In flower now", so a panel at the bottom of the
-    dashboard was invisible in practice.
-    """
-    from datetime import date
-
-    from canopy.extensions import db
-    from canopy.models import Group, Space
-    from canopy.services import scheduling as sched
-
-    # Pull Grp 6's finish inside the two-week window.
-    g6 = next(g for g in db.session.query(Group).all() if g.number == 6)
-    for pl in g6.living_plants:
-        pl.flower_days_override = (date(2026, 9, 15) - pl.flower_start).days
-    db.session.commit()
-
-    html = client.get("/").data.decode()
-    assert "alert-strip" in html
-    assert "plain water only, half the usual amount" in html
-    # Above the fold: the strip comes before the stat tiles, not after the timeline.
-    assert html.index("alert-strip") < html.index("stat-strip")
-    # And again on the card itself, which is the part he actually reads.
-    assert html.index("flower-card ramping") > html.index("In flower now")
-    assert sched.ramp_down(
-        sched.scheduled_units(db.session.query(Group).all()),
-        db.session.query(Space).all(),
-        ref=date(2026, 9, 7),
-    )
-
-
 def test_dashboard_hides_secondary_sections_on_a_phone(client):
-    """Timeline, Waiting, Spaces and openings are desktop-only, with links instead."""
+    """Timeline and Spaces are desktop-only, with links instead."""
     html = client.get("/").data.decode()
     assert 'class="m-links"' in html
-    assert html.count("m-hide") >= 3
+    assert html.count("m-hide") >= 2
 
 
 def test_create_group_and_plant(client):
@@ -153,7 +122,7 @@ def test_create_group_and_plant(client):
             "number": 20,
             "name": "",
             "space_id": 1,
-            "flower_start": "2026-11-02",
+            "flower_start": "2026-09-01",
             "flower_days": 63,
             "status": "vegetative",
             "color": "#123456",
@@ -184,18 +153,16 @@ def test_create_group_and_plant(client):
 
 
 def test_duplicate_group_number_rejected(client):
-    r = client.post("/groups/new", data={"number": 1, "flower_days": 70, "status": "planned"})
+    r = client.post("/groups/new", data={"number": 1, "flower_days": 70, "status": "vegetative"})
     assert b"already in use" in r.data
     assert db.session.query(Group).filter_by(number=1).count() == 1
 
 
-def test_accept_schedule_suggestion(client):
+def test_there_is_no_schedule_suggestion_to_accept(client):
     g = db.session.query(Group).filter_by(number=17).one()
-    r = client.post(f"/groups/{g.id}/schedule", follow_redirects=True)
-    assert r.status_code == 200
-    db.session.refresh(g)
-    assert g.flower_start == date(2026, 10, 25)
-    assert g.space.name == "Flower Room"
+    assert client.post(f"/groups/{g.id}/schedule").status_code == 404
+    assert "Earliest opening" not in client.get(f"/groups/{g.id}").data.decode()
+    assert "Openings" not in client.get("/schedule/").data.decode()
 
 
 def test_kill_plant_and_status_change(client):
@@ -271,14 +238,64 @@ def test_strain_with_plants_cannot_be_deleted(client):
 
 
 def test_strain_search(client):
-    html = client.get("/strains/?q=lebanese").data.decode()
-    assert "Lebanese Honey" in html and "EQ Haze" not in html
+    shown = rows(client, "?q=lebanese")
+    assert "Lebanese Honey" in shown and "EQ Haze" not in shown
 
 
-def rows(client, query=""):
-    """Strain names in the order the inventory table renders them."""
+def rows(client, query="", *, hidden=False):
+    """Strain names the inventory table shows, in render order.
+
+    The page ships every strain and hides the ones outside the filter; hidden=True returns
+    those instead.
+    """
     html = client.get(f"/strains/{query}").data.decode()
-    return re.findall(r'<td data-v="([^"]*)"><a href="/strains/\d+"', html)
+    found = re.findall(
+        r'<tr data-search[^>]*?( hidden)?>\s*<td data-v="([^"]*)"><a href="/strains/', html
+    )
+    return [name for flag, name in found if bool(flag) == hidden]
+
+
+def test_inventory_ships_every_strain_for_the_live_filter(client):
+    total = db.session.query(Strain).count()
+    shown, hidden = (
+        rows(client, "?breeder=Equilibrium"),
+        rows(client, "?breeder=Equilibrium", hidden=True),
+    )
+    assert shown and hidden and len(shown) + len(hidden) == total
+    html = client.get("/strains/?breeder=Equilibrium").data.decode()
+    assert f"{len(shown)} strains matching your filter" in html
+    # The day buckets carry their bounds, which is what inventory.js filters on.
+    assert 'value="57-63" data-low="57" data-high="63"' in html
+    assert 'value="85-" data-low="85" data-high=""' in html
+    assert "js/inventory.js" in html
+
+
+def test_inventory_search_matches_every_word_anywhere(client):
+    # "Equilibrium" is a breeder and "haze" a name: each word may match a different field.
+    both = rows(client, "?q=equilibrium+haze")
+    assert "EQ Haze" in both and "Lebanese Honey" not in both
+    assert set(both) <= set(rows(client, "?q=equilibrium")) & set(rows(client, "?q=haze"))
+    # Typed wildcards are literal.
+    assert rows(client, "?q=%25") == [] and rows(client, "?q=_") == []
+
+
+def test_inventory_ignores_unknown_filter_values(client):
+    assert client.get("/strains/?type=bogus&expression=nope&days=1-2").status_code == 200
+    assert len(rows(client, "?type=bogus")) == db.session.query(Strain).count()
+
+
+def test_inventory_query_count_does_not_grow_with_strains(client, app):
+    from sqlalchemy import event
+
+    statements = []
+    engine = db.engine
+    listen = lambda *a, **k: statements.append(1)  # noqa: E731
+    event.listen(engine, "before_cursor_execute", listen)
+    try:
+        client.get("/strains/")
+    finally:
+        event.remove(engine, "before_cursor_execute", listen)
+    assert len(statements) < 10, "plant counts must not be loaded one strain at a time"
 
 
 def test_inventory_filters_stack(client):
@@ -758,3 +775,42 @@ def test_weight_is_gone_from_the_app(client):
     for url in ("/", f"/groups/{g.id}", "/plants/", "/reports/", "/help/"):
         body = client.get(url).data.decode().lower()
         assert "wet weight" not in body and "dry weight" not in body, url
+
+
+def test_group_form_refuses_a_future_flip_date(client):
+    """A flip is recorded on the day it happens; the form will not take a plan."""
+    g = db.session.query(Group).filter_by(number=17).one()
+    r = client.post(
+        f"/groups/{g.id}/edit",
+        data={
+            "number": g.number,
+            "name": g.name or "",
+            "space_id": 0,
+            "flower_start": "2026-10-01",
+            "flower_days": 63,
+            "status": g.status.value,
+            "color": g.color,
+            "notes": "",
+        },
+    )
+    assert r.status_code == 200 and b"in the future" in r.data
+    db.session.refresh(g)
+    assert g.flower_start is None
+
+
+def test_dashboard_and_spaces_carry_no_capacity_label_or_log(client):
+    from canopy.models import Space
+
+    room = db.session.query(Space).filter_by(name="Flower Room").one()
+    room.capacity = 1  # far over
+    db.session.commit()
+    spaces_html = client.get("/spaces/").data.decode()
+    assert "over capacity" not in spaces_html and "over-why" not in spaces_html
+    dash = client.get("/").data.decode()
+    assert "Log today" not in dash and "var(--red)" not in dash
+
+
+def test_dashboard_has_no_reminders_or_alerts(client):
+    html = client.get("/").data.decode()
+    for gone in ("alert-strip", "plain water only", "ramping", "schedule alerts"):
+        assert gone not in html

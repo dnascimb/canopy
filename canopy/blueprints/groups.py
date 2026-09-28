@@ -87,8 +87,6 @@ def create():
         last = db.session.query(db.func.max(Group.number)).scalar() or 0
         form.number.data = last + 1
         form.color.data = next_group_color(_colors_in_use())
-        if start := request.args.get("start"):
-            form.flower_start.data = date.fromisoformat(start)
         if sid := request.args.get("space", type=int):
             form.space_id.data = sid
     if form.validate_on_submit():
@@ -113,7 +111,6 @@ def create():
 def detail(group_id: int):
     g = db.session.get(Group, group_id) or abort(404)
     ref = sched.today()
-    all_groups = db.session.query(Group).all()
     harvest_form = HarvestForm(harvested_on=g.flower_end or ref)
     harvest_form.plant_id.choices = [(0, "Whole group")] + [
         (p.id, p.label) for p in g.living_plants
@@ -128,8 +125,6 @@ def detail(group_id: int):
         "groups/detail.html",
         group=g,
         ref=ref,
-        implied=sched.implied_status(g, ref),
-        suggestion=sched.suggest_start(g, all_groups, ref=ref) if g.flower_start is None else None,
         harvest_form=harvest_form,
         journal_form=journal_form,
         move_form=move_form,
@@ -151,8 +146,6 @@ def move(group_id: int):
         if space.stage == SpaceStage.flowering:
             g.space_id = space.id
             g.status = GroupStatus.flowering
-        elif space.stage == SpaceStage.vegetative and g.status == GroupStatus.planned:
-            g.status = GroupStatus.vegetative
         db.session.commit()
         flash(f"Moved {n} plant{'s' if n != 1 else ''} to {space.name}.", "success")
     return redirect(url_for("groups.detail", group_id=g.id))
@@ -186,28 +179,6 @@ def edit(group_id: int):
                 flash(warning, "error")
             return redirect(url_for("groups.detail", group_id=g.id))
     return render_template("groups/form.html", form=form, group=g)
-
-
-@bp.post("/<int:group_id>/schedule")
-def schedule(group_id: int):
-    """Accept the suggested opening: set flower_start (and space) in one click."""
-    g = db.session.get(Group, group_id) or abort(404)
-    suggestion = sched.suggest_start(g, db.session.query(Group).all())
-    if suggestion is None:
-        flash("No opening available to suggest.", "error")
-    else:
-        if suggestion.space and not g.space_id:
-            g.space_id = suggestion.space.id
-        lifecycle.set_flip(
-            g.living_plants,
-            suggestion.on,
-            space=g.space,
-            note=f"Scheduled into the opening left by {suggestion.freed_by.label}.",
-        )
-        g.status = GroupStatus.flowering
-        db.session.commit()
-        flash(f"Scheduled {g.label} to flip on {suggestion.on:%b %d}.", "success")
-    return redirect(url_for("groups.detail", group_id=g.id))
 
 
 @bp.post("/<int:group_id>/status")

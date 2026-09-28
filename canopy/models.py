@@ -55,7 +55,6 @@ class PlantSize(enum.StrEnum):
 
 
 class GroupStatus(enum.StrEnum):
-    planned = "planned"
     vegetative = "vegetative"
     flowering = "flowering"
     drying = "drying"
@@ -214,7 +213,7 @@ class Group(TimestampMixin, db.Model):
     space_id: Mapped[int | None] = mapped_column(db.ForeignKey("spaces.id", ondelete="SET NULL"))
     status: Mapped[GroupStatus] = mapped_column(
         db.Enum(GroupStatus, native_enum=False, length=20),
-        default=GroupStatus.planned,
+        default=GroupStatus.vegetative,
         nullable=False,
     )
     color: Mapped[str] = mapped_column(db.String(7), default="#66bb6a", nullable=False)
@@ -289,19 +288,6 @@ class Group(TimestampMixin, db.Model):
         template can show a group and a lone plant side by side without asking which."""
         return f"/groups/{self.id}"
 
-    @property
-    def waiting_for_a_slot(self) -> bool:
-        """No flower date yet, and something still alive to give the slot to.
-
-        A group whose plants are all killed or harvested is finished, not waiting. It has
-        no `flower_start` because there is nothing left to flip, so testing that alone
-        asks the planner to find room for an empty tray. `living_plants` is not the right
-        guard either: it counts harvested plants, which are cut and hanging.
-        """
-        if self.flower_start is not None:
-            return False
-        return any(p.status not in (PlantStatus.killed, PlantStatus.harvested) for p in self.plants)
-
     def strain_labels(self) -> list[str]:
         """Unique strain names of living plants, suffixed with ×N when repeated."""
         counts: dict[str, int] = {}
@@ -314,6 +300,11 @@ class Group(TimestampMixin, db.Model):
 
     def __repr__(self) -> str:  # pragma: no cover
         return f"<Group {self.number}>"
+
+
+def _is_flip(event) -> bool:
+    """An event that starts a run in flower, as opposed to moving a plant already in one."""
+    return event.to_status == PlantStatus.flowering and event.from_status != PlantStatus.flowering
 
 
 class Plant(TimestampMixin, db.Model):
@@ -383,14 +374,57 @@ class Plant(TimestampMixin, db.Model):
 
     @property
     def flower_start(self) -> date | None:
-        """When this plant last entered flower, read off its lifecycle events."""
-        flips = [e.on for e in self.events if e.to_status == PlantStatus.flowering]
+        """When this plant last entered flower, read off its lifecycle events.
+
+        Moving a flowering plant (a male parked on the clone shelf for pollen) logs
+        flowering -> flowering; that is a relocation, not a new run, so it does not count.
+        """
+        flips = [e.on for e in self.events if _is_flip(e)]
         return max(flips) if flips else None
 
     @property
-    def flower_end(self) -> date | None:
+    def left_flower_on(self) -> date | None:
+        """The day this plant came out of its current run, if it has — read off what happened.
+
+        That is the first event after the flip that is not flowering (harvested, killed,
+        back to veg). Rows entered before the event log only carry `ended_on`, so a
+        harvested or killed plant with no such event falls back to that.
+        """
         start = self.flower_start
-        return None if start is None else start + timedelta(days=self.flower_days)
+        if start is None:
+            return None
+        # Order as recorded, not by date alone: a plant can go into veg and into flower on
+        # the same day, and that veg event is before the flip, not the end of the run.
+        log = sorted(self.events, key=lambda e: (e.on, e.id or 0))
+        flip = max(i for i, e in enumerate(log) if _is_flip(e) and e.on == start)
+        left = [e.on for e in log[flip + 1 :] if e.to_status != PlantStatus.flowering]
+        if not left and self.status in (PlantStatus.harvested, PlantStatus.killed):
+            if self.ended_on and self.ended_on >= start:
+                left = [self.ended_on]
+        return min(left) if left else None
+
+    @property
+    def flower_end(self) -> date | None:
+        """When this plant's flowering ends (exclusive). What happened wins over the plan.
+
+        A plant that has been harvested, culled or moved out of flower ended on that day,
+        whatever its flower days projected. Only a run still in progress is projected —
+        flip plus flower days — and a plant still flowering past that is still flowering
+        today, so its run reaches at least tomorrow. The calendar follows the plant; it
+        never tells the plant what state it is in.
+        """
+        start = self.flower_start
+        if start is None:
+            return None
+        left = self.left_flower_on
+        if left is not None:
+            return left
+        projected = start + timedelta(days=self.flower_days)
+        if self.status == PlantStatus.flowering:
+            from .services.scheduling import today
+
+            return max(projected, today() + timedelta(days=1))
+        return projected
 
     def is_flowering_on(self, day: date) -> bool:
         start, end = self.flower_start, self.flower_end

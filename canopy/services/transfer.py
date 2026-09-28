@@ -174,7 +174,10 @@ def load(payload: dict, *, replace: bool = True) -> dict[str, int]:
             number=g["number"],
             name=g.get("name"),
             space_id=space_ids.get(g.get("space_id")),
-            status=GroupStatus(g.get("status", "planned")),
+            # "planned" was retired 2026-09-28; older backups carry it for not-yet-flowering groups.
+            status=GroupStatus(
+                "vegetative" if g.get("status", "planned") == "planned" else g["status"]
+            ),
             color=g.get("color", "#66bb6a"),
             notes=g.get("notes"),
         )

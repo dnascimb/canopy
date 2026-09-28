@@ -15,9 +15,9 @@ else is quiet tables and short lists that support it.
 | `--surface` / `--surface-2` | `#23201d` / `#2c2824` | Panels, hovered rows, inputs. |
 | `--line` / `--line-strong` | `#3a352f` / `#4a443c` | Borders. |
 | `--text` / `--text-soft` / `--muted` | `#ece6dc` / `#c9c1b5` / `#968c7f` | Three levels of emphasis, all warm. |
-| `--accent` | `#f0a83a` | Grow‑light amber. Primary buttons, active nav, harvest events, openings, callouts. |
+| `--accent` | `#f0a83a` | Grow‑light amber. Primary buttons, active nav, harvest events, callouts. |
 | `--green` | `#7cb342` | Flowering / living / start events. |
-| `--red` | `#e0574b` | Killed, capacity errors, destructive buttons, the today line. |
+| `--red` | `#e0574b` | Killed, destructive buttons, the today line. |
 | `--blue` | `#5aa9e6` | Vegetative. |
 
 Group colours come from a 16‑step palette (`GROUP_PALETTE` in `models.py`) chosen to stay
@@ -44,7 +44,7 @@ responds only to the user's action. `prefers-reduced-motion` disables transition
 │          │ ┌──────────────── timeline ──────────────────┐  │
 │          │ └────────────────────────────────────────────┘  │
 │          │ ┌── main (2fr) ──────────┐ ┌── side (1fr) ───┐  │
-│ today    │ │ cards / tables         │ │ lists / alerts  │  │
+│ today    │ │ cards / tables         │ │ lists / panels  │  │
 │ version  │ └────────────────────────┘ └─────────────────┘  │
 └──────────┴────────────────────────────────────────────────┘
 ```
@@ -57,15 +57,16 @@ right. Below 860px the sidebar becomes a top bar with icons only and grids stack
 ## UX principles
 
 * **Enter facts, not conclusions.** Users type a flip date and a flower length; harvest
-  dates, day counts, openings, conflicts and suggested slots are computed. Nothing that
+  dates and day counts are computed. Nothing that
   can be derived is stored or asked for.
 * **Nothing is lost.** Killed plants remain with their reason; deleting a group keeps
   its plants; strains with history can't be deleted; every state change is a POST behind
   CSRF and, when destructive, a confirm.
-* **One click for the common move.** "Schedule" on a waiting group, "Kill" on a plant row,
-  status buttons on the group, "plan a group" on an opening — each pre‑fills the form.
-* **Tell the user what the calendar thinks.** The status‑mismatch banner and the alerts
-  panel surface disagreements instead of silently fixing them.
+* **One click for the common move.** "Kill" on a plant row and the status buttons on the
+  group each pre‑fill the form.
+* **Record, don't nag.** The app records what the grower did and never nags them to fix a
+  status or recommends a schedule. When an action implies a change — harvesting the last
+  plant moves the group to drying — the app makes it.
 * **Copy is instruction.** Buttons say what happens ("Save harvest", "Mark killed"); flash
   messages repeat the same verb; empty states say what to do next; errors say what to fix.
 * **Works where the notes live.** The Markdown/ASCII export mirrors the format growers
@@ -82,9 +83,8 @@ right. Below 860px the sidebar becomes a top bar with icons only and grids stack
 | Groups / group | "Manage one batch from seed to jar." |
 | Plants / plant | "Track and retire one plant." |
 | Inventory / strain | "What do I have, and how has it performed?" |
-| Spaces | "How full is each room and when does it open?" |
 | Journal | "What did I notice, when?" — and, via the quick log, "what did I do today?" in ten seconds. |
-| Spaces & planner | "Where is everything, how full is each tent, and what fits next?" |
+| Spaces | "Where is everything, and how full is each tent?" |
 | Reports | "What should I grow again?" |
 
 ## v1.1 additions
@@ -95,4 +95,4 @@ right. Below 860px the sidebar becomes a top bar with icons only and grids stack
   amber bars, muted labels, a dashed red capacity line, a solid red today line. They
   scale with their panel and survive print.
 * **Space cards** reuse the in-flower card shape; the left border colour encodes stage
-  (amber clone, blue veg, green flower) and turns red when over capacity.
+  (amber clone, blue veg, green flower).

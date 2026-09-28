@@ -232,7 +232,7 @@ GROUPS = [
         56,
         [("Lebanese Honey", "Lebanese Honey", None, None)],
     ),
-    # An unscheduled group so the "next opening" suggestion has something to work on.
+    # A group with no flip date yet.
     (17, "Next up", None, None, 70, [("Jack Herer 2", "Jack Herer", None, None)]),
 ]
 

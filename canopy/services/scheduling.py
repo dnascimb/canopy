@@ -3,15 +3,13 @@
 Everything here is pure computation over model objects so it can be unit-tested
 without a request context. The blueprints and API are thin wrappers around it.
 
+Canopy records what the grower did, when they did it. It does not propose flip dates or
+find slots, and it does not raise alerts about what the grower should fix: there are no
+openings, suggestions or conflict checks here by design.
+
 Key concepts
 ------------
 * An **event** is a dated "start flower" or "end flower" milestone for a group.
-* An **opening** is a date on which a flowering space frees up because a group
-  finishes. Unscheduled groups can be slotted into the earliest opening.
-* A **conflict** is a space whose plant capacity is exceeded on some day, or a
-  group that is flowering without any space assigned.
-* A **ramp-down** is a flowering run close enough to harvest that it should be
-  watered at half strength.
 """
 
 from __future__ import annotations
@@ -28,7 +26,6 @@ from ..models import (
     Plant,
     PlantStatus,
     Space,
-    SpaceStage,
     Strain,
     _spun_color,
 )
@@ -86,7 +83,11 @@ class LonePlant:
 
     @property
     def status(self) -> GroupStatus:
-        return GroupStatus.flowering if self.plant.flower_start else GroupStatus.planned
+        # The plant's own state, not whether it has a flip date: one harvested is drying.
+        return {
+            PlantStatus.flowering: GroupStatus.flowering,
+            PlantStatus.harvested: GroupStatus.drying,
+        }.get(self.plant.status, GroupStatus.vegetative)
 
     @property
     def space(self) -> Space | None:
@@ -259,186 +260,6 @@ def timeline_bounds(rows: list[dict], *, pad_days: int = 7) -> tuple[date, date]
         t = today()
         return t.replace(day=1), t + timedelta(days=90)
     return min(starts) - timedelta(days=pad_days), max(ends) + timedelta(days=pad_days)
-
-
-# ---------------------------------------------------------------------------
-# Openings & suggestions
-# ---------------------------------------------------------------------------
-@dataclass(frozen=True)
-class Opening:
-    on: date
-    freed_by: Group
-    space: Space | None
-
-
-def openings(groups: Iterable[Group], *, ref: date | None = None) -> list[Opening]:
-    """Dates on which a flowering slot frees up, from *ref* onward.
-
-    A slot is considered taken again if another scheduled group starts in the same
-    space on the same day (the usual "grp1 ends / grp7 starts" pattern).
-    """
-    ref = ref or today()
-    scheduled = [g for g in groups if g.flower_start is not None]
-    starts = {(g.space_id, g.flower_start) for g in scheduled}
-    out = []
-    for g in scheduled:
-        end = g.flower_end
-        if end < ref:
-            continue
-        if (g.space_id, end) in starts:
-            continue  # already back-filled
-        out.append(Opening(end, g, g.space))
-    return sorted(out, key=lambda o: (o.on, o.freed_by.number))
-
-
-def suggest_start(
-    group: Group, all_groups: Iterable[Group], *, ref: date | None = None
-) -> Opening | None:
-    """Earliest opening a not-yet-scheduled group could take."""
-    others = [g for g in all_groups if g.id != group.id]
-    opens = openings(others, ref=ref)
-    if group.space_id:
-        same = [o for o in opens if o.space is None or o.space.id == group.space_id]
-        opens = same or opens
-    return opens[0] if opens else None
-
-
-# ---------------------------------------------------------------------------
-# Conflicts
-# ---------------------------------------------------------------------------
-@dataclass(frozen=True)
-class Conflict:
-    severity: str  # "note" | "warning" | "error"
-    message: str
-    group: Group | None = None
-    space: Space | None = None
-
-
-def conflicts(
-    groups: Iterable[Group],
-    spaces: Iterable[Space],
-    plants: Iterable[Plant] = (),
-    *,
-    ref: date | None = None,
-) -> list[Conflict]:
-    ref = ref or today()
-    groups = list(groups)
-    spaces = list(spaces)
-    plants = list(plants)
-    out: list[Conflict] = []
-
-    # A group's dates come from its plants, so "scheduled with nothing in it" is no
-    # longer a state that can exist and is not checked for.
-    for g in groups:
-        if g.status == GroupStatus.flowering and g.flower_start is None:
-            out.append(
-                Conflict("error", f"{g.label} is marked flowering but has no start date.", g)
-            )
-        if g.flower_start and g.space is None and g.flower_end >= ref:
-            out.append(
-                Conflict("warning", f"{g.label} is scheduled but not assigned to a space.", g)
-            )
-
-    # Space capacity is deliberately not reported here. It is an estimate from footprints
-    # and dimensions, so it belongs on the spaces page as a label against the room in
-    # question — see spacing.capacity_warning() — rather than in a list of things that
-    # are actually wrong with the schedule.
-    return out
-
-
-# ---------------------------------------------------------------------------
-# Ramp-down: cutting water back as a run finishes
-# ---------------------------------------------------------------------------
-RAMP_DOWN_DAYS = 14
-
-
-@dataclass(frozen=True)
-class RampDown:
-    """A flowering run close enough to harvest that watering should be halved."""
-
-    unit: Group | object
-    end: date
-    days_left: int
-    plants: int
-    spread: bool  # the run's plants do not all finish on the same day
-
-    @property
-    def label(self) -> str:
-        return self.unit.label
-
-    @property
-    def when(self) -> str:
-        if self.days_left == 0:
-            return "today"
-        if self.days_left == 1:
-            return "tomorrow"
-        return f"in {self.days_left} days"
-
-    @property
-    def message(self) -> str:
-        first = ", first plants" if self.spread else ""
-        return (
-            f"{self.label} finishes {self.when}{first} — plain water only, half the usual amount."
-        )
-
-    @property
-    def lone_plant(self) -> Plant | None:
-        """The plant, when this run is one standing outside any group — else None.
-
-        Lets a caller link to the right page without knowing what a LonePlant is.
-        """
-        return getattr(self.unit, "plant", None)
-
-
-def ramp_down(
-    units: Iterable[Group],
-    spaces: Iterable[Space],
-    *,
-    ref: date | None = None,
-    within: int = RAMP_DOWN_DAYS,
-) -> list[RampDown]:
-    """Flowering runs within *within* days of harvest, which want half water.
-
-    Only runs standing in a flowering space qualify — nothing in veg or on the clone
-    shelf is finishing anything. The trigger is the *earliest* living plant to finish,
-    not the latest: once the first plants in a run are close, the whole run is being
-    watered down together, so waiting for the last one would raise the alert too late.
-    """
-    ref = ref or today()
-    flowering = {s.id for s in spaces if s.stage == SpaceStage.flowering}
-    out: list[RampDown] = []
-    for u in units:
-        if u.space_id not in flowering:
-            continue
-        # Only plants still in flower. "Living" includes harvested ones, and a plant in
-        # a paper bag does not want watering at any strength.
-        ends = [
-            p.flower_end
-            for p in u.living_plants
-            if p.flower_end and p.status == PlantStatus.flowering
-        ]
-        if not ends:
-            continue
-        first, last = min(ends), max(ends)
-        days_left = (first - ref).days
-        if 0 <= days_left <= within:
-            out.append(RampDown(u, first, days_left, len(ends), first != last))
-    return sorted(out, key=lambda r: (r.days_left, r.label))
-
-
-# ---------------------------------------------------------------------------
-# Status helpers
-# ---------------------------------------------------------------------------
-def implied_status(group: Group, ref: date | None = None) -> GroupStatus:
-    """What the calendar says a group's status should be, given its dates."""
-    ref = ref or today()
-    if group.flower_start is None:
-        return GroupStatus.planned if not group.plants else GroupStatus.vegetative
-    if ref < group.flower_start:
-        return GroupStatus.vegetative
-    if group.is_flowering_on(ref):
-        return GroupStatus.flowering
-    return GroupStatus.drying
 
 
 # ---------------------------------------------------------------------------

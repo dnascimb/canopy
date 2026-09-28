@@ -22,16 +22,6 @@
 <div class="progress mb" style="height: 8px"><i style="width: {{ (group.progress(ref) * 100)|round }}%; background: {{ group.color }}"></i></div>
 {% endif %}
 
-{% if implied.value != group.status.value and group.status.value != 'done' %}
-<div class="alert warning"><span class="dot"></span><span>The calendar says this group should be <strong>{{ implied.value }}</strong>, but it is marked {{ group.status.value }}.
-  <form class="inline" method="post" action="{{ url_for('groups.set_status', group_id=group.id) }}">{{ csrf() }}<input type="hidden" name="status" value="{{ implied.value }}"><button class="btn small" type="submit">Mark {{ implied.value }}</button></form></span></div>
-{% endif %}
-
-{% if suggestion %}
-<div class="alert warning"><span class="dot"></span><span>Earliest opening: <strong>{{ suggestion.on|d }}</strong> when {{ suggestion.freed_by.label }} finishes{% if suggestion.space %} in {{ suggestion.space.name }}{% endif %}.
-  <form class="inline" method="post" action="{{ url_for('groups.schedule', group_id=group.id) }}">{{ csrf() }}<button class="btn small primary" type="submit">Schedule for {{ suggestion.on|d }}</button></form></span></div>
-{% endif %}
-
 <div class="grid-main-side">
   <div>
     <section>
@@ -125,7 +115,7 @@
         {{ quicklog(journal_form, url_for('groups.add_journal', group_id=group.id), group=group) }}
         <ul class="journal mt">
         {% for j in group.journal_entries|sort(attribute='entry_date', reverse=true) %}
-          <li><div class="head"><span class="when">{{ j.entry_date|d }}</span><strong>{{ j.title }}</strong>{% if j.plant %}<span class="badge planned">{{ j.plant.label }}</span>{% endif %}</div>
+          <li><div class="head"><span class="when">{{ j.entry_date|d }}</span><strong>{{ j.title }}</strong>{% if j.plant %}<span class="badge neutral">{{ j.plant.label }}</span>{% endif %}</div>
             {% if j.task_list %}<div class="chips">{% for t in j.task_labels %}<span class="chip">{{ t }}</span>{% endfor %}</div>{% endif %}
             {% if j.body %}<div class="body small">{{ j.body }}</div>{% endif %}</li>
         {% else %}

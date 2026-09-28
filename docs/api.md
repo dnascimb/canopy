@@ -8,8 +8,6 @@ in the technical guide. Dates are ISO `YYYY-MM-DD`. The API honours `CANOPY_TODA
 | GET | `/health` | Liveness + effective "today". |
 | GET | `/timeline` | Gantt payload: `today`, `start`, `end`, `rows[]`. |
 | GET | `/events` | Every start/end of flower, sorted. |
-| GET | `/openings` | Dates a space frees up. |
-| GET | `/conflicts` | Schedule warnings and errors. |
 | GET | `/groups` | All groups with plants and derived dates. |
 | GET | `/groups/<id>` | One group. |
 | PATCH | `/groups/<id>` | Update `flower_start`, `flower_days`, `status`, `space_id`, `name`, `notes`. |
@@ -29,19 +27,16 @@ curl -s localhost:5000/api/v1/health
 curl -s localhost:5000/api/v1/timeline | jq '.rows[] | {label, start, end, day_of_flower}'
 # {"label":"Grp 7","start":"2026-07-28","end":"2026-11-17","day_of_flower":42} ...
 
-curl -s localhost:5000/api/v1/openings | jq '.[0]'
-# {"date":"2026-10-25","freed_by":"Grp 10","group_id":12,"space":"Flower Room"}
-
 # Push Grp 7's harvest a week earlier
 curl -s -X PATCH localhost:5000/api/v1/groups/9 \
   -H 'Content-Type: application/json' \
   -d '{"flower_days": 105}' | jq '{label, flower_end}'
 # {"label":"Grp 7","flower_end":"2026-11-10"}
 
-# Schedule an unscheduled group
+# Record that a group went into flower today (a date after today is rejected with 400)
 curl -s -X PATCH localhost:5000/api/v1/groups/17 \
   -H 'Content-Type: application/json' \
-  -d '{"flower_start": "2026-10-25", "space_id": 1, "status": "vegetative"}'
+  -d '{"flower_start": "2026-09-07", "space_id": 1, "status": "flowering"}'
 
 # How full is each tent right now?
 curl -s localhost:5000/api/v1/spaces | jq '.[] | {name, stage, also_hosts, count, capacity, room_for}'
@@ -86,12 +81,6 @@ curl -s localhost:5000/api/v1/export > "canopy-$(date +%F).json"
 {"date": "2026-09-22", "kind": "end", "group_id": 8, "label": "Grp 6 end flower (70 days)"}
 ```
 
-### Conflict
-
-```json
-{"severity": "error", "message": "Flower Room exceeds capacity (40/36 plants) on Aug 16.", "group_id": null}
-```
-
 ### Space (`/spaces`)
 
 ```json
@@ -126,4 +115,4 @@ already has data (untick *Replace* in the UI).
 ## Errors
 
 * `404` — unknown id.
-* `400` — invalid enum value or malformed date in a PATCH body (Flask returns the default error page; wrap calls accordingly).
+* `400` — a `flower_start` after today returns `{"error": "A flip date can't be in the future — record it on the day it goes into flower."}`. An invalid enum value or malformed date in a PATCH body also gives 400, but Flask returns the default error page; wrap calls accordingly.

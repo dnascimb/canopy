@@ -21,7 +21,7 @@
 request ─▶ blueprint (canopy/blueprints/*.py)
                │  query models, validate forms
                ▼
-           services/scheduling.py   pure functions: events, rows, openings, conflicts, exports
+           services/scheduling.py   pure functions: events, rows, exports
            services/spacing.py      locations, occupancy, moves, load series
            services/reports.py      per-strain / per-group aggregations
            services/transfer.py     JSON dump / load
@@ -49,8 +49,8 @@ request ─▶ blueprint (canopy/blueprints/*.py)
 | Blueprint | Prefix | Responsibility |
 | --- | --- | --- |
 | `dashboard` | `/` | Season overview. |
-| `schedule` | `/schedule` | Events, openings, conflicts, print, exports, backup/restore. |
-| `groups` | `/groups` | CRUD, schedule‑suggestion accept, status changes (with plant cascade), harvest and journal sub‑forms. |
+| `schedule` | `/schedule` | Events, print, exports, backup/restore. |
+| `groups` | `/groups` | CRUD, status changes (with plant cascade), harvest and journal sub‑forms. |
 | `plants` | `/plants` | CRUD, kill, status. |
 | `strains` | `/strains` | Inventory CRUD, search, seed adjust. |
 | `spaces` | `/spaces` | CRUD, occupancy. |
@@ -76,7 +76,7 @@ Space 1 ──< Group 1 ──< Plant >── 1 Strain
 | `strains` | `name`, `breeder`, `lineage`, `seed_type` (regular/feminized/autoflower/clone), `flower_days ≥ 1`, `seeds_on_hand ≥ 0`, `size` (small/medium/large), `expression` (sativa/haze/indica/hybrid, nullable), `notes` | Unique on (`name`, `breeder`). Cannot be deleted while it has plants. |
 | `groups` | `number` (unique int), `name` (optional), `space_id`, `status`, `color` (#rrggbb), `notes` | **No date columns.** `flower_start` / `flower_end` / `flower_days` are properties spanning the group's plants. Deleting a group unassigns its plants; harvests and journal entries cascade. |
 | `plants` | `label`, `strain_id`, `group_id` (nullable), `space_id` (nullable explicit location), `status`, `started_on`, `ended_on`, `end_reason`, `flower_days_override` (nullable), `parent_id` (nullable self-reference, SET NULL), `notes` | Killed plants are retained. `parent` / `cuttings` walk the propagation line; `ancestry` climbs it, loop-safe. `flower_start` is derived from `plant_events`; `flower_days` falls back to the strain. |
-| `plant_events` | `plant_id`, `on`, `from_status` (nullable), `to_status`, `space_id`, `note` | Append-only lifecycle log and the source of truth for flip dates. Written only by `services/lifecycle.py`. |
+| `plant_events` | `plant_id`, `on`, `from_status` (nullable), `to_status`, `space_id`, `note` | Append-only lifecycle log and the source of truth for flip dates. Written only by `services/lifecycle.py`; `set_flip()` raises `ValueError` for a date after today, so a flip is recorded on the day it happens. |
 | `harvests` | `group_id` / `plant_id` (at least one), `harvested_on`, `notes` | No weights are recorded. Adding one marks the plants it covers harvested and moves the group to drying once nothing is left in flower. |
 | `journal_entries` | `entry_date`, `space_id` / `group_id` / `plant_id` (all optional), `title`, `body`, `tasks` (comma-separated keys from `models.TASKS`), `photo_path` | `task_list` / `task_labels` are derived. Entries are notes only — nothing reads them back as data. |
 
@@ -85,7 +85,7 @@ strings (`native_enum=False`) so the schema is identical on every database.
 
 ### Derived properties (models.py)
 
-* `Group.flower_end = flower_start + timedelta(flower_days)`; `None` if unscheduled.
+* `Group.flower_end = flower_start + timedelta(flower_days)`; `None` with no flip date.
 * `Group.is_flowering_on(day)`: `start <= day < end` (end exclusive).
 * `Group.day_of_flower(today)`: 1‑based, `None` outside the window.
 * `Group.progress(today)`: 0–1 fraction of the window elapsed.
@@ -106,51 +106,15 @@ the classic "Grp 6 ends / Grp 12 starts" pair read naturally.
 
 **`timeline_rows(groups)`** — the JSON rows consumed by the Gantt, ASCII export and API:
 label, ISO start/end, days, colour, status, space, strain names of living plants, plant
-count, progress and day of flower. Sorted by start date then number; unscheduled groups
+count, progress and day of flower. Sorted by start date then number; groups with no flip date
 are omitted.
 
 **`timeline_bounds(rows, pad_days=7)`** — min start − pad to max end + pad.
-
-**`openings(groups)`** — every scheduled group's end date on or after `ref`, *except*
-where another scheduled group in the same space starts on exactly that date (the slot is
-already back‑filled). Sorted by date.
-
-**`suggest_start(group, all_groups)`** — the first opening excluding the group itself;
-if the group already has a space, prefer openings in that space.
-
-**`conflicts(groups, spaces)`** — returns `Conflict(severity, message, group?, space?)`:
-
-* error — group marked flowering with no start date;
-* warning — scheduled group with no space, or with no living plants (only for groups not yet finished).
-
-**`ramp_down(units, spaces)`** — returns `RampDown(unit, end, days_left, plants, spread)`
-for every run standing in a *flowering* space whose harvest is between today and
-`RAMP_DOWN_DAYS` (14) away, so the grower can start watering at half strength. Two
-decisions worth knowing:
-
-* The trigger is the **earliest** living plant to finish, not the latest. `Group.flower_end`
-  is the max across plants, which would raise the alert too late for a run whose plants
-  finish on different days; `spread` is set in that case and the message says "first plants".
-* **Only flowering spaces count.** Nothing in veg or on the clone shelf is finishing
-  anything, whatever dates its plants happen to carry.
-
-`RampDown.lone_plant` is the `Plant` when the unit is a `LonePlant`, else `None`, so a
-caller can link to the right page without knowing what a `LonePlant` is.
-
-Space capacity is deliberately absent from this list: it is a number the grower sets,
-reported by `spacing.capacity_warning()` against the space itself. It is evaluated only at
-each distinct start/end date in that space (the occupancy step function can only change
-there), counting living plants of groups flowering on that day, and falls back to current
-occupancy where no schedule applies.
 
 There is no floor-area model. Square footage per plant used to be derived from the strain's
 size class and the room's stage; it was wrong by 17x for 38 clones in 16oz cups and could
 not be fixed, since a plant graduates between 16oz, 32oz and 1–3 gallon pots at any stage.
 `Plant.container` records the pot as a fact about the plant and drives nothing.
-
-**`implied_status(group)`** — what the calendar says: planned/vegetative if unscheduled,
-vegetative before the flip, flowering inside the window, drying after. The group page
-offers a one‑click fix when this differs from the stored status.
 
 **`ascii_timeline(rows, width=64)`** — month header, tick row with `+` at month starts
 and `*` at today, one `=` bar per row, days suffix. Pure ASCII by design.
@@ -158,7 +122,7 @@ and `*` at today, one `=` bar per row, days suffix. Pure ASCII by design.
 **`markdown_export(groups)`** — bulleted groups (killed plants struck through), event
 table, ASCII timeline in a code fence.
 
-## Space planning (services/spacing.py)
+## Spaces (services/spacing.py)
 
 **Location.** `plant_location(plant, spaces)`: `None` for harvested/killed; otherwise the
 explicit `plant.space`, else the group's space for flowering plants, else the first space
@@ -175,16 +139,11 @@ stays flowering; otherwise the space's own stage wins.
 
 **Load series.** `load_series(space, groups, ref)` evaluates the schedule at every flip
 and harvest date in that space (plus today) and returns `{date, count, groups}`
-points. `peak(series, since=today)` is what `capacity_warning()` uses; the chart shows the full
-series with the space's area as the capacity line.
+points. The chart shows the full series with the space's capacity as a dashed line.
 
 **Moves.** `move_plants(plants, space)` sets `plant.space` and `plant.status =
 STATUS_FOR_STAGE[space.stage]`, skipping harvested/killed plants. The group route also
 sets the group's space, status and flip date when the destination is a flowering space.
-
-**Conflicts** (`scheduling.conflicts`) now take `plants` too: for each flowering space
-the projected peak from today onward is compared to area (if known) and to the maximum;
-each space's current occupancy is checked for overflow.
 
 ## Reports (services/reports.py)
 
@@ -214,19 +173,15 @@ tokens, so they print and need no JavaScript.
 
 ## Front end
 
-* **Dashboard layout** — `.dash` is one column on a phone, two past 1080px
-  (`"main log" / "main rail"`) and three past 1600px (`"main log rail"`). `.main` has no
-  `max-width`, so a wide monitor is used rather than letterboxed; the third column is what
-  stops the left column dead-ending while the rail runs on. Note the `grid-area` names are
-  declared *inside* those queries — hoisting them out drops all three children into one
-  cell and overlaps them at phone width.
-* **What the phone shows** — alerts, what is in flower, today's log. Everything else
-  (`.m-hide`: timeline, Waiting for a slot, Spaces, Next 30 days, openings) is replaced by
+* **Dashboard layout** — `.dash` is one column on a phone and two past 1080px
+  (`"main rail"`, 2fr / 1fr): main holds the timeline strip and what is in flower, the
+  rail holds Spaces and Next 30 days. `.main` has no `max-width`, so a wide monitor is
+  used rather than letterboxed. Note the `grid-area` names are declared *inside* the media
+  query — hoisting them out drops both children into one cell and overlaps them at phone
+  width.
+* **What the phone shows** — the stat tiles and what is in flower. Everything else
+  (`.m-hide`: timeline, the rail with Spaces and Next 30 days) is replaced by
   a `.m-links` row pointing at the full pages.
-* **Where reminders live** — the ramp-down alert renders twice: as a chip in `.alert-strip`
-  directly under the page title, and as a line on the flower card itself via
-  `ramp_by_group`. A panel lower down the page went unread in practice, and the card is
-  where a grower is already looking when deciding what to pour.
 * **`static/css/app.css`** — tokens in `:root`, then layout (sidebar + main grid),
   then components (`.panel`, `.stat`, `.btn`, `.badge`, tables, forms, `.timeline`,
   `.flower-card`, `.events`, `.kv`, `.journal`), utilities, responsive rules (≤860px:
@@ -256,22 +211,21 @@ tokens, so they print and need no JavaScript.
 ```
 tests/conftest.py       app/client/runner fixtures; fresh in-memory DB + demo seed per test
 tests/test_models.py    derived dates, exclusive end, labels, living/killed, occupancy
-tests/test_scheduling.py events ordering, upcoming window, rows, bounds, openings back-fill,
-                        suggestion, conflicts (clean/capacity/no space/no plants), implied
-                        status, ASCII + Markdown export, inventory/plant counts
-tests/test_routes.py    every page renders, CRUD flows, duplicate numbers, suggestion accept,
+tests/test_scheduling.py events ordering, upcoming window, rows, bounds,
+                        plant-driven run ends, ASCII + Markdown export, inventory/plant counts
+tests/test_routes.py    every page renders, CRUD flows, duplicate numbers,
                         kill + status, status cascade, harvest/journal, search, backup/restore
-tests/test_api.py       health, timeline, events/openings/conflicts, groups + PATCH, exports
+tests/test_api.py       health, timeline, events, groups + PATCH, exports
 tests/test_cli.py       init-db, seed-demo, export-markdown, export-json
 tests/test_spacing.py   location rules, occupancy counts, spaces that host several
-                        stages, load series & peak, capacity labels, moves (service and
-                        routes), planner page, quick log, task filter, last-done, reports,
+                        stages, load series, moves (service and
+                        routes), spaces page, quick log, task filter, last-done, reports,
                         spaces API, backup round-trip of new fields
 ```
 
 `pytest --cov=canopy` reports ~97% line coverage. Tests assert against fixed facts of the
 demo season (today = 2026‑09‑07), e.g. Grp 7 flips 2026‑07‑28 for 112 days → day 42 today,
-ends 2026‑11‑17; the first opening is 2026‑10‑25 when Grp 10 finishes.
+ends 2026‑11‑17.
 
 ## Deployment
 

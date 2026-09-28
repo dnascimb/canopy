@@ -6,7 +6,7 @@ from flask import Blueprint, Response, flash, redirect, render_template, request
 
 from ..extensions import db
 from ..forms import ImportForm
-from ..models import Group, Plant, Space
+from ..models import Group, Plant
 from ..services import scheduling as sched
 from ..services import transfer
 
@@ -17,16 +17,12 @@ bp = Blueprint("schedule", __name__)
 def index():
     ref = sched.today()
     groups = db.session.query(Group).all()
-    spaces = db.session.query(Space).all()
     units = sched.scheduled_units(groups, db.session.query(Plant).all())
     rows = sched.timeline_rows(units, ref=ref, include_unflipped=True)
     return render_template(
         "schedule/index.html",
         rows=rows,
         events=sched.events(units),
-        openings=sched.openings(units, ref=ref),
-        conflicts=sched.conflicts(groups, spaces, db.session.query(Plant).all(), ref=ref),
-        unscheduled=[g for g in groups if g.waiting_for_a_slot],
         ref=ref,
     )
 

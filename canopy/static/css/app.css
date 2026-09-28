@@ -49,6 +49,8 @@ h3 { font-size: 1rem; }
 p { margin: 0 0 0.75rem; }
 code, .mono { font-family: var(--mono); font-size: 0.92em; }
 :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+/* Classes like .btn set display, which would otherwise override the hidden attribute. */
+[hidden] { display: none !important; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 
 /* ---------- layout ---------- */
@@ -96,29 +98,13 @@ section { margin-bottom: 30px; }
 /* The grid-area names only exist inside these queries. Declaring them outside would
    drop all three children into one cell and overlap them on a phone. */
 @media (min-width: 1081px) {
-  .dash { grid-template-columns: 2fr 1fr; grid-template-areas: "main log" "main rail"; }
+  .dash { grid-template-columns: 2fr 1fr; grid-template-areas: "main rail"; }
   .dash-main { grid-area: main; }
-  .dash-log { grid-area: log; }
   .dash-rail { grid-area: rail; }
-}
-@media (min-width: 1600px) {
-  .dash { grid-template-columns: 1.7fr 1fr 1fr; grid-template-areas: "main log rail"; }
 }
 
 /* ---------- alert strip ----------
    Directly under the stats, because anything below "In flower now" goes unread. */
-.alert-strip { display: flex; flex-wrap: wrap; gap: 10px; margin: -6px 0 26px; }
-.alert-strip .chip {
-  display: flex; align-items: center; gap: 9px; flex: 1 1 340px;
-  padding: 10px 13px; border-radius: var(--radius-lg); font-size: 0.92rem;
-  background: var(--blue-soft); color: var(--text); border: 1px solid transparent;
-}
-.alert-strip a.chip:hover { text-decoration: none; border-color: var(--blue); }
-.alert-strip .chip.warning { background: var(--amber-soft); }
-.alert-strip .chip.error { background: var(--red-soft); }
-.alert-strip .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--blue); flex: none; }
-.alert-strip .chip.warning .dot { background: var(--accent); }
-.alert-strip .chip.error .dot { background: var(--red); }
 
 /* ---------- mobile priority ----------
    The phone shows what you act on: alerts, what is in flower, today's log. */
@@ -177,14 +163,12 @@ table.sortable thead th[aria-sort="descending"]::after { content: " \2193"; }
 
 /* ---------- badges ---------- */
 .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.78rem; font-weight: 500; line-height: 1.5; white-space: nowrap; }
-.badge.planned, .badge.seedling { background: var(--surface-2); color: var(--text-soft); border: 1px solid var(--line-strong); }
+.badge.neutral, .badge.seedling { background: var(--surface-2); color: var(--text-soft); border: 1px solid var(--line-strong); }
 .badge.vegetative { background: var(--blue-soft); color: var(--blue); }
 .badge.flowering { background: var(--green-soft); color: var(--green); }
 .badge.drying, .badge.harvested { background: var(--amber-soft); color: var(--accent); }
 .badge.done { background: var(--surface-2); color: var(--muted); }
 .badge.killed { background: var(--red-soft); color: var(--red); }
-.badge.over { background: var(--red); color: #fff; font-weight: 600; }
-.over-why { color: var(--red); margin-top: 2px; }
 .badge.regular, .badge.feminized, .badge.autoflower, .badge.clone { background: var(--surface-2); color: var(--text-soft); }
 .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
 
@@ -202,8 +186,6 @@ table.sortable thead th[aria-sort="descending"]::after { content: " \2193"; }
 .alert.note { background: var(--surface-2); color: var(--text-soft); }
 .alert.water { background: var(--blue-soft); }
 .alert.water .dot { background: var(--blue); }
-.ql-space + .ql-space { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
-.ql-space-head { display: flex; gap: 8px; align-items: baseline; font-weight: 600; margin-bottom: 6px; }
 .lifestrip { display: flex; gap: 2px; height: 30px; border-radius: 5px; overflow: hidden; }
 .lifestrip .seg { display: grid; place-items: center; min-width: 8px; overflow: hidden;
   font-size: .72rem; font-family: var(--mono); color: var(--accent-ink); white-space: nowrap; }
@@ -232,7 +214,7 @@ table.sortable thead th[aria-sort="descending"]::after { content: " \2193"; }
 .form-row .help { font-size: 0.82rem; color: var(--muted); }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 @media (max-width: 640px) { .form-grid { grid-template-columns: 1fr; } }
-input[type=text], input[type=number], input[type=date], select, textarea {
+input[type=text], input[type=search], input[type=number], input[type=date], select, textarea {
   width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--line-strong);
   border-radius: var(--radius); padding: 8px 10px; font: inherit;
 }
@@ -245,6 +227,9 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); outline
 .inline-form .form-row { min-width: 140px; }
 .filters { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
 .filters input[type=text], .filters select { width: auto; min-width: 160px; }
+.filters input[type=search] { width: auto; min-width: 240px; }
+/* inventory.js applies filters as they change, so the submit button is only for no-JS. */
+.filters.is-live [data-inventory-submit] { display: none; }
 .pill-nav { display: inline-flex; border: 1px solid var(--line-strong); border-radius: 999px; overflow: hidden; }
 .pill-nav a { padding: 5px 12px; color: var(--text-soft); font-size: 0.88rem; }
 .pill-nav a.active { background: var(--amber-soft); color: var(--accent); }
@@ -314,11 +299,6 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); outline
 .progress { height: 6px; background: var(--surface-2); border-radius: 3px; overflow: hidden; }
 .progress i { display: block; height: 100%; background: var(--green); }
 .flower-card .meta { display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--muted); margin-top: 6px; font-family: var(--mono); }
-.flower-card.ramping { border-top-color: var(--blue); }
-.flower-card .ramp { display: flex; align-items: center; gap: 6px; margin-top: 7px;
-  font-size: 0.8rem; color: var(--blue); }
-.flower-card .ramp::before { content: ""; width: 6px; height: 6px; border-radius: 50%;
-  background: var(--blue); flex: none; }
 
 /* ---------- events list ---------- */
 .events { list-style: none; margin: 0; padding: 0; }
@@ -371,8 +351,6 @@ pre.ascii { background: var(--bg); border: 1px solid var(--line); border-radius:
   .stat-strip { grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 18px; }
   .stat { padding: 9px 11px; }
   .stat .n { font-size: 1.25rem; }
-  .alert-strip { gap: 8px; margin-bottom: 18px; }
-  .alert-strip .chip { flex: 1 1 100%; }
 }
 
 /* ---------- print ---------- */

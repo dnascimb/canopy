@@ -52,76 +52,78 @@ def test_timeline_bounds_pads(app):
     assert t1 == date(2026, 12, 27)
 
 
-def test_openings_skip_backfilled_slots(app):
-    opens = sched.openings(groups(), ref=REF)
-    # Grp 6 ends Sep 22 but Grp 12 starts that day in the same space => not an opening.
-    assert all(o.on != date(2026, 9, 22) for o in opens)
-    assert [(o.on, o.freed_by.number) for o in opens[:3]] == [
-        (date(2026, 10, 25), 10),
-        (date(2026, 11, 2), 11),
-        (date(2026, 11, 17), 7),
-    ]
-
-
-def test_suggest_start_for_unscheduled_group(app):
-    g = db.session.query(Group).filter_by(number=17).one()
-    s = sched.suggest_start(g, groups(), ref=REF)
-    assert s is not None
-    assert s.on == date(2026, 10, 25)
-    assert s.freed_by.number == 10
-    assert s.space.name == "Flower Room"
-
-
-def test_conflicts_clean_on_demo_data(app):
-    assert sched.conflicts(groups(), db.session.query(Space).all(), ref=REF) == []
-
-
-def test_capacity_is_not_a_schedule_conflict(app):
-    """Over-capacity is a spaces-page label now, not an entry in the alert list."""
-    from canopy.services import spacing
-
-    room = db.session.query(Space).filter_by(name="Flower Room").one()
-    room.capacity = 5
-    db.session.commit()
-    assert sched.conflicts(groups(), [room], ref=REF) == []
-    warn = spacing.capacity_warning(room, groups(), ref=REF)
-    assert warn is not None and "over the 5 it holds" in warn
-
-
-def test_conflict_scheduled_without_a_space(app):
-    """A flipped plant whose group has no space still needs somewhere to go."""
-    from canopy.models import Plant, Strain
+def _run(label, *, flip, days=70):
+    """A plant of its own on a known run, flipped *flip* for *days*."""
     from canopy.services import lifecycle
 
-    g = Group(number=950)
-    p = Plant(label="stray", strain=db.session.query(Strain).first(), group=g)
-    db.session.add_all([g, p])
-    lifecycle.set_flip([p], date(2026, 10, 1), days=60)
+    p = Plant(label=label, strain=db.session.query(Strain).first())
+    db.session.add(p)
+    lifecycle.set_flip([p], flip, days=days)
     db.session.commit()
-    msgs = [c.message for c in sched.conflicts(groups(), [], ref=REF)]
-    assert "Grp 950 is scheduled but not assigned to a space." in msgs
-    # "scheduled but has no living plants" is gone: the dates come *from* the plants,
-    # so a scheduled group without any is no longer a state that can exist.
-    assert not any("no living plants" in m for m in msgs)
+    return p
 
 
-def test_implied_status(app):
-    assert (
-        sched.implied_status(db.session.query(Group).filter_by(number=6).one(), REF).value
-        == "flowering"
+def test_a_run_harvested_early_ends_the_day_it_came_down(app):
+    """The Super Blue Haze case: flipped for 77 days, harvested on day 49.
+
+    The group said "the calendar says this group should be flowering, but it is marked
+    drying" — the projection overruling what happened. What happens to the plant rules:
+    its run ends on the harvest, and everything built on the dates follows.
+    """
+    from canopy.models import GroupStatus, PlantStatus
+    from canopy.services import lifecycle
+
+    g = Group(number=901, name="Early harvest", color="#123456")
+    db.session.add(g)
+    a, b = (
+        _run("Early A", flip=date(2026, 7, 20), days=77),
+        _run("Early B", flip=date(2026, 7, 20), days=77),
     )
-    assert (
-        sched.implied_status(db.session.query(Group).filter_by(number=12).one(), REF).value
-        == "vegetative"
-    )
-    assert (
-        sched.implied_status(db.session.query(Group).filter_by(number=1).one(), REF).value
-        == "drying"
-    )
-    assert (
-        sched.implied_status(db.session.query(Group).filter_by(number=17).one(), REF).value
-        == "vegetative"
-    )
+    a.group = b.group = g
+    down = date(2026, 9, 6)
+    for p in (a, b):
+        lifecycle.record(p, PlantStatus.harvested, on=down)
+    lifecycle.settle_group(g)
+    db.session.commit()
+
+    assert a.flower_end == down and g.flower_end == down
+    assert not g.is_flowering_on(REF) and not a.is_flowering_on(down)
+    assert a.is_flowering_on(down - timedelta(days=1))
+    assert g.status == GroupStatus.drying, "harvesting its plants settled the group"
+    row = next(r for r in sched.timeline_rows(groups(), ref=REF) if r["label"] == g.label)
+    assert row["end"] == down.isoformat(), "the bar stops at the harvest"
+
+
+def test_a_plant_still_flowering_past_its_projection_is_still_flowering(app):
+    p = _run("Running long", flip=date(2026, 6, 1), days=63)  # projected to end Aug 3
+    assert p.status.value == "flowering"
+    assert p.is_flowering_on(REF), "not harvested, so still in flower today"
+    assert p.flower_end == REF + timedelta(days=1)
+
+
+def test_a_culled_plant_ends_its_run_on_the_cull(app):
+    from canopy.models import PlantStatus
+    from canopy.services import lifecycle
+
+    p = _run("Culled mid-run", flip=date(2026, 8, 1))
+    lifecycle.record(p, PlantStatus.killed, on=date(2026, 8, 20))
+    db.session.commit()
+    assert p.flower_end == date(2026, 8, 20)
+
+
+def test_a_flip_cannot_be_dated_in_the_future(app):
+    """Canopy records what happened; a flip dated ahead of time is a plan, and it has none."""
+    import pytest
+
+    from canopy.services import lifecycle
+
+    p = Plant(label="Not yet", strain=db.session.query(Strain).first())
+    db.session.add(p)
+    with pytest.raises(ValueError, match="future"):
+        lifecycle.set_flip([p], REF + timedelta(days=1))
+    assert p.flower_start is None
+    lifecycle.set_flip([p], REF)  # today is fine
+    assert p.flower_start == REF
 
 
 def test_ascii_timeline_is_plain_ascii(app):
@@ -155,76 +157,10 @@ def test_inventory_and_plant_counts(app):
 
 
 # ---------------------------------------------------------------------------
-# Ramp-down: half water as a run finishes
+# Helpers
 # ---------------------------------------------------------------------------
-def spaces():
-    return db.session.query(Space).all()
-
-
 def units():
     return sched.scheduled_units(groups(), db.session.query(Plant).all())
-
-
-def test_ramp_down_quiet_when_nothing_is_close(app):
-    """Grp 6 finishes Sep 22, 15 days out — one day beyond the window, so no alert."""
-    assert sched.ramp_down(units(), spaces(), ref=REF) == []
-
-
-def test_ramp_down_catches_a_run_inside_the_window(app):
-    rows = sched.ramp_down(units(), spaces(), ref=REF, within=15)
-    assert [r.label for r in rows] == ["Grp 6"]
-    r = rows[0]
-    assert r.days_left == 15 and r.end == date(2026, 9, 22)
-    assert "plain water only, half the usual amount" in r.message
-    assert not r.spread
-
-
-def test_ramp_down_only_looks_at_flowering_spaces(app):
-    """A run parked in veg is not finishing anything, whatever its dates say."""
-    g6 = next(g for g in groups() if g.number == 6)
-    g6.space = db.session.query(Space).filter_by(name="Veg Tent").one()
-    db.session.commit()
-    assert sched.ramp_down(units(), spaces(), ref=REF, within=15) == []
-
-
-def test_ramp_down_triggers_on_the_earliest_plant_not_the_last(app):
-    """One plant finishing early pulls the whole run's alert forward, and says so."""
-    g6 = next(g for g in groups() if g.number == 6)
-    early = g6.living_plants[0]
-    early.flower_days_override = early.flower_days - 5
-    db.session.commit()
-
-    rows = sched.ramp_down(units(), spaces(), ref=REF, within=15)
-    assert [r.label for r in rows] == ["Grp 6"]
-    r = rows[0]
-    assert r.end == date(2026, 9, 17) and r.days_left == 10
-    assert r.spread
-    assert "first plants" in r.message
-
-
-def test_ramp_down_ignores_runs_already_past_their_date(app):
-    rows = sched.ramp_down(units(), spaces(), ref=REF, within=365)
-    assert rows and all(r.days_left >= 0 for r in rows)
-
-
-def test_ramp_down_covers_a_plant_standing_on_its_own(app):
-    """Groups are containers — a lone plant gets the same alert, and links to itself."""
-    p = Plant(
-        label="solo",
-        strain=db.session.query(Strain).first(),
-        space=db.session.query(Space).filter_by(name="Flower Room").one(),
-    )
-    db.session.add(p)
-    from canopy.services import lifecycle
-
-    lifecycle.set_flip([p], date(2026, 7, 10), days=60)  # ends Sep 08... within window
-    p.flower_days_override = 65  # ends Sep 13, 6 days out
-    db.session.commit()
-
-    rows = sched.ramp_down(units(), spaces(), ref=REF, within=14)
-    solo = next(r for r in rows if r.label == "solo")
-    assert solo.days_left == 6
-    assert solo.lone_plant is p
 
 
 def test_timeline_rows_link_a_lone_plant_to_its_own_page(app):
@@ -248,8 +184,8 @@ def test_timeline_rows_link_a_lone_plant_to_its_own_page(app):
     assert solo["color"] != "#9e9e9e"
 
 
-def test_a_future_flip_does_not_move_plants_yet(app):
-    """Scheduling a tray of unrooted clones must not put them in the flower tent today."""
+def test_a_flip_moves_plants_into_flower(app):
+    """Recording a flip puts the plants in flower, in the space it names."""
     from canopy.models import PlantStatus, Space
     from canopy.services import lifecycle
 
@@ -262,32 +198,54 @@ def test_a_future_flip_does_not_move_plants_yet(app):
         space=shelf,
     )
     db.session.add(p)
-    lifecycle.set_flip([p], REF + timedelta(days=11), space=flower)
-    db.session.commit()
-
-    assert p.status == PlantStatus.clone  # still a clone today
-    assert p.space_id == shelf.id  # still on the shelf
-    assert p.flower_start == REF + timedelta(days=11)  # but the plan is recorded
-
-    # A flip dated today or earlier still moves it.
+    assert p.space is shelf
     lifecycle.set_flip([p], REF, space=flower)
     db.session.commit()
     assert p.status == PlantStatus.flowering and p.space_id == flower.id
 
 
-def test_ramp_down_ignores_plants_already_cut(app):
-    """A run in the dryer must not be told to water at half — living includes harvested."""
-    from canopy.models import PlantStatus
+def test_same_day_veg_then_flip_is_not_the_end_of_the_run(app):
+    """PNG 1 and 2 went into veg and into flower on the same day, then were culled weeks on."""
+    from canopy.models import PlantEvent, PlantStatus
     from canopy.services import lifecycle
 
-    g6 = next(g for g in groups() if g.number == 6)
-    for pl in g6.living_plants:
-        pl.flower_days_override = (REF + timedelta(days=3) - pl.flower_start).days
+    p = Plant(label="Same day", strain=db.session.query(Strain).first(), status=PlantStatus.clone)
+    db.session.add(p)
+    on = date(2026, 8, 1)
+    db.session.add(PlantEvent(plant=p, on=on, to_status=PlantStatus.vegetative))
+    db.session.flush()
+    lifecycle.set_flip([p], on)
+    db.session.flush()
+    lifecycle.record(p, PlantStatus.killed, on=date(2026, 8, 25))
     db.session.commit()
-    assert [r.label for r in sched.ramp_down(units(), spaces(), ref=REF)] == ["Grp 6"]
+    assert p.flower_start == on and p.flower_end == date(2026, 8, 25)
 
-    for pl in list(g6.living_plants):
-        lifecycle.record(pl, PlantStatus.harvested, on=REF)
-        pl.ended_on = REF
+
+def test_moving_a_flowering_plant_does_not_restart_its_run(app):
+    """A male parked on the clone shelf for pollen logs flowering -> flowering."""
+    from canopy.models import PlantEvent, PlantStatus
+
+    p = _run("Pollen male", flip=date(2026, 8, 20), days=60)
+    db.session.add(
+        PlantEvent(
+            plant=p,
+            on=date(2026, 9, 1),
+            from_status=PlantStatus.flowering,
+            to_status=PlantStatus.flowering,
+            note="Moved to the clone shelf.",
+        )
+    )
     db.session.commit()
-    assert sched.ramp_down(units(), spaces(), ref=REF) == []
+    assert p.flower_start == date(2026, 8, 20)
+    assert p.flower_end == date(2026, 10, 19)
+
+
+def test_a_lone_plant_reports_its_own_state(app):
+    from canopy.models import GroupStatus, PlantStatus
+    from canopy.services import lifecycle
+
+    p = _run("Lone", flip=date(2026, 8, 1))
+    assert sched.LonePlant(p).status == GroupStatus.flowering
+    lifecycle.record(p, PlantStatus.harvested, on=date(2026, 9, 1))
+    db.session.commit()
+    assert sched.LonePlant(p).status == GroupStatus.drying

@@ -259,17 +259,6 @@
    }
   }
  ],
- "group_unscheduled": [
-  {
-   "selector": ".alert.warning",
-   "box": {
-    "x": 256,
-    "y": 119.390625,
-    "width": 1072,
-    "height": 47.125
-   }
-  }
- ],
  "plants": [
   {
    "selector": ".filters",

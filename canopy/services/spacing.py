@@ -65,10 +65,6 @@ class Occupancy:
         """0-1+ fraction of the space's plant cap in use."""
         return self.count / self.space.capacity if self.space.capacity else 0.0
 
-    @property
-    def over(self) -> bool:
-        return self.count > self.space.capacity
-
     def room_for(self) -> int:
         """How many more plants fit right now."""
         return max(self.space.capacity - self.count, 0)
@@ -116,32 +112,6 @@ def load_series(space: Space, groups: Iterable[Group], *, ref: date | None = Non
             }
         )
     return out
-
-
-def peak(series: list[dict], *, since: date | None = None) -> dict | None:
-    pts = [p for p in series if since is None or date.fromisoformat(p["date"]) >= since]
-    return max(pts, key=lambda p: p["count"], default=None)
-
-
-def capacity_warning(
-    space: Space,
-    groups: Iterable[Group],
-    occupancy_now: Occupancy | None = None,
-    *,
-    ref: date | None = None,
-) -> str | None:
-    """Why *space* is over its plant cap, or None. A spaces-page label, not an alert.
-
-    Checks the schedule's projected peak first, since that is the more useful warning,
-    and falls back to what is physically in the space today.
-    """
-    worst = peak(load_series(space, groups, ref=ref), since=ref)
-    if worst and worst["count"] > space.capacity:
-        day = date.fromisoformat(worst["date"])
-        return f"{worst['count']} plants on {day:%b %d}, over the {space.capacity} it holds"
-    if occupancy_now is not None and occupancy_now.over:
-        return f"{occupancy_now.count} plants today, over the {space.capacity} it holds"
-    return None
 
 
 def move_plants(plants: Iterable[Plant], space: Space, *, ref: date | None = None) -> int:

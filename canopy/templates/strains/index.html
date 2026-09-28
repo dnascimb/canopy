@@ -3,12 +3,13 @@
 {% block title %}Inventory{% endblock %}
 {% set size_rank = {'small': 1, 'medium': 2, 'large': 3} %}
 {% block content %}
+{% set shown = matching|length %}
 <div class="page-head">
-  <div><h1>Seed &amp; clone inventory</h1><p class="sub">{{ strains|length }} strains{% if filtered %} matching your filter{% endif %}. Flower days here are the default when you plan a group.</p></div>
+  <div><h1>Seed &amp; clone inventory</h1><p class="sub"><span data-inventory-count aria-live="polite">{{ shown }} strain{{ '' if shown == 1 else 's' }}{% if filtered %} matching your filter{% endif %}</span>. Flower days here are the default when you plan a group.</p></div>
   <div class="actions"><a class="btn primary" href="{{ url_for('strains.create') }}">Add strain</a></div>
 </div>
-<form class="filters" method="get">
-  <input type="text" name="q" value="{{ q }}" placeholder="Search name, breeder, lineage" aria-label="Search">
+<form class="filters" method="get" role="search" data-inventory-filters data-no-breeder="{{ no_breeder }}">
+  <input type="search" name="q" value="{{ q }}" placeholder="Search name, breeder, lineage" aria-label="Search" autocomplete="off" spellcheck="false">
   <select name="type" aria-label="Seed type"><option value="">Any type</option>{% for t in seed_types %}<option value="{{ t.value }}" {{ 'selected' if t.value == seed_type }}>{{ t.value }}</option>{% endfor %}</select>
   <select name="breeder" aria-label="Breeder">
     <option value="">Any breeder</option>
@@ -21,17 +22,17 @@
   </select>
   <select name="days" aria-label="Flower days">
     <option value="">Any flower length</option>
-    {% for key, spec in day_ranges.items() %}<option value="{{ key }}" {{ 'selected' if key == days }}>{{ spec[0] }}</option>{% endfor %}
+    {% for key, spec in day_ranges.items() %}<option value="{{ key }}" data-low="{{ spec[1] if spec[1] is not none }}" data-high="{{ spec[2] if spec[2] is not none }}" {{ 'selected' if key == days }}>{{ spec[0] }}</option>{% endfor %}
   </select>
-  <button class="btn" type="submit">Filter</button>
-  {% if filtered %}<a class="btn ghost" href="{{ url_for('strains.index') }}">Clear</a>{% endif %}
+  <button class="btn" type="submit" data-inventory-submit>Filter</button>
+  <a class="btn ghost" href="{{ url_for('strains.index') }}" data-inventory-clear {{ '' if filtered else 'hidden' }}>Clear</a>
 </form>
 <div class="panel tight table-wrap">
-<table class="sortable" data-sort-col="0" data-sort-dir="asc">
+<table class="sortable" data-sort-col="0" data-sort-dir="asc" data-inventory>
   <thead><tr><th>Strain</th><th>Breeder</th><th>Lineage</th><th>Type</th><th>Expression</th><th>Size</th><th class="num">Flower days</th><th class="num">Seeds</th><th data-no-sort></th><th class="num">Plants</th></tr></thead>
   <tbody>
   {% for s in strains %}
-    <tr>
+    <tr data-search="{{ s.name }}&#10;{{ s.breeder or '' }}&#10;{{ s.lineage or '' }}" data-type="{{ s.seed_type.value }}" data-breeder="{{ s.breeder or '' }}" data-expression="{{ s.expression.value if s.expression else '' }}" data-days="{{ s.flower_days }}"{% if s.id not in matching %} hidden{% endif %}>
       <td data-v="{{ s.name }}"><a href="{{ url_for('strains.detail', strain_id=s.id) }}">{{ s.name }}</a></td>
       <td class="soft" data-v="{{ s.breeder or '' }}">{{ s.breeder or '—' }}</td>
       <td class="muted small" data-v="{{ s.lineage or '' }}">{{ s.lineage or '' }}</td>
@@ -44,13 +45,17 @@
         <form class="inline" method="post" action="{{ url_for('strains.adjust', strain_id=s.id) }}">{{ csrf() }}<input type="hidden" name="delta" value="-1"><button class="btn small ghost" type="submit" aria-label="Remove one seed">−</button></form>
         <form class="inline" method="post" action="{{ url_for('strains.adjust', strain_id=s.id) }}">{{ csrf() }}<input type="hidden" name="delta" value="1"><button class="btn small ghost" type="submit" aria-label="Add one seed">+</button></form>
       </td>
-      <td class="num" data-v="{{ s.plants|length }}">{{ s.plants|length }}</td>
+      {% set n = plant_counts.get(s.id, 0) %}<td class="num" data-v="{{ n }}">{{ n }}</td>
     </tr>
   {% else %}
-    <tr data-no-sort><td colspan="10" class="empty">{% if filtered %}No strains match that filter. <a href="{{ url_for('strains.index') }}">Clear it</a>.{% else %}Nothing in inventory yet. <a href="{{ url_for('strains.create') }}">Add your first strain</a>.{% endif %}</td></tr>
+    <tr data-no-sort><td colspan="10" class="empty">Nothing in inventory yet. <a href="{{ url_for('strains.create') }}">Add your first strain</a>.</td></tr>
   {% endfor %}
+  {% if strains %}
+    <tr data-no-sort data-inventory-empty {{ '' if not shown else 'hidden' }}><td colspan="10" class="empty">No strains match that filter. <a href="{{ url_for('strains.index') }}" data-inventory-clear>Clear it</a>.</td></tr>
+  {% endif %}
   </tbody>
 </table>
 </div>
 {% endblock %}
-{% block scripts %}<script src="{{ url_for('static', filename='js/sortable.js') }}"></script>{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/sortable.js') }}"></script>
+<script src="{{ url_for('static', filename='js/inventory.js') }}"></script>{% endblock %}

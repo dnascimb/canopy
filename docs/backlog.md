@@ -14,25 +14,20 @@ order of value ÷ effort. Each has a one-line sketch of where it would live.
 3. **Calendar heatmap of journal activity** (GitHub-style) to spot neglected weeks.
 4. **Strain comparison card**: two strains side by side — days to finish, survival,
    lineage, notes.
-## Planning
+## Groups and spaces
 
-5. **What-if planner**: drag a bar on the timeline (or edit dates inline) and see load
-    and conflicts update live before saving. (`PATCH /api/v1/groups/<id>` already exists.)
-6. **Seed-run wizard**: pick strains and counts from inventory → creates the group and
-    its plants, places them on the clone shelf, and shows the earliest flip date and
-    whether they will fit in veg and flower.
-7. **Multiple flower spaces with different photoperiods** (e.g. an auto tent): add
-    `light_schedule` to Space; the suggestion engine prefers matching spaces.
-8. **Perpetual-harvest optimiser**: given tent sizes and target harvest cadence, propose
-    group sizes and flip dates that keep the flower tent near capacity.
+5. **Seed-run wizard**: pick strains and counts from inventory → creates the group and
+    its plants and places them on the clone shelf.
+6. **Multiple flower spaces with different photoperiods** (e.g. an auto tent): add
+    `light_schedule` to Space.
 ## Quality of life
 
-9. **Keyboard shortcuts**: `g d` dashboard, `g s` schedule, `n` new group, `/` search.
-10. **Global search** across strains, plants, groups and journal text.
-11. **iCalendar feed** of flips, harvests and reminders for phone calendars.
-12. **CSV export** of strains, plants and harvests for spreadsheets.
-13. **Dark/light toggle** (the token system already makes this a ~20-line change).
-14. **Alembic migrations** so schema changes upgrade existing databases in place. Six
+7. **Keyboard shortcuts**: `g d` dashboard, `g s` schedule, `n` new group, `/` search.
+8. **Global search** across strains, plants, groups and journal text.
+9. **iCalendar feed** of flips and harvests for phone calendars.
+10. **CSV export** of strains, plants and harvests for spreadsheets.
+11. **Dark/light toggle** (the token system already makes this a ~20-line change).
+12. **Alembic migrations** so schema changes upgrade existing databases in place. Six
     have now been hand-written — dry weight, strain expression, journal spaces, moving the
     schedule onto the plant, cutting parentage and journal photos — each a one-off script with its own verification.
 

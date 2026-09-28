@@ -64,40 +64,6 @@ def events():
     )
 
 
-@bp.get("/openings")
-def openings():
-    return jsonify(
-        [
-            {
-                "date": o.on.isoformat(),
-                "freed_by": o.freed_by.label,
-                "group_id": o.freed_by.id,
-                "space": o.space.name if o.space else None,
-            }
-            for o in sched.openings(
-                sched.scheduled_units(db.session.query(Group).all(), db.session.query(Plant).all())
-            )
-        ]
-    )
-
-
-@bp.get("/conflicts")
-def conflicts():
-    groups = db.session.query(Group).all()
-    spaces = db.session.query(Space).all()
-    plants = db.session.query(Plant).all()
-    return jsonify(
-        [
-            {
-                "severity": c.severity,
-                "message": c.message,
-                "group_id": c.group.id if c.group else None,
-            }
-            for c in sched.conflicts(groups, spaces, plants)
-        ]
-    )
-
-
 @bp.get("/spaces")
 def list_spaces():
     """Spaces with current occupancy (by plant location) and fit estimates."""
@@ -146,13 +112,16 @@ def patch_group(group_id: int):
     days = int(data["flower_days"]) if "flower_days" in data else None
     if "flower_start" in data:
         if data["flower_start"]:
-            lifecycle.set_flip(
-                g.living_plants,
-                date.fromisoformat(data["flower_start"]),
-                days=days,
-                space=g.space,
-                note="Set through the API.",
-            )
+            try:
+                lifecycle.set_flip(
+                    g.living_plants,
+                    date.fromisoformat(data["flower_start"]),
+                    days=days,
+                    space=g.space,
+                    note="Set through the API.",
+                )
+            except ValueError as e:
+                return jsonify({"error": str(e)}), 400
         else:
             lifecycle.clear_flip(g.living_plants)
     elif days is not None:

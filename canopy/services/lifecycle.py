@@ -75,6 +75,9 @@ def _today() -> date:
     return scheduling.today()
 
 
+FUTURE_FLIP = "A flip date can't be in the future — record it on the day it goes into flower."
+
+
 def set_flip(
     plants: Iterable[Plant],
     on: date,
@@ -83,11 +86,16 @@ def set_flip(
     space: Space | None = None,
     note: str | None = None,
 ) -> int:
-    """Put *plants* into flower on *on*, replacing any flip they already had.
+    """Record that *plants* went into flower on *on*, replacing any flip they already had.
+
+    A flip is something that happened, so *on* cannot be after today — Canopy records what
+    was done, it does not hold plans. Raises ValueError for a future date.
 
     Idempotent: re-flipping to the same date rewrites the one event rather than stacking
     duplicates, so correcting a date never leaves a trail of contradictory flips.
     """
+    if on > _today():
+        raise ValueError(FUTURE_FLIP)
     n = 0
     for p in plants:
         if p.status == PlantStatus.killed:
@@ -105,14 +113,9 @@ def set_flip(
                 note=note,
             )
         )
-        # A flip dated in the future is a plan, not a transition. The event is still
-        # written, so the timeline and flower_start are right, but the plant keeps its
-        # current status and location until the day arrives — otherwise scheduling a tray
-        # of unrooted clones drops them into the flower tent today.
-        if on <= _today():
-            p.status = PlantStatus.flowering
-            if space is not None:
-                p.space = space
+        p.status = PlantStatus.flowering
+        if space is not None:
+            p.space = space
         if days is not None:
             p.flower_days_override = days
         n += 1
