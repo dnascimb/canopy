@@ -158,3 +158,96 @@ rendered client-side by `static/js/timeline.js` from JSON that the templates inl
 * Don't add a CSS/JS framework; the design system is intentionally small.
 * Don't put business logic in templates or blueprints — it belongs in `services/`.
 * Don't change demo-season dates in `services/seed.py` without updating tests.
+
+## Working with Dan
+
+* **Replies: lead with the result, two or three sentences.** Say what changed and stop. No
+  per-item tables of what was touched, no test counts, no recap of the diagnosis. Detail
+  only when he asks, or when a decision needs his sign-off.
+* **Write plainly.** Engineering prose: state the fact, then the reason. One idea per
+  sentence; numbers and tables over adjectives. Ordinary American words — "two weeks", not
+  "fortnight"; no whilst, amongst, hence, thus, moreover, albeit, myriad. Applies to docs,
+  commit messages and replies.
+* **He reads pictures, not captions.** Screenshots must carry the point on their own.
+* **KISS is a design rule too.** One "Full cycle" button beat a three-way switch. Build the
+  simplest control that does the job.
+* **Feature docs** use two headings: "What we wanted" (one or two sentences, numbers if any)
+  and "So we built this" (screenshots, one short caption each). No options tables, no
+  numbered sections.
+* **The dashboard is read down to "In flower now" and no further.**
+
+## Working on the real garden data
+
+`instance/canopy.db` (and `instance/uploads/`) is Dan's real garden, not demo data. It is
+gitignored and lives only on his machine.
+
+* **Back up before every edit:** `.venv/bin/flask --app wsgi export-json >
+  ../canopy-backup-<date>.json` (backups sit beside the repo in `~/workspace/canopy_app/`).
+* **Edit through the ORM** in a throwaway script run with `PYTHONPATH=$PWD`, never raw SQL
+  for anything with cascades. Status changes go through `services/lifecycle.py`.
+* **Address plants by `id`, never by label** — labels repeat by design. Living means
+  `status not in (killed, harvested)`; `!= killed` includes plants that are cut and drying.
+  Before a bulk edit, print exactly which rows it will touch.
+* **When he reports what is in a space, reconcile the whole space**, not just the lines he
+  named. Never kill a plant for not being seen — ask. (Two living Mango Hashplants were once
+  killed that way and came back twelve days later.)
+* **Don't ask him to repeat a date.** Re-read his earlier notes: the session transcripts and
+  `~/workspace/canopy_app/grow-journal/`.
+* **Culled plants stay as rows:** `status=killed`, `ended_on`, `end_reason` (e.g. "Male —
+  culled after pollinating"). The survival report reads them. Delete only when he says to.
+* **Journal is per space and inert.** Tent moves and up pots get a dated entry
+  (`tasks="transplanted"`); nothing in the journal feeds the schedule.
+* **Pollination is recorded, not modelled.** Log the date, the male and the female. Never
+  derive seed-maturity windows or move a harvest date from it; he pollinates well clear of
+  harvest on purpose.
+* **Groups are named after their strain** when a mixed group is split.
+* **Space capacities** are on the Space rows: Flower Room 36, Clone Shelf 72, Veg Tent 32.
+
+### Inventory
+
+* `collection-index.md` (his collection list) and `Cannabis/` are **gitignored personal
+  files** — imported into the database, never committed.
+* Bulk-imported strains keep pack counts in `notes` with `seeds_on_hand=0`. **Don't backfill
+  seed counts** — he does not use seed totals. A Bodhi pack is 11 regular seeds; a Doc D
+  pack is 11 regular seeds.
+* `expression` is sativa / haze / indica / hybrid. **Anything with "Haze" in the name is
+  `haze`.**
+* **Breeder strings must match what is on file** so the breeder filter groups them:
+  "Equilibrium", "High & Lonesome", "Doc D", "Hoku Seed Co", "Bodhi".
+* **Flower days for unpublished strains are estimated from parentage**, with the reasoning
+  in the strain's notes. A stated week range becomes its midpoint ("9-10 weeks; 66d is the
+  midpoint"). If he gives a number ("assume 63 days"), use it.
+* **Check AI-generated strain info** he pastes against a breeder or nursery source before
+  filing it.
+* **"AMunk" is Dan's own breeder handle.** Any cross he made — including open-pollinated
+  seed out of his own room — is filed with `breeder="AMunk"` and gets **its own strain
+  row**, named after the mother with a suffix (`OP` for an unknown father). Seed he bought
+  keeps its original breeder.
+* **Dispensary clones** (bought at the Haze dispensary, Roots Cannabis Nursery genetics) get
+  their own strain row: `seed_type=clone`, `seeds_on_hand=0`, `size=medium`. Read the
+  product page at `rootscannabisnursery.com/product/<slug>-strain/` (sometimes `-clones/`)
+  before filing. `breeder` is the originator (CSI Humboldt, Pure Melt, King Klone…), not
+  Roots, unless Roots made the cross (Blue Wookie). The nursery's name wins, numbers
+  included — except "OG Kush No. 3", filed as **Triangle Kush (Roots cut)** at his request.
+
+### Names he uses — resolve, don't rename
+
+He calls plants many things; map his word to the existing record and carry on. Rename only
+if he asks. Read the prefix, not the number — bare numbers repeat across strains.
+
+| He says | Means |
+|---|---|
+| FSLH, SLH | Franco SLH (treat SLH and FSLH as synonyms; "SLH 0" is Franco SLH #0) |
+| SSH 98 | Super Silver Haze '98 — not SLH |
+| MHP | Mango Hashplant |
+| B Sword | Blazing Sword |
+| GG Snacks | Gorilla Snacks |
+| Swazi | Swazipulco F2 |
+| Pac Nepal | Pacific Nepalese |
+| London PC | London Pound Cake |
+| Sour D | Sour Diesel |
+| SSDD | Sunshine Daydream × Sunshine HP |
+| Superboof | Superboof × Sunshine HP |
+| Cultivators Haze | Cultivators Choice O.P |
+| Goji OG | the strain once recorded as "Goji 3x" |
+| PNG | PNG-Siamese |
