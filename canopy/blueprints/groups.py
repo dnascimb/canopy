@@ -111,7 +111,9 @@ def create():
 def detail(group_id: int):
     g = db.session.get(Group, group_id) or abort(404)
     ref = sched.today()
-    harvest_form = HarvestForm(harvested_on=g.flower_end or ref)
+    # A harvest is recorded on the day it happens, so the form starts at today. It used to
+    # start at the projected end, and submitting it as-is recorded the projection instead.
+    harvest_form = HarvestForm(harvested_on=ref)
     harvest_form.plant_id.choices = [(0, "Whole group")] + [
         (p.id, p.label) for p in g.living_plants
     ]
@@ -198,11 +200,11 @@ def set_status(group_id: int):
     elif g.status in (GroupStatus.drying, GroupStatus.done):
         for p in g.living_plants:
             if p.status == PlantStatus.flowering:
-                end = p.flower_end or today
+                # Marking it is the harvest, so it happens today, not on the projected end.
                 lifecycle.record(
-                    p, PlantStatus.harvested, on=end, note=f"{g.label} marked {g.status.value}."
+                    p, PlantStatus.harvested, on=today, note=f"{g.label} marked {g.status.value}."
                 )
-                p.ended_on = p.ended_on or end
+                p.ended_on = p.ended_on or today
     db.session.commit()
     flash(f"{g.label} is now {g.status.value}.", "success")
     return redirect(url_for("groups.detail", group_id=g.id))

@@ -117,7 +117,7 @@ class HarvestForm(FlaskForm):
     plant_id = SelectField(
         "Plant (optional — leave blank for whole group)", coerce=int, validators=[Optional()]
     )
-    harvested_on = DateField("Harvest date", validators=[DataRequired()])
+    harvested_on = DateField("Harvest date", validators=[DataRequired(), not_in_future])
     notes = TextAreaField("Notes", validators=[Optional()])
 
 
