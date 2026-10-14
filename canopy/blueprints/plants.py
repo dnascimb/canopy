@@ -15,7 +15,7 @@ from flask import (
 from markupsafe import Markup, escape
 
 from ..extensions import db
-from ..forms import KillPlantForm, MoveForm, PlantForm, TakeCuttingsForm
+from ..forms import KillPlantForm, MoveForm, PlantForm, PlantNoteForm, TakeCuttingsForm
 from ..models import (
     Container,
     Group,
@@ -198,6 +198,7 @@ def detail(plant_id: int):
         move_form=move_form,
         location=spacing.plant_location(p, spaces),
         cuttings_form=cuttings_form,
+        note_form=PlantNoteForm(noted_on=sched.today()),
         spans=lifecycle.stage_spans(p, ref=sched.today()),
         history=lifecycle.history(p),
     )
@@ -260,6 +261,23 @@ def kill(plant_id: int):
     else:
         flash("Enter a valid date.", "error")
     return redirect(request.referrer or url_for("plants.detail", plant_id=p.id))
+
+
+@bp.post("/<int:plant_id>/note")
+def add_note(plant_id: int):
+    """Append a dated note to the plant's notes, as a paragraph of its own."""
+    p = db.session.get(Plant, plant_id) or abort(404)
+    form = PlantNoteForm()
+    if not form.validate_on_submit():
+        for errors in form.errors.values():
+            flash(errors[0], "error")
+        return redirect(url_for("plants.detail", plant_id=p.id))
+    line = f"{form.noted_on.data.isoformat()}: {form.text.data.strip()}"
+    existing = (p.notes or "").rstrip()
+    p.notes = f"{existing}\n\n{line}" if existing else line
+    db.session.commit()
+    flash("Added the note.", "success")
+    return redirect(url_for("plants.detail", plant_id=p.id))
 
 
 @bp.post("/<int:plant_id>/move")

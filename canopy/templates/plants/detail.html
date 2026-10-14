@@ -26,6 +26,12 @@
       {% if plant.flower_start %}<dt>Flip</dt><dd class="mono">{{ plant.flower_start|d }} → {{ plant.flower_end|d }} <span class="muted small">{{ plant.flower_days }}d</span></dd>{% endif %}
     </dl>
     {% if plant.notes %}<p class="mt soft" style="white-space: pre-wrap">{{ plant.notes }}</p>{% endif %}
+    <form method="post" action="{{ url_for('plants.add_note', plant_id=plant.id) }}" class="row mt">
+      {{ csrf() }}
+      {{ note_form.noted_on(style='width:auto') }}
+      {{ note_form.text(placeholder='Add a note', style='flex:1; min-width:12em') }}
+      <button class="btn small" type="submit">Add note</button>
+    </form>
     {% if spans %}
     {% set total = spans|sum(attribute='days') or 1 %}
     <h3 class="mt mb">Life so far</h3>

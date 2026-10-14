@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- **Add a dated note from the plant page.** Under the plant's notes there is a date (today
+  by default) and a one-line note. Adding it appends `2026-10-13: <note>` to the plant's
+  Notes as a paragraph of its own. The date can't be in the future.
 - **A harvest is dated the day it happens.** The group page's harvest form used to start at
   the projected end, so saving it as-is recorded the projection: the Mango Hashplant, cut on
   Oct 4, was saved as Oct 5 (its projected end), and its dashboard row never moved. The form

@@ -182,6 +182,13 @@ class TakeCuttingsForm(FlaskForm):
     taken_on = DateField("Taken on", validators=[DataRequired()])
 
 
+class PlantNoteForm(FlaskForm):
+    """One dated line, appended to the plant's notes."""
+
+    noted_on = DateField("Date", validators=[DataRequired(), not_in_future])
+    text = StringField("Note", validators=[DataRequired(), Length(max=2000)])
+
+
 class MoveForm(FlaskForm):
     space_id = SelectField("Move to", coerce=int, validators=[DataRequired()])
 

@@ -152,7 +152,9 @@ blank for a group that has not gone into flower yet.
 
 A plant page shows lineage, dates and the group's flip window; a killed plant shows its
 history, a living one has a *Mark as killed* form with date and reason, and status
-buttons for the normal lifecycle.
+buttons for the normal lifecycle. Under the notes, **Add note** takes a date (today by
+default, never in the future) and a line of text, and appends `YYYY-MM-DD: <note>` to the
+plant's notes as a paragraph of its own.
 
 ## Inventory
 

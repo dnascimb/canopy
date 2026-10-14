@@ -866,3 +866,30 @@ def test_dashboard_has_no_metrics_strip(client):
     html = client.get("/").data.decode()
     assert "stat-strip" not in html and "runs in flower" not in html
     assert "plants flowering" not in html and "next event" not in html
+
+
+def test_add_a_dated_note_to_a_plant(client):
+    p = db.session.query(Plant).filter_by(label="EQ Haze").one()
+    html = client.get(f"/plants/{p.id}").data.decode()
+    assert 'value="2026-09-07"' in html  # the date starts at today
+    p.notes = "Female.\r\n"
+    db.session.commit()
+
+    r = client.post(
+        f"/plants/{p.id}/note",
+        data={"noted_on": "2026-09-05", "text": "  Up potted to 1gal. "},
+        follow_redirects=True,
+    )
+    assert b"Added the note." in r.data
+    assert p.notes == "Female.\n\n2026-09-05: Up potted to 1gal."
+
+    client.post(f"/plants/{p.id}/note", data={"noted_on": "2026-09-07", "text": "Topped."})
+    assert p.notes.endswith("1gal.\n\n2026-09-07: Topped.")
+
+
+def test_a_plant_note_needs_text_and_a_date_that_has_happened(client):
+    p = db.session.query(Plant).filter_by(label="EQ Haze").one()
+    before = p.notes
+    for data in ({"noted_on": "2026-09-07", "text": "  "}, {"noted_on": "2026-09-08", "text": "x"}):
+        client.post(f"/plants/{p.id}/note", data=data, follow_redirects=True)
+        assert p.notes == before
