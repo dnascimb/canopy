@@ -194,7 +194,7 @@ def test_record_harvest_and_journal(client):
     before = len(g.harvests)
     client.post(
         f"/groups/{g.id}/harvest",
-        data={"plant_id": 0, "harvested_on": "2026-09-22"},
+        data={"plant_id": 0, "harvested_on": "2026-09-07"},
         follow_redirects=True,
     )
     db.session.refresh(g)
@@ -704,13 +704,13 @@ def test_recording_a_harvest_brings_the_group_down(client):
 
     client.post(
         f"/groups/{g.id}/harvest",
-        data={"plant_id": 0, "harvested_on": "2026-09-22"},
+        data={"plant_id": 0, "harvested_on": "2026-09-07"},
         follow_redirects=True,
     )
     db.session.refresh(g)
     assert g.status.value == "drying"
     assert all(p.status == PlantStatus.harvested for p in flowering)
-    assert all(p.ended_on == date(2026, 9, 22) for p in flowering)
+    assert all(p.ended_on == date(2026, 9, 7) for p in flowering)
     # and each plant's own log says so
     assert all(p.events[-1].to_status == PlantStatus.harvested for p in flowering)
 
@@ -757,13 +757,59 @@ def test_harvesting_one_plant_leaves_the_group_flowering(client):
 
     client.post(
         f"/groups/{g.id}/harvest",
-        data={"plant_id": one.id, "harvested_on": "2026-09-22"},
+        data={"plant_id": one.id, "harvested_on": "2026-09-07"},
         follow_redirects=True,
     )
     db.session.refresh(g)
     assert one.status == PlantStatus.harvested
     assert g.status.value == "flowering"  # the rest are still going
     assert all(p.status == PlantStatus.flowering for p in flowering[1:])
+
+
+def test_harvest_form_starts_at_today_not_the_projection(client):
+    """The Mango Hashplant was cut a day early and saved with the form's default date —
+    the projected end — so its run still ended on the projection."""
+    g = db.session.query(Group).filter_by(number=6).one()
+    assert g.flower_end != date(2026, 9, 7)
+    html = client.get(f"/groups/{g.id}").data.decode()
+    assert re.search(r'name="harvested_on"[^>]*value="2026-09-07"', html)
+
+
+def test_harvest_cannot_be_in_the_future(client):
+    g = db.session.query(Group).filter_by(number=6).one()
+    before = len(g.harvests)
+    client.post(
+        f"/groups/{g.id}/harvest",
+        data={"plant_id": 0, "harvested_on": "2026-09-08"},
+        follow_redirects=True,
+    )
+    db.session.refresh(g)
+    assert len(g.harvests) == before
+    assert g.status.value == "flowering"
+
+
+def test_harvest_ends_the_run_on_the_day_it_was_cut(client):
+    """The dashboard row ends the day the group comes down, not on the projection."""
+    g = db.session.query(Group).filter_by(number=6).one()
+    assert g.flower_end > date(2026, 9, 7)
+    client.post(
+        f"/groups/{g.id}/harvest",
+        data={"plant_id": 0, "harvested_on": "2026-09-07"},
+        follow_redirects=True,
+    )
+    db.session.refresh(g)
+    assert g.flower_end == date(2026, 9, 7)
+
+
+def test_marking_a_group_drying_harvests_it_today(client):
+    g = db.session.query(Group).filter_by(number=6).one()
+    flowering = [p for p in g.living_plants if p.status == PlantStatus.flowering]
+    assert g.flower_end > date(2026, 9, 7)
+    client.post(f"/groups/{g.id}/status", data={"status": "drying"}, follow_redirects=True)
+    db.session.refresh(g)
+    assert all(p.ended_on == date(2026, 9, 7) for p in flowering)
+    assert all(p.events[-1].on == date(2026, 9, 7) for p in flowering)
+    assert g.flower_end == date(2026, 9, 7)
 
 
 def test_weight_is_gone_from_the_app(client):
@@ -820,3 +866,30 @@ def test_dashboard_has_no_metrics_strip(client):
     html = client.get("/").data.decode()
     assert "stat-strip" not in html and "runs in flower" not in html
     assert "plants flowering" not in html and "next event" not in html
+
+
+def test_add_a_dated_note_to_a_plant(client):
+    p = db.session.query(Plant).filter_by(label="EQ Haze").one()
+    html = client.get(f"/plants/{p.id}").data.decode()
+    assert 'value="2026-09-07"' in html  # the date starts at today
+    p.notes = "Female.\r\n"
+    db.session.commit()
+
+    r = client.post(
+        f"/plants/{p.id}/note",
+        data={"noted_on": "2026-09-05", "text": "  Up potted to 1gal. "},
+        follow_redirects=True,
+    )
+    assert b"Added the note." in r.data
+    assert p.notes == "Female.\n\n2026-09-05: Up potted to 1gal."
+
+    client.post(f"/plants/{p.id}/note", data={"noted_on": "2026-09-07", "text": "Topped."})
+    assert p.notes.endswith("1gal.\n\n2026-09-07: Topped.")
+
+
+def test_a_plant_note_needs_text_and_a_date_that_has_happened(client):
+    p = db.session.query(Plant).filter_by(label="EQ Haze").one()
+    before = p.notes
+    for data in ({"noted_on": "2026-09-07", "text": "  "}, {"noted_on": "2026-09-08", "text": "x"}):
+        client.post(f"/plants/{p.id}/note", data=data, follow_redirects=True)
+        assert p.notes == before

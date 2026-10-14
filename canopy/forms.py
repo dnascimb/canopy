@@ -117,7 +117,7 @@ class HarvestForm(FlaskForm):
     plant_id = SelectField(
         "Plant (optional — leave blank for whole group)", coerce=int, validators=[Optional()]
     )
-    harvested_on = DateField("Harvest date", validators=[DataRequired()])
+    harvested_on = DateField("Harvest date", validators=[DataRequired(), not_in_future])
     notes = TextAreaField("Notes", validators=[Optional()])
 
 
@@ -180,6 +180,13 @@ class TakeCuttingsForm(FlaskForm):
     )
     space_id = SelectField("Into", coerce=int, validators=[Optional()])
     taken_on = DateField("Taken on", validators=[DataRequired()])
+
+
+class PlantNoteForm(FlaskForm):
+    """One dated line, appended to the plant's notes."""
+
+    noted_on = DateField("Date", validators=[DataRequired(), not_in_future])
+    text = StringField("Note", validators=[DataRequired(), Length(max=2000)])
 
 
 class MoveForm(FlaskForm):
