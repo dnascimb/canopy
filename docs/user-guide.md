@@ -219,7 +219,8 @@ the timeline updates. Single plants can be moved from their own page.
 
 ![Journal, annotated](screenshots/journal_annotated.png)
 
-1. **New entry** for a longer note with a title and body (tasks optional).
+1. **Autowrite**, the **Change log**, the two exports (see below), and **New entry** for a
+   longer note with a title and body (tasks optional).
 2. **Filter** by space and by task — "show me every time I fed the flower tent".
 3. Entries newest first, with task chips and a tag for the space, group or plant they
    were logged against.

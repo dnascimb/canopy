@@ -14,7 +14,12 @@ from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parent.parent
 SHOTS = ROOT / "docs" / "screenshots"
-FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+# A bold sans for the numbered markers: DejaVu on Linux, Arial Bold on macOS.
+FONTS = (
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+    "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
+)
+FONT = next((f for f in FONTS if Path(f).exists()), FONTS[0])
 ACCENT = (240, 168, 58)
 INK = (42, 28, 5)
 

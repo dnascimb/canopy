@@ -6,87 +6,53 @@
     "x": 18,
     "y": 66,
     "width": 187,
-    "height": 313
+    "height": 352.375
    }
   },
   {
    "selector": "[data-timeline]",
    "box": {
     "x": 275,
-    "y": 283.78125,
+    "y": 135.484375,
     "width": 1034,
-    "height": 525
+    "height": 559.4375
    }
   },
   {
    "selector": ".flower-list",
    "box": {
     "x": 256,
-    "y": 915.578125,
+    "y": 801.71875,
     "width": 700,
     "height": 349.875
    }
   },
   {
-   "selector": "section:has(.flower-list) + section .panel",
-   "box": {
-    "x": 256,
-    "y": 1327.25,
-    "width": 700,
-    "height": 100.59375
-   }
-  },
-  {
    "selector": ".main .grid-main-side > div:last-child section:nth-child(1) .panel",
-   "box": {
-    "x": 978,
-    "y": 915.578125,
-    "width": 350,
-    "height": 354.625
-   }
+   "box": null
   },
   {
    "selector": ".main .grid-main-side > div:last-child section:nth-child(2) .panel",
-   "box": {
-    "x": 978,
-    "y": 1332,
-    "width": 350,
-    "height": 271.875
-   }
+   "box": null
   },
   {
    "selector": ".main .grid-main-side > div:last-child section:nth-child(3) .panel",
-   "box": {
-    "x": 978,
-    "y": 1664.5625,
-    "width": 350,
-    "height": 108
-   }
+   "box": null
   },
   {
    "selector": ".main .grid-main-side > div:last-child section:nth-child(4)",
-   "box": {
-    "x": 978,
-    "y": 1802.5625,
-    "width": 350,
-    "height": 132.1875
-   }
+   "box": null
   },
   {
    "selector": ".main .grid-main-side > div:last-child section:nth-child(5) .panel",
-   "box": {
-    "x": 978,
-    "y": 1995.4375,
-    "width": 350,
-    "height": 333
-   }
+   "box": null
   },
   {
    "selector": ".page-head .actions",
    "box": {
-    "x": 1062.890625,
-    "y": 59.65625,
-    "width": 265.109375,
+    "x": 1084.203125,
+    "y": 28,
+    "width": 243.796875,
     "height": 36.6875
    }
   }
@@ -97,7 +63,7 @@
    "box": {
     "x": 256,
     "y": 112.34375,
-    "width": 602.265625,
+    "width": 572.296875,
     "height": 36.6875
    }
   },
@@ -107,53 +73,25 @@
     "x": 275,
     "y": 188.03125,
     "width": 1034,
-    "height": 525
+    "height": 559.4375
    }
   },
   {
    "selector": ".grid-main-side > section .panel",
-   "box": {
-    "x": 256,
-    "y": 819.828125,
-    "width": 700,
-    "height": 1316.9375
-   }
+   "box": null
   },
   {
-   "selector": ".grid-main-side > div section:nth-child(1) .panel",
-   "box": {
-    "x": 978,
-    "y": 819.828125,
-    "width": 350,
-    "height": 393
-   }
-  },
-  {
-   "selector": ".grid-main-side > div section:nth-child(2) .panel",
-   "box": {
-    "x": 978,
-    "y": 1273.515625,
-    "width": 350,
-    "height": 70.5
-   }
-  },
-  {
-   "selector": ".grid-main-side > div section:nth-child(3)",
-   "box": {
-    "x": 978,
-    "y": 1374.015625,
-    "width": 350,
-    "height": 87.1875
-   }
+   "selector": ".grid-main-side > div section:nth-child(1)",
+   "box": null
   }
  ],
  "groups": [
   {
    "selector": ".pill-nav",
    "box": {
-    "x": 1024.5,
+    "x": 1043.015625,
     "y": 62.09375,
-    "width": 185.1875,
+    "width": 178.6875,
     "height": 31.796875
    }
   },
@@ -163,7 +101,7 @@
     "x": 256,
     "y": 118.34375,
     "width": 1072,
-    "height": 1056.109375
+    "height": 1054.109375
    }
   }
  ],
@@ -173,16 +111,16 @@
    "box": {
     "x": 256,
     "y": 28,
-    "width": 568.203125,
+    "width": 518.515625,
     "height": 69.390625
    }
   },
   {
    "selector": ".page-head .actions",
    "box": {
-    "x": 1095.640625,
+    "x": 1107.015625,
     "y": 60.703125,
-    "width": 232.359375,
+    "width": 220.984375,
     "height": 36.6875
    }
   },
@@ -228,14 +166,14 @@
     "x": 978,
     "y": 170.078125,
     "width": 350,
-    "height": 285.65625
+    "height": 246.53125
    }
   },
   {
    "selector": "#journal .quicklog",
    "box": {
     "x": 997,
-    "y": 554.328125,
+    "y": 494.296875,
     "width": 312,
     "height": 272.625
    }
@@ -244,7 +182,7 @@
    "selector": "#journal .journal",
    "box": {
     "x": 997,
-    "y": 838.953125,
+    "y": 778.921875,
     "width": 312,
     "height": 111.625
    }
@@ -266,7 +204,7 @@
     "x": 256,
     "y": 170.34375,
     "width": 1072,
-    "height": 2525.734375
+    "height": 2488.4375
    }
   }
  ],
@@ -283,9 +221,9 @@
   {
    "selector": ".page-head .actions",
    "box": {
-    "x": 1221.28125,
+    "x": 1233.6875,
     "y": 59.65625,
-    "width": 106.71875,
+    "width": 94.3125,
     "height": 36.6875
    }
   },
@@ -295,17 +233,12 @@
     "x": 256,
     "y": 172.84375,
     "width": 1072,
-    "height": 1536.1875
+    "height": 1545.125
    }
   },
   {
    "selector": "tbody tr:first-child td:nth-child(7)",
-   "box": {
-    "x": 1107.984375,
-    "y": 229.21875,
-    "width": 60.90625,
-    "height": 48.125
-   }
+   "box": null
   }
  ],
  "spaces": [
@@ -313,36 +246,18 @@
    "selector": ".spaces",
    "box": {
     "x": 256,
-    "y": 193.53125,
+    "y": 118.34375,
     "width": 1072,
-    "height": 253.046875
+    "height": 227.921875
    }
   },
   {
    "selector": "section:nth-of-type(2) .panel",
    "box": {
     "x": 256,
-    "y": 508.375,
+    "y": 408.0625,
     "width": 1072,
     "height": 277.28125
-   }
-  },
-  {
-   "selector": ".grid-main-side > section:first-child .panel",
-   "box": {
-    "x": 256,
-    "y": 847.453125,
-    "width": 700,
-    "height": 291.328125
-   }
-  },
-  {
-   "selector": ".grid-main-side > section:last-child .panel",
-   "box": {
-    "x": 978,
-    "y": 847.453125,
-    "width": 350,
-    "height": 273.296875
    }
   }
  ],
@@ -350,9 +265,9 @@
   {
    "selector": ".page-head .actions",
    "box": {
-    "x": 1221.96875,
-    "y": 59.65625,
-    "width": 106.03125,
+    "x": 256,
+    "y": 112.34375,
+    "width": 588.1875,
     "height": 36.6875
    }
   },
@@ -360,7 +275,7 @@
    "selector": ".filters",
    "box": {
     "x": 256,
-    "y": 118.34375,
+    "y": 171.03125,
     "width": 1072,
     "height": 38
    }
@@ -369,7 +284,7 @@
    "selector": ".journal > li:first-child",
    "box": {
     "x": 275,
-    "y": 187.34375,
+    "y": 240.03125,
     "width": 1034,
     "height": 104.5
    }
@@ -382,26 +297,16 @@
     "x": 256,
     "y": 118.34375,
     "width": 1072,
-    "height": 440.171875
-   }
-  },
-  {
-   "selector": ".main > .grid-2:nth-child(3)",
-   "box": {
-    "x": 256,
-    "y": 558.515625,
-    "width": 1072,
     "height": 485.390625
    }
   },
   {
+   "selector": ".main > .grid-2:nth-child(3)",
+   "box": null
+  },
+  {
    "selector": "section:has(h2:text('Yield per group')) .panel",
-   "box": {
-    "x": 256,
-    "y": 1074.59375,
-    "width": 1072,
-    "height": 462.859375
-   }
+   "box": null
   }
  ]
 }
