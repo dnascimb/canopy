@@ -33,6 +33,13 @@ def register(app: Flask) -> None:
         db.create_all()
         click.echo("Database reset.")
 
+    @app.cli.command("backfill-changes")
+    def backfill_changes() -> None:
+        """Fill an empty change log from the plant events and harvests on file."""
+        from .services.activity import backfill
+
+        click.echo(f"Added {backfill()} lines to the change log.")
+
     @app.cli.command("export-markdown")
     def export_markdown() -> None:
         """Print the schedule as Markdown (groups, event table, ASCII timeline)."""

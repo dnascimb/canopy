@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from flask import (
     Blueprint,
+    Response,
     abort,
     flash,
     redirect,
@@ -13,8 +14,9 @@ from flask import (
 
 from ..extensions import db
 from ..forms import JournalForm
-from ..models import TASKS, JournalEntry, Space
-from ..services import photos
+from ..models import TASKS, Change, JournalEntry, Space
+from ..services import activity, photos
+from ..services import journal as journal_out
 from ..services import scheduling as sched
 
 bp = Blueprint("journal", __name__)
@@ -43,7 +45,43 @@ def index():
         task=task,
         tasks=TASKS,
         spaces=db.session.query(Space).order_by(Space.id).all(),
+        pending=activity.pending_count(),
     )
+
+
+@bp.post("/autowrite")
+def autowrite():
+    """Write up every change-log line that is not in the journal yet."""
+    entries, changes = journal_out.autowrite()
+    if entries:
+        noun = "entry" if entries == 1 else "entries"
+        flash(f"Wrote {entries} journal {noun} from {changes} changes.", "success")
+    else:
+        flash("Nothing new to write.", "success")
+    return redirect(url_for("journal.index"))
+
+
+@bp.get("/changes")
+def changes():
+    rows = db.session.query(Change).order_by(Change.on.desc(), Change.id.desc()).all()
+    return render_template("journal/changes.html", rows=rows, tasks=TASKS)
+
+
+def _download(body: str, mimetype: str, ext: str) -> Response:
+    name = f"canopy-journal-{sched.today().isoformat()}.{ext}"
+    return Response(
+        body, mimetype=mimetype, headers={"Content-Disposition": f'attachment; filename="{name}"'}
+    )
+
+
+@bp.get("/export.json")
+def export_json():
+    return _download(journal_out.to_json(sched.today()), "application/json", "json")
+
+
+@bp.get("/export.md")
+def export_markdown():
+    return _download(journal_out.to_markdown(sched.today()), "text/markdown", "md")
 
 
 @bp.get("/photo/<name>")

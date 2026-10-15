@@ -9,6 +9,7 @@ Domain summary
 * **Plant**   – an individual plant, always of one Strain, optionally in one Group.
 * **Harvest** – yield record for a plant or a whole group.
 * **JournalEntry** – dated free-text log attached to a group and/or plant.
+* **Change**  – one line in the change log: something done to a plant, group or harvest.
 """
 
 from __future__ import annotations
@@ -227,6 +228,9 @@ class Group(TimestampMixin, db.Model):
     journal_entries: Mapped[list[JournalEntry]] = relationship(
         back_populates="group", cascade="all, delete-orphan"
     )
+    # No delete cascade: the log outlives what it describes, so deleting a group only
+    # unlinks its lines.
+    changes: Mapped[list[Change]] = relationship(back_populates="group")
 
     # ---- schedule, derived from the plants ---------------------------------
     # A group is a container. Its span is whatever its plants are doing, so a group
@@ -349,6 +353,7 @@ class Plant(TimestampMixin, db.Model):
     journal_entries: Mapped[list[JournalEntry]] = relationship(
         back_populates="plant", cascade="all, delete-orphan"
     )
+    changes: Mapped[list[Change]] = relationship(back_populates="plant")
 
     @property
     def is_alive(self) -> bool:
@@ -528,6 +533,34 @@ class JournalEntry(TimestampMixin, db.Model):
     @property
     def task_labels(self) -> list[str]:
         return [TASKS.get(t, t) for t in self.task_list]
+
+
+class Change(TimestampMixin, db.Model):
+    """One line in the change log: something done to a plant, a group or a harvest.
+
+    Written by `services/activity.py` as the session flushes, so every path — a page, the
+    API, a script — leaves a line. Append-only. `on` is the day the thing happened (a flip
+    or harvest date), `created_at` when it was recorded. `written` is set once Autowrite
+    has put the line in the journal, so a second press never repeats it.
+    """
+
+    __tablename__ = "changes"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    on: Mapped[date] = mapped_column(db.Date, nullable=False)
+    plant_id: Mapped[int | None] = mapped_column(db.ForeignKey("plants.id", ondelete="SET NULL"))
+    group_id: Mapped[int | None] = mapped_column(db.ForeignKey("groups.id", ondelete="SET NULL"))
+    # The plant or group's label when the line was written; it survives a delete.
+    subject: Mapped[str] = mapped_column(db.String(160), nullable=False)
+    text: Mapped[str] = mapped_column(db.String(500), nullable=False)
+    task: Mapped[str | None] = mapped_column(db.String(20))  # a key from TASKS
+    written: Mapped[bool] = mapped_column(default=False, nullable=False)
+
+    plant: Mapped[Plant | None] = relationship(back_populates="changes")
+    group: Mapped[Group | None] = relationship(back_populates="changes")
+
+    def __repr__(self) -> str:  # pragma: no cover
+        return f"<Change {self.on} {self.subject}: {self.text}>"
 
 
 # Common grow tasks for the quick log (key -> label). Order is the display order.

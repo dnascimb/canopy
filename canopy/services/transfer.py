@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 
 from ..extensions import db
 from ..models import (
+    Change,
     Expression,
     Group,
     GroupStatus,
@@ -126,15 +127,43 @@ def dump() -> dict:
             }
             for j in db.session.query(JournalEntry).order_by(JournalEntry.id)
         ],
+        "changes": [
+            {
+                "on": _d(c.on),
+                "plant_id": c.plant_id,
+                "group_id": c.group_id,
+                "subject": c.subject,
+                "text": c.text,
+                "task": c.task,
+                "written": c.written,
+                "at": c.created_at.isoformat(),
+            }
+            for c in db.session.query(Change).order_by(Change.id)
+        ],
     }
 
 
 def load(payload: dict, *, replace: bool = True) -> dict[str, int]:
-    """Restore a backup produced by :func:`dump`. Returns counts per table."""
+    """Restore a backup produced by :func:`dump`. Returns counts per table.
+
+    A restore is not a change to the garden, so the change log is paused while it runs.
+    The backup's own log lines come back as they were; a backup from before the log
+    existed gets one rebuilt from its plant events and harvests.
+    """
+    from .activity import backfill, paused
+
+    with paused():
+        counts = _load(payload, replace=replace)
+    if "changes" not in payload:
+        backfill()
+    return counts
+
+
+def _load(payload: dict, *, replace: bool) -> dict[str, int]:
     if payload.get("schema") != SCHEMA_VERSION:
         raise ValueError(f"Unsupported schema version: {payload.get('schema')!r}")
     if replace:
-        for model in (JournalEntry, Harvest, Plant, Group, Strain, Space):
+        for model in (Change, JournalEntry, Harvest, Plant, Group, Strain, Space):
             db.session.query(model).delete()
         db.session.flush()
 
@@ -263,6 +292,19 @@ def load(payload: dict, *, replace: bool = True) -> dict[str, int]:
                 body=j.get("body"),
                 tasks=j.get("tasks"),
                 photo_path=j.get("photo_path"),
+            )
+        )
+    for c in payload.get("changes", []):
+        db.session.add(
+            Change(
+                on=_pd(c["on"]),
+                plant_id=plant_ids.get(c.get("plant_id")),
+                group_id=group_ids.get(c.get("group_id")),
+                subject=c["subject"],
+                text=c["text"],
+                task=c.get("task"),
+                written=c.get("written", False),
+                **({"created_at": datetime.fromisoformat(c["at"])} if c.get("at") else {}),
             )
         )
     db.session.commit()

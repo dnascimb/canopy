@@ -229,6 +229,23 @@ derives numbers or warnings from them.
 
 For a quick entry, the quick log on a group's page is the fast path.
 
+### Change log and Autowrite
+
+Canopy logs every change to a plant, a group or a harvest: status changes, moves, flips,
+kills, cuttings, notes, containers, labels. **Change log** lists them newest first, with
+whether each one is in the journal yet.
+
+**Autowrite (N)** writes the N changes not in the journal yet into entries: one per group
+per day, and one per plant for plants with no group. Cuttings taken off one mother on the
+same day share an entry. Each entry starts with the strain, breeder, lineage, space and day
+of flower on that date, then lists the changes, with the plants that had the same change
+named on one line. Moves and new pots tick *Transplanted*; cuttings tick *Took clones*.
+The entries are ordinary journal entries, so you can edit or delete them. Pressing
+Autowrite again only writes changes made since.
+
+**Export JSON** and **Export Markdown** download the whole journal, oldest first. Photos
+are named in the export, not included.
+
 ## Reports
 
 ![Reports, annotated](screenshots/reports_annotated.png)

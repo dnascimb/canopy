@@ -315,10 +315,21 @@ def _size_for(name: str, flower_days: int) -> PlantSize:
 
 
 def seed_demo() -> None:
-    """Populate an empty database with the demo season. Idempotent: skips if data exists."""
+    """Populate an empty database with the demo season. Idempotent: skips if data exists.
+
+    The change log is paused while the season is built and then filled from its plant
+    events, the same way an existing database is backfilled.
+    """
     if db.session.query(Strain).count():
         return
+    from .activity import backfill, paused
 
+    with paused():
+        _seed_demo()
+    backfill()
+
+
+def _seed_demo() -> None:
     spaces = {
         "Clone Shelf": Space(
             name="Clone Shelf",

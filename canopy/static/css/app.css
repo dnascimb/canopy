@@ -134,6 +134,7 @@ section { margin-bottom: 30px; }
 .btn.ghost:hover { background: var(--surface-2); }
 .btn svg { width: 15px; height: 15px; }
 form.inline { display: inline; }
+.btn:disabled { opacity: 0.5; cursor: default; }
 
 /* ---------- tables ---------- */
 table { width: 100%; border-collapse: collapse; font-size: 0.93rem; }

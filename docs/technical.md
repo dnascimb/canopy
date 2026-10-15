@@ -25,6 +25,8 @@ request ─▶ blueprint (canopy/blueprints/*.py)
            services/spacing.py      locations, occupancy, moves, load series
            services/reports.py      per-strain / per-group aggregations
            services/transfer.py     JSON dump / load
+           services/activity.py     change log, written by a before_flush hook
+           services/journal.py      Autowrite and journal JSON / Markdown exports
                │
                ▼
            templates/*.html  ──▶  static/js/timeline.js renders the Gantt from inlined JSON
@@ -54,7 +56,7 @@ request ─▶ blueprint (canopy/blueprints/*.py)
 | `plants` | `/plants` | CRUD, kill, status. |
 | `strains` | `/strains` | Inventory CRUD, search, seed adjust. |
 | `spaces` | `/spaces` | CRUD, occupancy. |
-| `journal` | `/journal` | CRUD, space and task filters, `POST /quick` for the per-space checkbox log. |
+| `journal` | `/journal` | CRUD, space and task filters, `POST /quick` for the per-space checkbox log, `POST /autowrite`, `GET /changes`, `GET /export.json`, `GET /export.md`. |
 | `help` | `/help` | Static walkthrough of the lifecycle transitions, rendered with the garden's real space names. |
 | `reports` | `/reports` | Per-strain and per-group charts and tables. |
 | `api` | `/api/v1` | JSON read endpoints + `PATCH /groups/<id>`. |
@@ -79,6 +81,7 @@ Space 1 ──< Group 1 ──< Plant >── 1 Strain
 | `plant_events` | `plant_id`, `on`, `from_status` (nullable), `to_status`, `space_id`, `note` | Append-only lifecycle log and the source of truth for flip dates. Written only by `services/lifecycle.py`; `set_flip()` raises `ValueError` for a date after today, so a flip is recorded on the day it happens. |
 | `harvests` | `group_id` / `plant_id` (at least one), `harvested_on`, `notes` | No weights are recorded. Adding one marks the plants it covers harvested and moves the group to drying once nothing is left in flower. |
 | `journal_entries` | `entry_date`, `space_id` / `group_id` / `plant_id` (all optional), `title`, `body`, `tasks` (comma-separated keys from `models.TASKS`), `photo_path` | `task_list` / `task_labels` are derived. Entries are notes only — nothing reads them back as data. |
+| `changes` | `on`, `plant_id` / `group_id` (nullable, SET NULL), `subject`, `text`, `task` (a `TASKS` key), `written` | The change log. Written only by the `before_flush` hook in `services/activity.py`, so every path that changes a plant, group or harvest leaves a line. `subject` keeps the label so a line outlives a delete. `written` is set by Autowrite. Restores and the demo seed pause the hook; `backfill()` (`flask backfill-changes`) rebuilds an empty log from `plant_events` and `harvests`. |
 
 All tables carry `created_at` / `updated_at` (UTC, naive). Enums are stored as short
 strings (`native_enum=False`) so the schema is identical on every database.

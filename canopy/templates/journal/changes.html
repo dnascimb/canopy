@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Change log{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Change log</h1><p class="sub">Everything done to a plant, a group or a harvest, newest first. Autowrite turns the unwritten lines into journal entries.</p></div>
+  <div class="actions"><a class="btn ghost" href="{{ url_for('journal.index') }}">Journal</a></div>
+</div>
+<div class="panel">
+<table>
+  <thead><tr><th>Date</th><th>Plant or group</th><th>Change</th><th>In journal</th></tr></thead>
+  <tbody>
+  {% for c in rows %}
+    <tr>
+      <td class="date">{{ c.on|d('%b %d, %Y') }}</td>
+      <td>{% if c.plant %}<a href="{{ url_for('plants.detail', plant_id=c.plant.id) }}">{{ c.subject }}</a>{% elif c.group %}<a href="{{ url_for('groups.detail', group_id=c.group.id) }}">{{ c.subject }}</a>{% else %}{{ c.subject }}{% endif %}</td>
+      <td>{{ c.text }}{% if c.task %} <span class="chip">{{ tasks.get(c.task, c.task) }}</span>{% endif %}</td>
+      <td class="muted small">{{ 'yes' if c.written else '—' }}</td>
+    </tr>
+  {% else %}
+    <tr><td colspan="4" class="muted">Nothing changed yet.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

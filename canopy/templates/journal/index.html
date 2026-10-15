@@ -1,10 +1,16 @@
 {% extends "base.html" %}
-{% from "_macros.html" import confirm_button %}
+{% from "_macros.html" import confirm_button, csrf %}
 {% block title %}Journal{% endblock %}
 {% block content %}
 <div class="page-head">
   <div><h1>Grow journal</h1><p class="sub">Dated notes, kept per space. Free-form — nothing here feeds the schedule or any report.</p></div>
-  <div class="actions"><a class="btn primary" href="{{ url_for('journal.create') }}">New entry</a></div>
+  <div class="actions">
+    <form class="inline" method="post" action="{{ url_for('journal.autowrite') }}">{{ csrf() }}<button class="btn" type="submit" title="Write up the {{ pending }} changes not in the journal yet"{{ ' disabled' if not pending }}>Autowrite{% if pending %} ({{ pending }}){% endif %}</button></form>
+    <a class="btn ghost" href="{{ url_for('journal.changes') }}">Change log</a>
+    <a class="btn ghost" href="{{ url_for('journal.export_json') }}">Export JSON</a>
+    <a class="btn ghost" href="{{ url_for('journal.export_markdown') }}">Export Markdown</a>
+    <a class="btn primary" href="{{ url_for('journal.create') }}">New entry</a>
+  </div>
 </div>
 <form class="filters" method="get">
   <select name="space" aria-label="Space"><option value="">Any space</option>{% for s in spaces %}<option value="{{ s.id }}" {{ 'selected' if s.id == space_id }}>{{ s.name }}</option>{% endfor %}</select>

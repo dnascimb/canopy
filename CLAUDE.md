@@ -118,6 +118,12 @@ rendered client-side by `static/js/timeline.js` from JSON that the templates inl
   two living plants sharing a label is the truth of the tent, not a bug — it shows the line
   carrying on. Identify plants by `id`; never look one up by label, and never "fix" this by
   forcing labels unique.
+* **The change log writes itself.** `services/activity.py` hooks `before_flush` and turns
+  every new, changed or deleted Plant, Group, Harvest and PlantEvent into `Change` rows, so
+  no route has to remember to log. Wrap bulk loads that are not garden changes (restore,
+  demo seed) in `activity.paused()` and call `activity.backfill()` after. Autowrite
+  (`services/journal.py`) is the only thing that reads the log, and only to write
+  journal entries; nothing else derives from it.
 * Journal `tasks` is a comma-separated string of keys from `models.TASKS`; use
   `JournalForm.tasks_csv` / `derived_title` when saving.
 

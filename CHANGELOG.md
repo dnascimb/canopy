@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- **Change log, Autowrite and journal exports.** Every change to a plant, group or harvest
+  is logged, from any page, the API or a script. The journal page's **Autowrite (N)** writes
+  the unwritten changes into entries, one per group per day, each opening with strain,
+  lineage, space and day of flower. **Change log** lists every line. **Export JSON** and
+  **Export Markdown** download the whole journal. Backups carry the log; a database or
+  backup from before it is filled from its plant events and harvests
+  (`flask --app wsgi backfill-changes`). The new `changes` table is created on start.
+
 - **Add a dated note from the plant page.** Under the plant's notes there is a date (today
   by default) and a one-line note. Adding it appends `2026-10-13: <note>` to the plant's
   Notes as a paragraph of its own. The date can't be in the future.

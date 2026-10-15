@@ -58,6 +58,10 @@ def create_app(config_object: type[Config] | None = None) -> Flask:
 
     _register_template_helpers(app)
 
+    from .services import activity
+
+    activity.watch()
+
     @app.errorhandler(404)
     def not_found(_err):
         from flask import render_template
