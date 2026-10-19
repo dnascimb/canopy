@@ -292,15 +292,46 @@ class Group(TimestampMixin, db.Model):
         template can show a group and a lone plant side by side without asking which."""
         return f"/groups/{self.id}"
 
-    def strain_labels(self) -> list[str]:
+    def strain_labels(self, plants: Iterable[Plant] | None = None) -> list[str]:
         """Unique strain names of living plants, suffixed with ×N when repeated."""
         counts: dict[str, int] = {}
-        for p in self.living_plants:
+        for p in self.living_plants if plants is None else plants:
             counts[p.strain.name] = counts.get(p.strain.name, 0) + 1
         return [name if n == 1 else f"{name} ×{n}" for name, n in counts.items()]
 
     def strain_summary(self) -> str:
         return ", ".join(self.strain_labels())
+
+    @property
+    def run_plants(self) -> list[Plant]:
+        """The plants in the group's flower run, or every living plant before it has one.
+
+        A group is a container, and its plants do not all flip together: a male moved into
+        the flower room starts a run of one while his siblings stay in veg. A flower card
+        or timeline bar describes the run, so it names only the plants in it.
+        """
+        return self.scheduled_plants or self.living_plants
+
+    @property
+    def run_is_partial(self) -> bool:
+        """Only some of the group's living plants are in the run."""
+        return len(self.run_plants) < len(self.living_plants)
+
+    def run_labels(self) -> list[str]:
+        """What a card or bar calls the run: strain names, or the plants' own labels when
+        only some of the group flipped, so it is plain which plants those are."""
+        if self.run_is_partial:
+            return [p.label for p in self.run_plants]
+        return self.strain_labels(self.run_plants)
+
+    def run_summary(self) -> str:
+        return ", ".join(self.run_labels())
+
+    @property
+    def run_note(self) -> str:
+        """ "3 not in flower" when the run is part of the group, else nothing."""
+        rest = len(self.living_plants) - len(self.run_plants)
+        return f"{rest} not in flower" if self.run_is_partial else ""
 
     def __repr__(self) -> str:  # pragma: no cover
         return f"<Group {self.number}>"

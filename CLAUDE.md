@@ -61,6 +61,12 @@ rendered client-side by `static/js/timeline.js` from JSON that the templates inl
   `record()`, `set_flip()`, `clear_flip()` — so nothing enters a new state without
   leaving an event. `spacing.move_plants()` is the single move path, which is what makes
   moving one plant and moving a whole group identical operations.
+* **Groups exist to display plants, so they must display them correctly.** A group is a
+  container for the dashboard and timeline, and its plants do not all flip together. A
+  flower card or timeline bar describes the *run*: `Group.run_plants` (the plants that
+  flipped), named by `run_labels()` — the plants' own labels when only some of the group
+  is in flower, with `run_note` ("3 not in flower") for the rest. Never count or name the
+  whole group on a view of its run.
 * A scheduled plant with no group is a `scheduling.LonePlant`, shown on the timeline and
   in events like a group of one. Build the list with `scheduling.scheduled_units()`.
 * `day_of_flower` is 1-based (flip day is day 1).

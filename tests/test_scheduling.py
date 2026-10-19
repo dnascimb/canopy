@@ -246,3 +246,25 @@ def test_a_lone_plant_reports_its_own_state(app):
     lifecycle.record(p, PlantStatus.harvested, on=date(2026, 9, 1))
     db.session.commit()
     assert sched.LonePlant(p).status == GroupStatus.drying
+
+
+def test_a_group_run_names_only_the_plants_that_flipped(app):
+    """A male moved into the flower room starts a run of one; his siblings stay in veg."""
+    from canopy.services import lifecycle
+
+    strains = db.session.query(Strain).limit(2).all()
+    g = Group(number=900, name="Siblings")
+    db.session.add(g)
+    for i in range(3):
+        db.session.add(Plant(label=f"sib {i}", strain=strains[0], group=g))
+    male = Plant(label="sib male", strain=strains[1], group=g)
+    db.session.add(male)
+    db.session.flush()
+    lifecycle.set_flip([male], REF)
+    db.session.commit()
+
+    row = next(r for r in sched.timeline_rows(groups(), ref=REF) if r["number"] == g.number)
+    assert row["plant_count"] == 1
+    assert row["strains"] == ["sib male"]
+    assert (g.run_summary(), g.run_note) == ("sib male", "3 not in flower")
+    assert len(g.living_plants) == 4  # the rest are still in the group

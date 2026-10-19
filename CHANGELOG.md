@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **A group's flower card names only the plants in flower.** Blazing Sword #9M, a male,
+  went into the flower room alone, and group 24's card and timeline bar read "Blazing Sword
+  ×4" — his three siblings still in veg included. A group's run is now described by
+  `Group.run_plants`: the plants that flipped, or every living plant before any has.
+  When only some of a group is in flower, the card names those plants by label and adds
+  "3 not in flower", so group 24 reads "Blazing Sword #9M · 3 not in flower".
+
 - **Change log, Autowrite and journal exports.** Every change to a plant, group or harvest
   is logged, from any page, the API or a script. The journal page's **Autowrite (N)** writes
   the unwritten changes into entries, one per group per day, each opening with strain,

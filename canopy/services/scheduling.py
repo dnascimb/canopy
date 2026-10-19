@@ -112,11 +112,23 @@ class LonePlant:
     def living_plants(self) -> list[Plant]:
         return [self.plant] if self.plant.is_alive else []
 
-    def strain_labels(self) -> list[str]:
+    def strain_labels(self, plants: Iterable[Plant] | None = None) -> list[str]:
         return [self.plant.strain.name]
 
     def strain_summary(self) -> str:
         return ", ".join(self.strain_labels())
+
+    @property
+    def run_plants(self) -> list[Plant]:
+        return self.living_plants
+
+    def run_labels(self) -> list[str]:
+        return self.strain_labels()
+
+    def run_summary(self) -> str:
+        return self.strain_summary()
+
+    run_note = ""
 
     def is_flowering_on(self, day: date) -> bool:
         # A culled plant is not flowering, whatever its dates still say. Group answers
@@ -236,8 +248,8 @@ def timeline_rows(
                 "color": g.color,
                 "status": g.status.value,
                 "space": g.space.name if g.space else None,
-                "strains": g.strain_labels(),
-                "plant_count": len(g.living_plants),
+                "strains": g.run_labels(),
+                "plant_count": len(g.run_plants),
                 "progress": round(g.progress(ref), 3) if flipped else 0,
                 "day_of_flower": g.day_of_flower(ref) if flipped else None,
             }

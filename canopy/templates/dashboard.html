@@ -33,7 +33,7 @@
         {% for g in active %}
         <div class="flower-card" style="border-left-color: {{ g.color }}">
           <div class="title"><a href="{{ g.href }}">{{ g.label }}</a><span class="mono small muted">day {{ g.day_of_flower(ref) }}/{{ g.flower_days }}</span></div>
-          <div class="strains" title="{{ g.strain_summary() }}">{{ g.strain_summary() or 'no living plants' }}</div>
+          <div class="strains" title="{{ g.run_summary() }}">{{ g.run_summary() or 'no living plants' }}{% if g.run_note %} <span class="muted">· {{ g.run_note }}</span>{% endif %}</div>
           <div class="progress"><i style="width: {{ (g.progress(ref) * 100)|round }}%; background: {{ g.color }}"></i></div>
           <div class="meta"><span>{{ g.flower_start|d }}</span><span>harvest {{ g.flower_end|d }}</span></div>
         </div>
