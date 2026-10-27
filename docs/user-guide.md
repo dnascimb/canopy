@@ -27,18 +27,42 @@ Screenshots use the demo season (`flask --app wsgi seed-demo`) with today pinned
 ![Dashboard, annotated](screenshots/dashboard_annotated.png)
 
 1. **Navigation.** Every screen is one click away. The current page is highlighted.
-2. **Flowering timeline.** One bar per scheduled group, coloured to match the group,
-   labelled with its strains and flower length. The darker left part of a bar is the
-   elapsed portion; the red line is today. Hover a bar for dates, day count and plant
-   list; click it to open the group. Scrolls sideways on narrow screens.
+2. **Timeline.** Three tabs: **Flowering**, and one per veg and clone space (**Veg Tent**,
+   **Clone Shelf**). Flowering has one bar per scheduled group, coloured to match the
+   group, labelled with its strains and flower length; the darker left part of a bar is
+   the elapsed portion. A veg or clone tab has one bar per group or lone plant for the
+   time it spent in that space, read off its moves; a bar still running reaches today.
+   The red line is today. Hover a bar for dates, day count and plant list; click it to
+   open the group or plant. Each tab shows the last year, at most the latest 33 rows —
+   the Schedule and History pages show everything. **Full cycle**, at the right of the
+   tabs, stays on across tabs: on Flowering it adds the stretch before the flip and
+   groups not flipped yet; on a space tab it adds the plants' lives before they came in
+   and after they left, drawn faint. Scrolls sideways on narrow screens.
 3. **In flower now.** A card per active group, sorted by harvest date, with day-of-flower,
-   a progress bar and the harvest date.
+   a progress bar and the harvest date. The cards follow the tab: on Veg Tent or Clone
+   Shelf they become **In Veg Tent now** / **In Clone Shelf now**, one card per bar still
+   open on that chart, with days there, date in and plant count.
 4. **Spaces.** Every space with how many of its plants it is holding. Links to the Spaces
    page.
 5. **Next 30 days.** Milestones from today on: green dot = a flip recorded today, amber dot = harvest.
 6. **Actions.** Export the schedule as Markdown or start a new group.
 
 ![Timeline tooltip](screenshots/timeline_tooltip.png)
+
+## History
+
+![History](screenshots/history.png)
+
+Every plant on record, a row each, oldest start first, with no row limit. Each row is
+the plant page's life strip laid on a calendar: clone (blue), seedling, vegetative
+(green) and flowering (amber) stretches, ending in a grey mark for a harvest or a red
+one for a kill. Hover a stretch for its dates, days and — on the last one — how the plant
+ended and why; click to open the plant. The chart scrolls inside its own box both ways,
+with the month header and names pinned, and opens scrolled to today.
+
+A plant whose only logged event is its kill ("vegetative → killed") is drawn in that
+stage from its start date. One with no events at all is drawn as a single grey "no stages
+recorded" stretch from start to end.
 
 ## Schedule
 
@@ -172,6 +196,10 @@ plant's notes as a paragraph of its own.
    plants ever grown from the strain. Click any column header to sort by it; the default
    is strain name A–Z.
 4. **Seed adjusters.** − / + change the count in place; it never drops below zero.
+5. **Export inventory.** Downloads `canopy-inventory-<date>.zip` holding the whole
+   inventory — every strain, whatever the filter shows — as `.json` (every field plus
+   plants grown and living) and `.md` (grouped by breeder, with type, expression, size,
+   flower days, lineage, plants grown and notes).
 
 ![Strain detail](screenshots/strain_detail.png)
 

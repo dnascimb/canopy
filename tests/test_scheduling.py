@@ -268,3 +268,122 @@ def test_a_group_run_names_only_the_plants_that_flipped(app):
     assert row["strains"] == ["sib male"]
     assert (g.run_summary(), g.run_note) == ("sib male", "3 not in flower")
     assert len(g.living_plants) == 4  # the rest are still in the group
+
+
+def _stage_space(stage: str) -> Space:
+    return next(s for s in db.session.query(Space).all() if s.stage.value == stage)
+
+
+def test_space_rows_draw_each_stay_from_the_event_log(app):
+    """The Clone and Veg tabs: first in to last out, or to today while still there."""
+    from canopy.models import PlantStatus
+    from canopy.services import lifecycle
+
+    shelf, veg = _stage_space("clone"), _stage_space("vegetative")
+    strain = db.session.query(Strain).first()
+    moved = Plant(label="Moved On", strain=strain)
+    staying = Plant(label="Still Rooting", strain=strain)
+    culled = Plant(label="Culled Cut", strain=strain)
+    db.session.add_all([moved, staying, culled])
+    for p in (moved, staying, culled):
+        lifecycle.record(p, PlantStatus.clone, on=date(2026, 8, 1), space=shelf)
+    lifecycle.record(moved, PlantStatus.vegetative, on=date(2026, 8, 15), space=veg)
+    lifecycle.record(culled, PlantStatus.killed, on=date(2026, 8, 5), space=shelf)
+    db.session.commit()
+
+    rows = {r["label"]: r for r in sched.space_rows([moved, staying, culled], shelf, ref=REF)}
+    assert (rows["Moved On"]["start"], rows["Moved On"]["end"]) == ("2026-08-01", "2026-08-15")
+    assert rows["Moved On"]["open"] is False and rows["Moved On"]["days"] == 14
+    assert rows["Still Rooting"]["end"] == REF.isoformat() and rows["Still Rooting"]["open"]
+    assert "Culled Cut" not in rows, "culled plants leave the timeline, as in flower"
+
+    veg_rows = sched.space_rows([moved, staying], veg, ref=REF)
+    assert [(r["label"], r["start"], r["open"]) for r in veg_rows] == [
+        ("Moved On", "2026-08-15", True)
+    ]
+
+
+def test_space_rows_skip_a_move_taken_back_the_same_day(app):
+    from canopy.models import PlantStatus
+    from canopy.services import lifecycle
+
+    shelf, veg = _stage_space("clone"), _stage_space("vegetative")
+    p = Plant(label="Wrong Tent", strain=db.session.query(Strain).first())
+    db.session.add(p)
+    lifecycle.record(p, PlantStatus.clone, on=date(2026, 8, 1), space=shelf)
+    lifecycle.record(p, PlantStatus.vegetative, on=date(2026, 8, 20), space=veg)
+    lifecycle.record(p, PlantStatus.clone, on=date(2026, 8, 20), space=shelf)
+    db.session.commit()
+    assert sched.space_rows([p], veg, ref=REF) == []
+
+
+def test_space_rows_carry_the_life_around_a_stay_for_full_cycle(app):
+    from canopy.models import PlantStatus
+    from canopy.services import lifecycle
+
+    shelf, veg = _stage_space("clone"), _stage_space("vegetative")
+    p = Plant(label="Whole Life", strain=db.session.query(Strain).first())
+    db.session.add(p)
+    lifecycle.record(p, PlantStatus.clone, on=date(2026, 7, 1), space=shelf)
+    lifecycle.record(p, PlantStatus.vegetative, on=date(2026, 7, 20), space=veg)
+    lifecycle.record(p, PlantStatus.clone, on=date(2026, 8, 10), space=shelf)
+    db.session.commit()
+
+    (row,) = sched.space_rows([p], veg, ref=REF)
+    assert row["pre_start"] == "2026-07-01", "life before it came in"
+    assert row["post_end"] == REF.isoformat() and row["post_open"], "still alive elsewhere"
+    (shelf_row,) = sched.space_rows([p], shelf, ref=REF)
+    assert shelf_row["open"] and shelf_row["pre_start"] is None and shelf_row["post_end"] is None
+
+
+def test_history_rows_lay_every_plant_out_by_stage(app):
+    """One row per plant, killed and harvested included, no cap; stages are sections."""
+    from canopy.models import PlantStatus
+    from canopy.services import lifecycle
+
+    shelf, veg = _stage_space("clone"), _stage_space("vegetative")
+    p = Plant(label="Seed To Cull", strain=db.session.query(Strain).first())
+    db.session.add(p)
+    lifecycle.record(p, PlantStatus.clone, on=date(2026, 6, 1), space=shelf)
+    lifecycle.record(p, PlantStatus.vegetative, on=date(2026, 6, 15), space=veg)
+    lifecycle.record(p, PlantStatus.killed, on=date(2026, 7, 1), space=veg)
+    p.ended_on, p.end_reason = date(2026, 7, 1), "Hermie"
+    db.session.commit()
+
+    plants = db.session.query(Plant).all()
+    rows = sched.history_rows(plants, ref=REF)
+    row = next(r for r in rows if r["id"] == p.id)
+    assert [(s["status"], s["start"], s["end"]) for s in row["segments"]] == [
+        ("clone", "2026-06-01", "2026-06-15"),
+        ("vegetative", "2026-06-15", "2026-07-01"),
+    ]
+    assert (row["ended"], row["end_reason"]) == ("killed", "Hermie")
+    assert len(rows) == len([q for q in plants if q.events or q.started_on])
+    assert [r["start"] for r in rows] == sorted(r["start"] for r in rows)
+
+
+def test_history_rows_read_the_stage_off_a_lone_kill_event(app):
+    """A plant whose only event is "vegetative -> killed" was vegetative, not unrecorded."""
+    from canopy.models import PlantEvent, PlantStatus
+
+    p = Plant(
+        label="Kill Only",
+        strain=db.session.query(Strain).first(),
+        status=PlantStatus.killed,
+        started_on=date(2026, 8, 2),
+        ended_on=date(2026, 9, 1),
+    )
+    db.session.add(p)
+    db.session.add(
+        PlantEvent(
+            plant=p,
+            on=date(2026, 9, 1),
+            from_status=PlantStatus.vegetative,
+            to_status=PlantStatus.killed,
+        )
+    )
+    db.session.commit()
+    row = next(r for r in sched.history_rows([p], ref=REF))
+    assert [(s["status"], s["start"], s["end"]) for s in row["segments"]] == [
+        ("vegetative", "2026-08-02", "2026-09-01")
+    ]

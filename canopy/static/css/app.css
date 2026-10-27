@@ -232,15 +232,24 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); outline
 .pill-nav a:hover { text-decoration: none; background: var(--surface-2); }
 
 /* ---------- timeline (Gantt) ---------- */
-.timeline { --label-w: 120px; font-family: var(--mono); font-size: 0.8rem; overflow-x: auto; }
+.timeline { --label-w: 200px; font-family: var(--mono); font-size: 0.8rem; overflow-x: auto; }
 .tl-inner { min-width: 860px; position: relative; }
-.tl-months { display: flex; margin-left: var(--label-w); border-bottom: 1px solid var(--line); }
+.tl-head { display: flex; }
+.tl-corner { flex: 0 0 var(--label-w); position: sticky; left: 0; z-index: 8; background: var(--surface); border-bottom: 1px solid var(--line); }
+.tl-months { display: flex; flex: 1; min-width: 0; border-bottom: 1px solid var(--line); }
 .tl-month { border-left: 1px solid var(--line); padding: 4px 8px; color: var(--muted); flex-shrink: 0; overflow: hidden; white-space: nowrap; }
 .tl-month:first-child { border-left: none; }
 .tl-rows { position: relative; padding-bottom: 18px; }
 .tl-row { display: grid; grid-template-columns: var(--label-w) 1fr; align-items: center; height: 30px; }
-.tl-label { text-align: right; padding-right: 12px; color: var(--text-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.tl-label a { color: inherit; }
+.tl-label { align-self: stretch; display: flex; align-items: center; justify-content: flex-end;
+  text-align: right; padding-right: 12px; color: var(--text-soft); line-height: 1.1;
+  position: sticky; left: 0; z-index: 6; background: var(--surface); }
+/* A long chart (History) scrolls inside its own box, so both scrollbars stay in reach;
+   the month header and the names stay put while the bars move. */
+.timeline.scroll { max-height: calc(100vh - 230px); overflow: auto; }
+.timeline.scroll .tl-head { position: sticky; top: 0; z-index: 7; background: var(--surface); }
+.tl-label a { color: inherit; overflow: hidden; overflow-wrap: anywhere;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .tl-track { position: relative; height: 100%; border-left: 1px solid var(--line); }
 .tl-bar {
   position: absolute; top: 4px; height: 22px; border-radius: 4px; color: rgba(0,0,0,.72);
@@ -272,6 +281,14 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); outline
 .tl-view.on { background: var(--amber-soft); color: var(--accent); border-color: var(--accent); }
 .tl-view-note { color: var(--muted); font-size: .8rem; margin-left: 6px; }
 
+.tl-seg { border-radius: 0; gap: 0; padding: 0 4px; }
+.tl-seg.clone { background: var(--blue); }
+.tl-seg.seedling { background: var(--green-soft); color: var(--green); }
+.tl-seg.vegetative { background: var(--green); }
+.tl-seg.flowering { background: var(--accent); }
+.tl-seg.unrecorded { background: var(--line); color: var(--muted); }
+.tl-end { position: absolute; top: 6px; bottom: 6px; width: 3px; margin-left: -1px; border-radius: 1px; background: var(--text-soft); }
+.tl-end.killed { background: var(--red); }
 .tl-tip {
   position: absolute; z-index: 20; background: var(--surface-2); border: 1px solid var(--line-strong);
   border-radius: var(--radius); padding: 9px 11px; font-size: 0.8rem; color: var(--text); pointer-events: none;

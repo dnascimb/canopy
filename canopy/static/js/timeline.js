@@ -7,8 +7,15 @@
  * One toggle above the chart: "Full cycle".
  *   off  flower spans only. The default, and byte-for-byte what this drew before.
  *   on   adds the pre-flower span in front of each bar, and brings in units that have
- *        not flipped yet.
- * The toggle only appears when there is pre-flower data to show.
+ *        not flipped yet. Space rows (the dashboard's Veg and Clone tabs) also carry
+ *        `post_end`: the plants' lives after they left, drawn behind the bar.
+ * Rows with `segments` (the History page) are drawn as one section per stage instead:
+ * clone, seedling, vegetative, flowering, coloured as on the plant page's life strip.
+ * `day_px` sets a minimum width per day, for a chart long enough to scroll sideways; it
+ * opens scrolled to today.
+ * The toggle is always there, and it is one setting for every chart on the page. A page
+ * that draws its own button (the dashboard's tab bar) sets `toggle: false` in the
+ * payload and calls Timeline.setFull().
  */
 const Timeline = (() => {
   const DAY = 86400000;
@@ -23,9 +30,17 @@ const Timeline = (() => {
     return e;
   };
 
+  let full = false;
+  const mounted = [];
+
   function render(container, data) {
-    const any = (data.rows || []).some((r) => r.pre_start);
-    draw(container, data, false, any);
+    if (!mounted.some((m) => m.container === container)) mounted.push({ container, data });
+    draw(container, data, full, data.toggle !== false);
+  }
+
+  function setFull(on) {
+    full = on;
+    mounted.forEach((m) => draw(m.container, m.data, full, m.data.toggle !== false));
   }
 
   function draw(container, data, full, offer) {
@@ -37,7 +52,7 @@ const Timeline = (() => {
     }
     const showPre = full;
     const showFlower = true;
-    const rowsIn = data.rows.filter((r) => (full ? (r.start || r.pre_start) : r.start));
+    const rowsIn = data.rows.filter((r) => (full ? (r.start || r.pre_start) : r.start) || r.segments);
 
     const today = parse(data.today);
     let t0, t1;
@@ -45,6 +60,8 @@ const Timeline = (() => {
     rowsIn.forEach((r) => {
       if (showFlower && r.start) { lo.push(parse(r.start)); hi.push(parse(r.end)); }
       if (showPre && r.pre_start) { lo.push(parse(r.pre_start)); hi.push(r.start ? parse(r.start) : today); }
+      if (showPre && r.post_end) hi.push(parse(r.post_end));
+      (r.segments || []).forEach((sg) => { lo.push(parse(sg.start)); hi.push(parse(sg.end)); });
     });
     if (!full && data.start && data.end) {
       // The default keeps the server's bounds, so it is unchanged by all of this.
@@ -60,13 +77,17 @@ const Timeline = (() => {
 
     const inner = el('div', 'tl-inner');
     container.appendChild(inner);
+    if (data.day_px) {
+      const labelPx = parseInt(getComputedStyle(container).getPropertyValue('--label-w'), 10) || 200;
+      inner.style.minWidth = (labelPx + total * data.day_px) + 'px';
+    }
 
     if (offer) {
       const sw = el('div', 'tl-views');
       const b = el('button', 'tl-view' + (full ? ' on' : ''), 'Full cycle');
       b.type = 'button';
       b.setAttribute('aria-pressed', full ? 'true' : 'false');
-      b.addEventListener('click', () => draw(container, data, !full, offer));
+      b.addEventListener('click', () => setFull(!full));
       sw.appendChild(b);
       inner.appendChild(sw);
     }
@@ -86,7 +107,11 @@ const Timeline = (() => {
       if (m > t0) boundaries.push(pct(m));
       m = next;
     }
-    inner.appendChild(months);
+    // The empty corner over the names, so a pinned header never shows names scrolling under it.
+    const head = el('div', 'tl-head');
+    head.appendChild(el('div', 'tl-corner'));
+    head.appendChild(months);
+    inner.appendChild(head);
 
     const rows = el('div', 'tl-rows');
     inner.appendChild(rows);
@@ -135,21 +160,64 @@ const Timeline = (() => {
         const days = Math.round((pe - ps) / DAY);
         pre.addEventListener('mouseenter', (ev) => open(ev,
           `<strong>${escape(r.label)}</strong>` +
-          `${fmt(ps)} → ${r.start ? fmt(pe) : 'still'} (${days} days before flower)<br>` +
+          `${fmt(ps)} → ${r.start ? fmt(pe) : 'still'} (${days} days ${'post_end' in r ? 'before coming in' : 'before flower'})<br>` +
           (r.space ? `${escape(r.space)}<br>` : '') +
           `<span class="tip-strains">${escape(r.strains.join(', ') || 'no living plants')}</span>`));
         wire(pre);
         track.appendChild(pre);
       }
 
-      if (showFlower && r.start) {
+      // After: the rest of the plants' lives once they left this space. Behind the bar too.
+      if (showPre && r.post_end && r.end) {
+        const ps = parse(r.end), pe = parse(r.post_end);
+        const post = el('div', 'tl-bar pre');
+        if (r.post_open) post.classList.add('open');
+        post.style.left = pct(ps) + '%';
+        post.style.width = Math.max(pct(pe) - pct(ps), 0.6) + '%';
+        post.style.background = r.color;
+        const days = Math.round((pe - ps) / DAY);
+        post.addEventListener('mouseenter', (ev) => open(ev,
+          `<strong>${escape(r.label)}</strong>` +
+          `${fmt(ps)} → ${r.post_open ? 'still' : fmt(pe)} (${days} days after leaving)<br>` +
+          `<span class="tip-strains">${escape(r.strains.join(', ') || 'no living plants')}</span>`));
+        wire(post);
+        track.appendChild(post);
+      }
+
+      if (r.segments) {
+        r.segments.forEach((sg, i) => {
+          const ss = parse(sg.start), se = parse(sg.end);
+          const seg = el('div', `tl-bar tl-seg ${sg.status}`);
+          seg.style.left = pct(ss) + '%';
+          seg.style.width = Math.max(pct(se) - pct(ss), 0.25) + '%';
+          if (pct(se) - pct(ss) > 4) seg.appendChild(el('span', 'txt', sg.status));
+          const last = i === r.segments.length - 1;
+          const how = last && r.ended
+            ? ` · then ${r.ended}${r.end_reason ? ' (' + escape(r.end_reason) + ')' : ''}` : '';
+          seg.addEventListener('mouseenter', (ev) => open(ev,
+            `<strong>${escape(r.label)}</strong>` +
+            `${escape(sg.status)} · ${fmt(ss)} → ${fmt(se)} (${sg.days} days)${how}<br>` +
+            `<span class="tip-strains">${escape(r.strains.join(', '))}</span>`));
+          wire(seg);
+          track.appendChild(seg);
+        });
+        if (r.ended) {
+          const cap = el('div', `tl-end ${r.ended}`);
+          cap.style.left = pct(parse(r.end)) + '%';
+          cap.title = r.ended;
+          track.appendChild(cap);
+        }
+      }
+
+      if (showFlower && r.start && !r.segments) {
         const s = parse(r.start), e = parse(r.end);
         const bar = el('div', 'tl-bar');
         bar.style.left = pct(s) + '%';
         bar.style.width = Math.max(pct(e) - pct(s), 0.6) + '%';
         bar.style.background = r.color;
         if (today < s) bar.classList.add('future');
-        if (today >= e) bar.classList.add('done');
+        // `open`: a space stay still going, drawn to today. Not finished, so not dimmed.
+        if (today >= e && !r.open) bar.classList.add('done');
 
         if (today > s && today < e) {
           const elapsed = el('div', 'elapsed');
@@ -161,7 +229,7 @@ const Timeline = (() => {
         bar.addEventListener('mouseenter', (ev) => {
           const dof = r.day_of_flower ? ` · day ${r.day_of_flower}` : '';
           open(ev, `<strong>${escape(r.label)}</strong>` +
-            `${fmt(s)} → ${fmt(e)} (${r.days} days)${dof}<br>` +
+            `${fmt(s)} → ${r.open ? 'still there' : fmt(e)} (${r.days} days)${dof}<br>` +
             (r.space ? `${escape(r.space)}<br>` : '') +
             `<span class="tip-strains">${escape(r.strains.join(', ') || 'no living plants')}</span>`);
         });
@@ -180,6 +248,8 @@ const Timeline = (() => {
       line.appendChild(el('div', 'tl-today-label', 'today'));
       rows.appendChild(line);
     }
+
+    if (data.day_px) container.scrollLeft = container.scrollWidth;
 
     function position(ev) {
       const rect = inner.getBoundingClientRect();
@@ -205,7 +275,7 @@ const Timeline = (() => {
     });
   }
 
-  return { render, mount };
+  return { render, mount, setFull };
 })();
 
 document.addEventListener('DOMContentLoaded', () => Timeline.mount('[data-timeline]'));

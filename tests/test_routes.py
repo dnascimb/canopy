@@ -1,5 +1,5 @@
 import re
-from datetime import date
+from datetime import date, timedelta
 
 from canopy.extensions import db
 from canopy.models import Group, JournalEntry, Plant, PlantStatus, Space, Strain
@@ -9,6 +9,7 @@ def test_pages_render(client):
     for url in [
         "/",
         "/schedule/",
+        "/history/",
         "/schedule/print",
         "/schedule/restore",
         "/groups/",
@@ -106,6 +107,36 @@ def test_a_culled_plant_leaves_the_timeline(client):
     labels = [r["label"] for r in client.get("/api/v1/timeline").get_json()["rows"]]
     assert "Pollen Donor" not in labels
     assert "Pollen Donor" not in client.get("/").data.decode()
+
+
+def test_dashboard_timeline_shows_the_last_year_and_at_most_33_rows(app, client):
+    """Older runs crowd the dashboard Gantt; the Schedule page still has all of them."""
+    from flask import template_rendered
+
+    from canopy.services import lifecycle
+
+    strain = db.session.query(Strain).first()
+    old = Plant(label="Last Season", strain=strain)
+    db.session.add(old)
+    lifecycle.set_flip([old], date(2025, 6, 1), days=60)
+    for i in range(40):
+        p = Plant(label=f"Recent {i}", strain=strain)
+        db.session.add(p)
+        lifecycle.set_flip([p], date(2026, 5, 1) + timedelta(days=i), days=60)
+    db.session.commit()
+
+    seen = []
+
+    def record(_app, template, context, **kw):
+        seen.append(context)
+
+    with template_rendered.connected_to(record, app):
+        client.get("/")
+    labels = [r["label"] for r in seen[0]["rows"]]
+    timeline = [r["label"] for r in client.get("/api/v1/timeline").get_json()["rows"]]
+    assert "Last Season" in timeline
+    assert "Last Season" not in labels
+    assert labels == [t for t in timeline if t != "Last Season"][-33:]
 
 
 def test_dashboard_hides_secondary_sections_on_a_phone(client):
@@ -893,3 +924,54 @@ def test_a_plant_note_needs_text_and_a_date_that_has_happened(client):
     for data in ({"noted_on": "2026-09-07", "text": "  "}, {"noted_on": "2026-09-08", "text": "x"}):
         client.post(f"/plants/{p.id}/note", data=data, follow_redirects=True)
         assert p.notes == before
+
+
+def test_dashboard_has_veg_and_clone_tabs_beside_the_flowering_timeline(client):
+    html = client.get("/").data.decode()
+    tabs = html.split("data-tabs")[1].split("</div>")[0]
+    assert "Flowering" in tabs
+    for s in db.session.query(Space).all():
+        if s.stage.value in ("clone", "vegetative"):
+            assert s.name in tabs
+    assert html.count("data-timeline") == tabs.count("data-tab=")
+
+
+def test_dashboard_cards_follow_the_tab(client):
+    """Each tab has its own cards: what is in that space now, the open bars on its chart."""
+    from canopy.services import lifecycle
+
+    shelf = next(s for s in db.session.query(Space).all() if s.stage.value == "clone")
+    p = Plant(label="Fresh Cut", strain=db.session.query(Strain).first())
+    db.session.add(p)
+    lifecycle.record(p, PlantStatus.clone, on=date(2026, 9, 1), space=shelf)
+    db.session.commit()
+
+    html = client.get("/").data.decode()
+    cards = html.split(f'<section data-tab-panel="space-{shelf.id}" hidden>')[1]
+    cards = cards.split("</section>")[0]
+    assert f"In {shelf.name} now" in cards and "Fresh Cut" in cards
+    assert '<section data-tab-panel="flower">' in html
+    assert "data-full" in html, "Full cycle sits in the tab bar on every tab"
+
+
+def test_inventory_export_zips_json_and_markdown_of_every_strain(client):
+    import io
+    import json
+    import zipfile
+
+    html = client.get("/strains/?q=zzzz-no-match").data.decode()
+    assert 'href="/strains/export.zip"' in html
+
+    res = client.get("/strains/export.zip")
+    assert res.mimetype == "application/zip"
+    assert 'filename="canopy-inventory-2026-09-07.zip"' in res.headers["Content-Disposition"]
+    z = zipfile.ZipFile(io.BytesIO(res.data))
+    assert sorted(z.namelist()) == [
+        "canopy-inventory-2026-09-07.json",
+        "canopy-inventory-2026-09-07.md",
+    ]
+    data = json.loads(z.read("canopy-inventory-2026-09-07.json"))
+    names = {s.name for s in db.session.query(Strain).all()}
+    assert {s["name"] for s in data["strains"]} == names, "the whole inventory, not the filter"
+    md = z.read("canopy-inventory-2026-09-07.md").decode()
+    assert all(f"### {n}" in md for n in names)

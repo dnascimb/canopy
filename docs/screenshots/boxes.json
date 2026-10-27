@@ -6,23 +6,23 @@
     "x": 18,
     "y": 66,
     "width": 187,
-    "height": 352.375
+    "height": 391.75
    }
   },
   {
    "selector": "[data-timeline]",
    "box": {
     "x": 275,
-    "y": 135.484375,
+    "y": 177.921875,
     "width": 1034,
-    "height": 559.4375
+    "height": 525
    }
   },
   {
    "selector": ".flower-list",
    "box": {
     "x": 256,
-    "y": 801.71875,
+    "y": 809.71875,
     "width": 700,
     "height": 349.875
    }
@@ -221,9 +221,9 @@
   {
    "selector": ".page-head .actions",
    "box": {
-    "x": 1233.6875,
+    "x": 1095.296875,
     "y": 59.65625,
-    "width": 94.3125,
+    "width": 232.703125,
     "height": 36.6875
    }
   },

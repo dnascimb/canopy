@@ -117,6 +117,7 @@ def main() -> None:
     shots = [
         ("dashboard", "/", True),
         ("schedule", "/schedule/", True),
+        ("history", "/history/", True),
         ("groups", "/groups/?view=all", True),
         ("group_detail", f"/groups/{g6}", True),
         ("group_with_kills", f"/groups/{g4}", True),

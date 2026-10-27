@@ -35,6 +35,7 @@ def create_app(config_object: type[Config] | None = None) -> Flask:
         dashboard,
         groups,
         help,
+        history,
         journal,
         plants,
         reports,
@@ -48,6 +49,7 @@ def create_app(config_object: type[Config] | None = None) -> Flask:
     app.register_blueprint(plants.bp, url_prefix="/plants")
     app.register_blueprint(groups.bp, url_prefix="/groups")
     app.register_blueprint(schedule.bp, url_prefix="/schedule")
+    app.register_blueprint(history.bp, url_prefix="/history")
     app.register_blueprint(spaces.bp, url_prefix="/spaces")
     app.register_blueprint(journal.bp, url_prefix="/journal")
     app.register_blueprint(reports.bp, url_prefix="/reports")

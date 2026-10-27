@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}History{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>History</h1>
+    <p class="sub">Every plant on record, {{ rows|length }} in all, from the day it started to the day it came down.</p>
+  </div>
+</div>
+
+<div class="panel">
+  <div data-timeline class="timeline scroll">
+    <script type="application/json">{{ {'today': ref.isoformat(), 'start': None, 'end': None, 'rows': rows, 'toggle': False, 'day_px': 7}|tojson }}</script>
+  </div>
+  <div class="tl-legend">
+    <span><i style="background: var(--blue)"></i> clone</span>
+    <span><i style="background: var(--green-soft)"></i> seedling</span>
+    <span><i style="background: var(--green)"></i> vegetative</span>
+    <span><i style="background: var(--accent)"></i> flowering</span>
+    <span><i style="background: var(--line)"></i> no stages recorded</span>
+    <span><i style="width: 3px; background: var(--text-soft)"></i> harvested</span>
+    <span><i style="width: 3px; background: var(--red)"></i> killed</span>
+    <span><i class="td"></i> today</span>
+    <span>hover a section for detail · click to open the plant</span>
+  </div>
+</div>
+{% endblock %}

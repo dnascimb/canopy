@@ -257,6 +257,200 @@ def timeline_rows(
     return rows
 
 
+def space_stay(plant: Plant, space_id: int) -> tuple[date, date | None] | None:
+    """When a plant first came into a space and when it last left, read off its events.
+
+    None if it was never there. The end is None while it is still there. Each event puts
+    the plant in the event's space; harvested and killed put it nowhere.
+    """
+    gone = (PlantStatus.harvested, PlantStatus.killed)
+    first = last_out = None
+    inside = False
+    for e in sorted(plant.events, key=lambda e: (e.on, e.id or 0)):
+        here = e.space_id == space_id and e.to_status not in gone
+        if here and not inside:
+            first = first or e.on
+        elif inside and not here:
+            last_out = e.on
+        inside = here
+    if first is None:
+        return None
+    if inside and plant.status in gone:
+        # Rows entered before the event log carry only ended_on.
+        return first, plant.ended_on or first
+    return first, None if inside else last_out
+
+
+def life_span(plant: Plant) -> tuple[date | None, date | None]:
+    """The first day we know of a plant, and the day it was cut or culled (None if alive)."""
+    gone = (PlantStatus.harvested, PlantStatus.killed)
+    days = [e.on for e in plant.events]
+    if plant.started_on:
+        days.append(plant.started_on)
+    ends = [e.on for e in plant.events if e.to_status in gone]
+    end = max(ends) if ends else (plant.ended_on if plant.status in gone else None)
+    return (min(days) if days else None), end
+
+
+def space_rows(plants: Iterable[Plant], space: Space, *, ref: date | None = None) -> list[dict]:
+    """Timeline rows for the time plants spent in one space, a row per group or lone plant.
+
+    The same shape as timeline_rows(), so the Gantt draws it unchanged. A bar runs from the
+    first plant in to the last plant out, or to today with `open` set while any is still
+    there. Culled plants are left out, as they are from the flowering timeline.
+
+    For the Full cycle view, `pre_start` is the first day of the plants' lives when that is
+    before they came in, and `post_end` how far their lives ran after they all left: the
+    last cut, or today with `post_open` set while any is still alive somewhere else.
+    """
+    ref = ref or today()
+    units: dict[tuple[str, int], tuple[Group | LonePlant, list[Plant], list]] = {}
+    for p in plants:
+        if not p.is_alive:
+            continue
+        stay = space_stay(p, space.id)
+        # In and out on the same day is a move taken back, not a stay.
+        if stay is None or stay[0] == stay[1]:
+            continue
+        key = ("g", p.group_id) if p.group_id else ("p", p.id)
+        unit = p.group if p.group_id else LonePlant(p)
+        units.setdefault(key, (unit, [], []))
+        units[key][1].append(p)
+        units[key][2].append(stay)
+
+    rows = []
+    for unit, members, stays in units.values():
+        start = min(s for s, _ in stays)
+        still = any(e is None for _, e in stays)
+        end = ref if still else max(e for _, e in stays)
+        days = max((end - start).days, 0)
+        lives = [life_span(p) for p in members]
+        born = [b for b, _ in lives if b is not None]
+        pre = min(born) if born and min(born) < start else None
+        post_end, post_open = None, False
+        if not still:
+            post_open = any(d is None for _, d in lives)
+            last = ref if post_open else max(d for _, d in lives)
+            post_end = last if last > end else None
+            post_open = post_open and post_end is not None
+        rows.append(
+            {
+                "id": unit.id,
+                "href": unit.href,
+                "number": unit.number,
+                "label": unit.label,
+                "start": start.isoformat(),
+                "end": end.isoformat(),
+                "open": still,
+                "pre_start": pre.isoformat() if pre else None,
+                "post_end": post_end.isoformat() if post_end else None,
+                "post_open": post_open,
+                "days": days,
+                "color": unit.color,
+                "status": unit.status.value,
+                "space": space.name,
+                "strains": unit.strain_labels(members),
+                "plant_count": len(members),
+                "progress": 0,
+                "day_of_flower": None,
+            }
+        )
+    rows.sort(key=lambda r: (r["start"], r["number"]))
+    return rows
+
+
+def recent_rows(rows: list[dict], *, ref: date | None = None, limit: int = 33) -> list[dict]:
+    """The last year of rows, and at most the `limit` latest of those. Rows come oldest
+    first, as timeline_rows() and space_rows() return them.
+
+    Rows with no end have not flipped and only show in the Full cycle view; they are kept
+    and do not count toward the limit, so turning Full cycle on never drops a bar.
+    """
+    since = ((ref or today()) - timedelta(days=365)).isoformat()
+    dated = [r for r in rows if r["end"] and r["end"] >= since][-limit:]
+    return dated + [r for r in rows if not r["end"]]
+
+
+def history_rows(plants: Iterable[Plant], *, ref: date | None = None) -> list[dict]:
+    """Every plant ever recorded, a row each, made of the stretches it spent in each stage.
+
+    The plant page's life strip laid on a calendar. Harvested and killed are where a row
+    ends, not stages, so they are not drawn as sections: `ended` says which, on `end`.
+    Back-to-back stretches in one stage (a flowering plant moved rooms) are one section.
+    A plant from before the event log has no stages, only its start and end dates, and
+    is drawn as one unrecorded section, unless its first event says what it was before.
+    """
+    from .lifecycle import stage_spans
+
+    ref = ref or today()
+    gone = (PlantStatus.harvested, PlantStatus.killed)
+    rows = []
+    for p in plants:
+        segments: list[dict] = []
+        spans = stage_spans(p, ref=ref)
+        log = sorted(p.events, key=lambda e: (e.on, e.id or 0))
+        # The first event can say what the plant was before it ("vegetative -> killed"),
+        # which is all some plants logged. That stage runs from the start date, or is a
+        # single day where there is none.
+        if log and log[0].from_status and log[0].from_status not in gone:
+            first = log[0].on
+            begin = p.started_on if p.started_on and p.started_on < first else first
+            spans.insert(
+                0,
+                {
+                    "status": log[0].from_status,
+                    "start": begin,
+                    "end": first,
+                    "days": (first - begin).days,
+                },
+            )
+        for sp in spans:
+            if sp["status"] in gone:
+                continue
+            if segments and segments[-1]["status"] == sp["status"].value:
+                segments[-1]["end"] = sp["end"].isoformat()
+                segments[-1]["days"] += sp["days"]
+                continue
+            segments.append(
+                {
+                    "status": sp["status"].value,
+                    "start": sp["start"].isoformat(),
+                    "end": sp["end"].isoformat(),
+                    "days": sp["days"],
+                }
+            )
+        born, died = life_span(p)
+        if not segments and born:
+            end = died or ref
+            segments.append(
+                {
+                    "status": "unrecorded",
+                    "start": born.isoformat(),
+                    "end": end.isoformat(),
+                    "days": (end - born).days,
+                }
+            )
+        if not segments:
+            continue
+        ended = p.status.value if p.status in gone else None
+        rows.append(
+            {
+                "id": p.id,
+                "href": f"/plants/{p.id}",
+                "label": p.label,
+                "strains": [p.strain.name],
+                "start": segments[0]["start"],
+                "end": segments[-1]["end"],
+                "segments": segments,
+                "ended": ended,
+                "end_reason": p.end_reason if ended else None,
+                "days": sum(sg["days"] for sg in segments),
+            }
+        )
+    rows.sort(key=lambda r: (r["start"], r["id"]))
+    return rows
+
+
 def timeline_bounds(rows: list[dict], *, pad_days: int = 7) -> tuple[date, date]:
     if not rows:
         t = today()

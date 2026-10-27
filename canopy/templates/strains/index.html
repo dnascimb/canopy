@@ -6,7 +6,7 @@
 {% set shown = matching|length %}
 <div class="page-head">
   <div><h1>Seed &amp; clone inventory</h1><p class="sub"><span data-inventory-count aria-live="polite">{{ shown }} strain{{ '' if shown == 1 else 's' }}{% if filtered %} matching your filter{% endif %}</span>. Flower days here are the default when you plan a group.</p></div>
-  <div class="actions"><a class="btn primary" href="{{ url_for('strains.create') }}">Add strain</a></div>
+  <div class="actions"><a class="btn" href="{{ url_for('strains.export_zip') }}" title="Every strain as JSON and Markdown, zipped">Export inventory</a><a class="btn primary" href="{{ url_for('strains.create') }}">Add strain</a></div>
 </div>
 <form class="filters" method="get" role="search" data-inventory-filters data-no-breeder="{{ no_breeder }}">
   <input type="search" name="q" value="{{ q }}" placeholder="Search name, breeder, lineage" aria-label="Search" autocomplete="off" spellcheck="false">

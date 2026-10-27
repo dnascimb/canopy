@@ -86,6 +86,13 @@ rendered client-side by `static/js/timeline.js` from JSON that the templates inl
 * "Today" comes from `scheduling.today()`, which honours `CANOPY_TODAY`. Never call
   `date.today()` directly in app code.
 * Events on the same day sort **end before start**, then by group number.
+* **Dashboard timeline tabs.** Flowering, plus one tab per clone and veg space built by
+  `scheduling.space_rows()` from each plant's events (no stage is inferred from dates).
+  Every tab goes through `recent_rows()`: last 365 days, latest 33. The cards under the
+  chart follow the tab. Full cycle is one setting for every chart on the page
+  (`Timeline.setFull`); the dashboard draws the button in its tab bar (`toggle: false`).
+* **History draws every plant, uncapped**, from `scheduling.history_rows()` — the plant
+  page's `stage_spans` on a calendar. Harvested/killed are row ends, not sections.
 * **`timeline_bounds()` reads flower spans only.** Pre-flower spans reach months further
   back; folding them in would shrink every flower bar with the Full cycle toggle off. The
   renderer widens the axis itself when the toggle is on.

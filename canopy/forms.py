@@ -176,7 +176,7 @@ class TakeCuttingsForm(FlaskForm):
     """Take several cuttings off one plant in a single pass."""
 
     count = IntegerField(
-        "How many", validators=[DataRequired(), NumberRange(min=1, max=200)], default=2
+        "How many", validators=[DataRequired(), NumberRange(min=1, max=200)], default=1
     )
     space_id = SelectField("Into", coerce=int, validators=[Optional()])
     taken_on = DateField("Taken on", validators=[DataRequired()])

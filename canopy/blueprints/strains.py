@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
+from flask import Blueprint, Response, abort, flash, redirect, render_template, request, url_for
 from sqlalchemy import func
 
 from ..extensions import db
 from ..forms import StrainForm
 from ..models import Expression, Plant, PlantSize, PlantStatus, SeedType, Strain
-from ..services import inventory
+from ..services import inventory, inventory_export
+from ..services import scheduling as sched
 
 bp = Blueprint("strains", __name__)
 
@@ -45,6 +46,18 @@ def index():
         day_ranges=inventory.DAY_RANGES,
         no_breeder=inventory.NO_BREEDER,
         filtered=f.active,
+    )
+
+
+@bp.get("/export.zip")
+def export_zip():
+    """The whole inventory, JSON and Markdown, zipped."""
+    today = sched.today()
+    name = f"canopy-inventory-{today.isoformat()}.zip"
+    return Response(
+        inventory_export.to_zip(today),
+        mimetype="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{name}"'},
     )
 
 

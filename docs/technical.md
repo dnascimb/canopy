@@ -112,6 +112,23 @@ label, ISO start/end, days, colour, status, space, strain names of living plants
 count, progress and day of flower. Sorted by start date then number; groups with no flip date
 are omitted.
 
+**`recent_rows(rows, limit=33)`** — the dashboard's cut: rows that ended in the last 365
+days, then the latest `limit` of those. Rows with no end (not flipped; Full cycle only) are
+kept on top of the limit.
+
+**`space_stay(plant, space_id)` / `space_rows(plants, space)`** — the dashboard's Veg and
+Clone tabs. A plant's stay is read off its events: each event puts it in the event's
+space, harvested and killed put it nowhere; the stay runs from first in to last out, or is
+open while it is still there. Rows are one per group or lone plant, in the
+`timeline_rows` shape, with `open`, and for Full cycle `pre_start` (life before coming in)
+and `post_end`/`post_open` (life after leaving). Culled plants and same-day round trips
+are left out.
+
+**`history_rows(plants)`** — the History page: one row per plant with `segments`, the
+`lifecycle.stage_spans` stretches minus harvested/killed, back-to-back stretches in one
+stage merged, plus `ended` and `end_reason`. A first event's `from_status` supplies the
+stage before it.
+
 **`timeline_bounds(rows, pad_days=7)`** — min start − pad to max end + pad.
 
 There is no floor-area model. Square footage per plant used to be derived from the strain's

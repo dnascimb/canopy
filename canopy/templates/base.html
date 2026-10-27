@@ -20,6 +20,8 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg><span>Dashboard</span></a>
       <a href="{{ url_for('schedule.index') }}" class="{{ 'active' if ep.startswith('schedule.') }}">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg><span>Schedule</span></a>
+      <a href="{{ url_for('history.index') }}" class="{{ 'active' if ep.startswith('history.') }}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 7v5l3 3"/></svg><span>History</span></a>
       <a href="{{ url_for('groups.index') }}" class="{{ 'active' if ep.startswith('groups.') }}">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h13"/></svg><span>Groups</span></a>
       <a href="{{ url_for('plants.index') }}" class="{{ 'active' if ep.startswith('plants.') }}">

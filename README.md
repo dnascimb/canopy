@@ -11,11 +11,12 @@ comes down.
 
 | Area | What you can do |
 | --- | --- |
-| **Dashboard** | Season timeline (Gantt), groups in flower with day counters, and the next 30 days of milestones. |
+| **Dashboard** | Season timeline (Gantt) with Flowering, Veg and Clone tabs and a Full cycle toggle; the cards below follow the tab (in flower now, or what is in that space now); the next 30 days of milestones. The timeline shows the last year, latest 33 rows. |
+| **History** | Every plant on record on one scrolling chart, a row each, split into its clone, seedling, veg and flower stretches, ending in a harvest or kill mark. No row limit. |
 | **Schedule** | Full event table (every start and end of flower, sortable on any column, future milestones shaded), print view, Markdown export (bulleted groups + event table + ASCII timeline for Joplin/Obsidian/GitHub), JSON backup and restore. |
 | **Groups** | Create batches, record the flip date on the day it happens, set flower days, assign a space, track status (vegetative → flowering → drying → done), record harvests — which bring the plants down and start the group drying — and journal entries. |
 | **Plants** | Individual plants of a strain in a group, with status, start/end dates, kill reason, notes; filter by status, group or strain. |
-| **Inventory** | Strains with breeder, lineage, seed type, expression (sativa/haze/indica/hybrid), default flower days and seed count with +/− adjusters. Search plus stacking filters on type, expression, breeder and flower length; every column sorts. |
+| **Inventory** | Strains with breeder, lineage, seed type, expression (sativa/haze/indica/hybrid), default flower days and seed count with +/− adjusters. Search plus stacking filters on type, expression, breeder and flower length; every column sorts. **Export inventory** downloads every strain as JSON and Markdown in one zip. |
 | **Spaces** | Clone shelf, veg tent, flower tent — each with a stage, any extra stages it doubles up for, and the number of plants it holds. Canopy shows where every plant is, how much room is left, and a season load chart for the flower tent. There is no floor-area model: how many fit is your number. |
 | **Journal & quick log** | Tick what you did, add a note and a photo, done — from the Journal page or a group's page. Plus longer dated notes, filterable by space and task. Free-form: nothing in the journal feeds the schedule or any report. |
 | **Reports** | Survival per strain, why plants were lost, tent load over the season. |
@@ -84,7 +85,9 @@ canopy/                 application package (Flask app factory in __init__.py)
   forms.py              WTForms definitions
   cli.py                flask CLI commands
   services/
-    scheduling.py       events, timeline rows, exports
+    scheduling.py       events, timeline, space-stay and history rows, exports
+    inventory.py        inventory filter
+    inventory_export.py inventory download (JSON + Markdown, zipped)
     spacing.py          plant locations, occupancy, moves, load series
     reports.py          per-strain and per-group aggregations
     transfer.py         JSON backup / restore

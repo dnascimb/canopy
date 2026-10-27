@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+- **History page.** Every plant on record — 244 today — on one chart, a row each, split
+  into its clone, seedling, veg and flower stretches like the plant page's life strip,
+  ending in a grey (harvested) or red (killed) mark. No row limit. The chart scrolls both
+  ways inside its own box with the month header and names pinned, and opens on today. A
+  plant whose only event is its kill ("vegetative → killed") is drawn in that stage.
+- **Veg and Clone tabs on the dashboard timeline.** Beside Flowering, one tab per veg and
+  clone space shows how long each group or lone plant has been in it, read off its moves;
+  a stay still running reaches today. The cards below follow the tab ("In Veg Tent now").
+  **Full cycle** sits in the tab bar, keeps its state across tabs, and on a space tab adds
+  the plants' lives before they came in and after they left. The Schedule page's Full
+  cycle button now always shows.
+- **The dashboard timeline shows the last year, latest 33 rows.** The Schedule and History
+  pages still show everything.
+- **Timeline names are wider** (200px, wrapping to two lines) instead of ending in "…".
+- **Export inventory.** A button on the Inventory page downloads every strain as JSON and
+  Markdown in one zip.
+- **Take cuttings defaults to 1**, not 2.
+
 - **A group's flower card names only the plants in flower.** Blazing Sword #9M, a male,
   went into the flower room alone, and group 24's card and timeline bar read "Blazing Sword
   ×4" — his three siblings still in veg included. A group's run is now described by

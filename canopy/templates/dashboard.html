@@ -20,13 +20,25 @@
 </div>
 
 <section class="m-hide">
-  <div class="section-head"><h2>Flowering timeline</h2><span class="hint">Full timeline and exports on the <a href="{{ url_for('schedule.index') }}">Schedule</a> page</span></div>
-  <div class="panel">{{ timeline(rows, ref) }}</div>
+  <div class="section-head"><h2>Timeline</h2><span class="hint">Full timeline and exports on the <a href="{{ url_for('schedule.index') }}">Schedule</a> page</span></div>
+  <div class="panel">
+    <div class="tl-views" data-tabs>
+      <span role="tablist" class="tl-views">
+        <button class="tl-view on" type="button" role="tab" aria-selected="true" data-tab="flower">Flowering</button>
+        {% for s, _ in stay_tabs %}<button class="tl-view" type="button" role="tab" aria-selected="false" data-tab="space-{{ s.id }}">{{ s.name }}</button>{% endfor %}
+      </span>
+      <button class="tl-view" type="button" aria-pressed="false" data-full style="margin-left:auto">Full cycle</button>
+    </div>
+    <div data-tab-panel="flower">{{ timeline(rows, ref, toggle=False) }}</div>
+    {% for s, stay_rows in stay_tabs %}
+    <div data-tab-panel="space-{{ s.id }}" hidden>{{ timeline(stay_rows, ref, window='time in ' ~ s.name ~ ', to today while still there', toggle=False) }}</div>
+    {% endfor %}
+  </div>
 </section>
 
 <div class="dash">
   <div class="dash-main">
-    <section>
+    <section data-tab-panel="flower">
       <div class="section-head"><h2>In flower now</h2><span class="hint">sorted by harvest date</span></div>
       {% if active %}
       <div class="flower-list">
@@ -43,6 +55,25 @@
       <div class="panel empty">Nothing is flowering today.</div>
       {% endif %}
     </section>
+    {% for s, stay_rows in stay_tabs %}
+    {% set here = stay_rows|selectattr('open')|sort(attribute='start')|list %}
+    <section data-tab-panel="space-{{ s.id }}" hidden>
+      <div class="section-head"><h2>In {{ s.name }} now</h2><span class="hint">longest there first</span></div>
+      {% if here %}
+      <div class="flower-list">
+        {% for r in here %}
+        <div class="flower-card" style="border-left-color: {{ r.color }}">
+          <div class="title"><a href="{{ r.href }}">{{ r.label }}</a><span class="mono small muted">{{ r.days }} {{ 'day' if r.days == 1 else 'days' }}</span></div>
+          <div class="strains" title="{{ r.strains|join(', ') }}">{{ r.strains|join(', ') or 'no living plants' }}</div>
+          <div class="meta"><span>in since {{ r.start|todate|d }}</span><span>{{ r.plant_count }} {{ 'plant' if r.plant_count == 1 else 'plants' }}</span></div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="panel empty">Nothing in {{ s.name }} today.</div>
+      {% endif %}
+    </section>
+    {% endfor %}
   </div>
 
   <div class="dash-rail m-hide">
@@ -73,4 +104,29 @@
 
   </div>
 </div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.querySelectorAll('[data-tabs]').forEach((bar) => {
+  // The chart and the cards below it both follow the tab.
+  const panels = document.querySelectorAll('[data-tab-panel]');
+  bar.addEventListener('click', (ev) => {
+    const f = ev.target.closest('[data-full]');
+    if (f) {
+      const on = f.getAttribute('aria-pressed') !== 'true';
+      f.setAttribute('aria-pressed', on ? 'true' : 'false');
+      f.classList.toggle('on', on);
+      Timeline.setFull(on);
+      return;
+    }
+    const b = ev.target.closest('[data-tab]');
+    if (!b) return;
+    bar.querySelectorAll('[data-tab]').forEach((t) => {
+      t.classList.toggle('on', t === b);
+      t.setAttribute('aria-selected', t === b ? 'true' : 'false');
+    });
+    panels.forEach((p) => { p.hidden = p.dataset.tabPanel !== b.dataset.tab; });
+  });
+});
+</script>
 {% endblock %}

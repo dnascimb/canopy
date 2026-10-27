@@ -28,13 +28,13 @@
   </form>
 {% endmacro %}
 
-{% macro timeline(rows, ref, start=None, end=None) %}
+{% macro timeline(rows, ref, start=None, end=None, window='flowering window', toggle=True) %}
   <div data-timeline class="timeline">
-    <script type="application/json">{{ {'today': ref.isoformat(), 'start': start, 'end': end, 'rows': rows}|tojson }}</script>
+    <script type="application/json">{{ {'today': ref.isoformat(), 'start': start, 'end': end, 'rows': rows, 'toggle': toggle}|tojson }}</script>
   </div>
   <div class="tl-legend">
-    <span><i></i> flowering window</span>
-    <span><i class="el"></i> elapsed portion</span>
+    <span><i></i> {{ window }}</span>
+    {% if window == 'flowering window' %}<span><i class="el"></i> elapsed portion</span>{% endif %}
     <span><i class="td"></i> today</span>
     <span>hover a bar for detail · click to open the group</span>
   </div>
